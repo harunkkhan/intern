@@ -4,14 +4,50 @@ import { format, parseISO } from "date-fns";
 import type { ApplicationDTO } from "@/lib/types";
 import StatusBadge from "@/components/StatusBadge";
 
+export type SortKey =
+  | "company"
+  | "position"
+  | "term"
+  | "industry"
+  | "companyType"
+  | "appliedAt"
+  | "status";
+
+export type SortDir = "asc" | "desc";
+
+interface SortColumn {
+  key: SortKey;
+  label: string;
+  icon: React.ReactNode;
+  className: string;
+}
+
+const SORT_COLUMNS: SortColumn[] = [
+  { key: "company", label: "Company", icon: <BuildingIcon />, className: "w-[18%]" },
+  { key: "position", label: "Position", icon: <BriefcaseIcon />, className: "w-[20%]" },
+  { key: "term", label: "Term", icon: <TagIcon />, className: "w-[13%]" },
+  { key: "industry", label: "Industry", icon: <LayersIcon />, className: "w-[13%]" },
+  { key: "companyType", label: "Type", icon: <AwardIcon />, className: "w-[13%]" },
+  { key: "appliedAt", label: "Applied", icon: <CalendarIcon />, className: "w-[11%]" },
+  { key: "status", label: "Status", icon: <ActivityIcon />, className: "w-[12%]" },
+];
+
 export default function ApplicationsTable({
   applications,
   selectedId,
   onSelect,
+  sortKey,
+  sortDir,
+  onSort,
+  onClearSort,
 }: {
   applications: ApplicationDTO[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  sortKey: SortKey | null;
+  sortDir: SortDir;
+  onSort: (key: SortKey) => void;
+  onClearSort: () => void;
 }) {
   return (
     <>
@@ -22,122 +58,212 @@ export default function ApplicationsTable({
             No applications match your filters.
           </div>
         ) : (
-          <ul className="flex flex-col gap-2">
-            {applications.map((app, i) => (
-              <li key={app.id}>
-                <button
-                  onClick={() => onSelect(app.id)}
-                  className={`flex w-full flex-col gap-2 border p-4 text-left transition ${
-                    selectedId === app.id
-                      ? "border-neutral-300 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800/50"
-                      : "border-neutral-200 bg-white hover:bg-neutral-50/80 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:bg-neutral-800/50"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="flex items-center gap-2 font-medium text-neutral-900 dark:text-neutral-100">
-                        <span className="text-xs tabular-nums text-neutral-400 dark:text-neutral-500">
-                          {i + 1}
-                        </span>
-                        <span className="truncate">{app.company}</span>
-                      </p>
-                      <p className="mt-0.5 truncate text-sm text-neutral-600 dark:text-neutral-400">
-                        {app.position}
-                      </p>
+          <>
+            <MobileSortBar
+              sortKey={sortKey}
+              sortDir={sortDir}
+              onSort={onSort}
+              onClearSort={onClearSort}
+            />
+            <ul className="flex flex-col gap-2">
+              {applications.map((app, i) => (
+                <li key={app.id}>
+                  <button
+                    onClick={() => onSelect(app.id)}
+                    className={`flex w-full flex-col gap-2 border p-4 text-left transition ${
+                      selectedId === app.id
+                        ? "border-neutral-300 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800/50"
+                        : "border-neutral-200 bg-white hover:bg-neutral-50/80 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:bg-neutral-800/50"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-2 font-medium text-neutral-900 dark:text-neutral-100">
+                          <span className="text-xs tabular-nums text-neutral-400 dark:text-neutral-500">
+                            {i + 1}
+                          </span>
+                          <span className="truncate">{app.company}</span>
+                        </p>
+                        <p className="mt-0.5 truncate text-sm text-neutral-600 dark:text-neutral-400">
+                          {app.position}
+                        </p>
+                      </div>
+                      <StatusBadge status={app.status} />
                     </div>
-                    <StatusBadge status={app.status} />
-                  </div>
-                  <MetaRow app={app} />
-                </button>
-              </li>
-            ))}
-          </ul>
+                    <MetaRow app={app} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </div>
 
       {/* Desktop: full table */}
       <div className="hidden overflow-x-auto border border-neutral-200 bg-white md:block dark:border-neutral-800 dark:bg-neutral-900">
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-neutral-200 text-left text-[13px] font-medium text-neutral-600 dark:border-neutral-800 dark:text-neutral-400">
-            <Th className="w-12 text-center text-neutral-400 dark:text-neutral-500">#</Th>
-            <Th className="w-[18%]">
-              <HeaderLabel icon={<BuildingIcon />}>Company</HeaderLabel>
-            </Th>
-            <Th className="w-[20%]">
-              <HeaderLabel icon={<BriefcaseIcon />}>Position</HeaderLabel>
-            </Th>
-            <Th className="w-[13%]">
-              <HeaderLabel icon={<TagIcon />}>Term</HeaderLabel>
-            </Th>
-            <Th className="w-[13%]">
-              <HeaderLabel icon={<LayersIcon />}>Industry</HeaderLabel>
-            </Th>
-            <Th className="w-[13%]">
-              <HeaderLabel icon={<AwardIcon />}>Type</HeaderLabel>
-            </Th>
-            <Th className="w-[11%]">
-              <HeaderLabel icon={<CalendarIcon />}>Applied</HeaderLabel>
-            </Th>
-            <Th className="w-[12%]">
-              <HeaderLabel icon={<ActivityIcon />}>Status</HeaderLabel>
-            </Th>
-          </tr>
-        </thead>
-        <tbody>
-          {applications.length === 0 ? (
-            <tr>
-              <td
-                colSpan={8}
-                className="px-4 py-12 text-center text-sm text-neutral-400 dark:text-neutral-500"
-              >
-                No applications match your filters.
-              </td>
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-neutral-200 text-left text-[13px] font-medium text-neutral-600 dark:border-neutral-800 dark:text-neutral-400">
+              <Th className="w-12 text-center text-neutral-400 dark:text-neutral-500">
+                #
+              </Th>
+              {SORT_COLUMNS.map((column) => (
+                <SortableTh
+                  key={column.key}
+                  column={column}
+                  active={sortKey === column.key}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
+              ))}
             </tr>
-          ) : (
-            applications.map((app, i) => (
-              <tr
-                key={app.id}
-                onClick={() => onSelect(app.id)}
-                className={`group cursor-pointer border-b border-neutral-100 transition last:border-0 hover:bg-neutral-50/80 dark:border-neutral-800 dark:hover:bg-neutral-800/50 ${
-                  selectedId === app.id
-                    ? "bg-neutral-50 dark:bg-neutral-800/50"
-                    : ""
-                }`}
-              >
-                <Td className="text-center text-xs tabular-nums text-neutral-400 dark:text-neutral-500">
-                  {i + 1}
-                </Td>
-                <Td className="font-medium text-neutral-900 dark:text-neutral-100">
-                  {app.company}
-                </Td>
-                <Td className="text-neutral-700 dark:text-neutral-300">
-                  {app.position}
-                </Td>
-                <Td className="text-neutral-500 dark:text-neutral-400">
-                  {app.term ?? "—"}
-                </Td>
-                <Td className="text-neutral-500 dark:text-neutral-400">
-                  {app.industry ?? "—"}
-                </Td>
-                <Td className="text-neutral-500 dark:text-neutral-400">
-                  {app.companyType ?? "—"}
-                </Td>
-                <Td className="whitespace-nowrap text-neutral-500 dark:text-neutral-400">
-                  {app.appliedAt
-                    ? format(parseISO(app.appliedAt), "MMM d, yyyy")
-                    : "—"}
-                </Td>
-                <Td>
-                  <StatusBadge status={app.status} />
-                </Td>
+          </thead>
+          <tbody>
+            {applications.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={8}
+                  className="px-4 py-12 text-center text-sm text-neutral-400 dark:text-neutral-500"
+                >
+                  No applications match your filters.
+                </td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            ) : (
+              applications.map((app, i) => (
+                <tr
+                  key={app.id}
+                  onClick={() => onSelect(app.id)}
+                  className={`group cursor-pointer border-b border-neutral-100 transition last:border-0 hover:bg-neutral-50/80 dark:border-neutral-800 dark:hover:bg-neutral-800/50 ${
+                    selectedId === app.id
+                      ? "bg-neutral-50 dark:bg-neutral-800/50"
+                      : ""
+                  }`}
+                >
+                  <Td className="text-center text-xs tabular-nums text-neutral-400 dark:text-neutral-500">
+                    {i + 1}
+                  </Td>
+                  <Td className="font-medium text-neutral-900 dark:text-neutral-100">
+                    {app.company}
+                  </Td>
+                  <Td className="text-neutral-700 dark:text-neutral-300">
+                    {app.position}
+                  </Td>
+                  <Td className="text-neutral-500 dark:text-neutral-400">
+                    {app.term ?? "—"}
+                  </Td>
+                  <Td className="text-neutral-500 dark:text-neutral-400">
+                    {app.industry ?? "—"}
+                  </Td>
+                  <Td className="text-neutral-500 dark:text-neutral-400">
+                    {app.companyType ?? "—"}
+                  </Td>
+                  <Td className="whitespace-nowrap text-neutral-500 dark:text-neutral-400">
+                    {app.appliedAt
+                      ? format(parseISO(app.appliedAt), "MMM d, yyyy")
+                      : "—"}
+                  </Td>
+                  <Td>
+                    <StatusBadge status={app.status} />
+                  </Td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </>
+  );
+}
+
+function MobileSortBar({
+  sortKey,
+  sortDir,
+  onSort,
+  onClearSort,
+}: {
+  sortKey: SortKey | null;
+  sortDir: SortDir;
+  onSort: (key: SortKey) => void;
+  onClearSort: () => void;
+}) {
+  return (
+    <div className="mb-2 flex items-center gap-2">
+      <label className="inline-flex flex-1 items-center">
+        <span className="sr-only">Sort by</span>
+        <select
+          value={sortKey ?? ""}
+          onChange={(e) => {
+            const value = e.target.value;
+            if (!value) onClearSort();
+            else if (value !== sortKey) onSort(value as SortKey);
+          }}
+          className="w-full rounded-none border border-neutral-200 bg-white py-1.5 pl-3 pr-7 text-sm text-neutral-700 focus:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:focus:ring-neutral-700"
+        >
+          <option value="">Sort by…</option>
+          {SORT_COLUMNS.map((column) => (
+            <option key={column.key} value={column.key}>
+              {column.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <button
+        type="button"
+        onClick={() => sortKey && onSort(sortKey)}
+        disabled={!sortKey}
+        title={sortDir === "asc" ? "Ascending" : "Descending"}
+        aria-label="Toggle sort direction"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-none border border-neutral-200 bg-white text-neutral-600 transition hover:bg-neutral-50 disabled:opacity-40 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
+      >
+        {sortDir === "asc" ? <ChevronUpIcon /> : <ChevronDownIcon />}
+      </button>
+    </div>
+  );
+}
+
+function SortableTh({
+  column,
+  active,
+  sortDir,
+  onSort,
+}: {
+  column: SortColumn;
+  active: boolean;
+  sortDir: SortDir;
+  onSort: (key: SortKey) => void;
+}) {
+  return (
+    <th
+      aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
+      className={`border-r border-neutral-200 p-0 last:border-r-0 dark:border-neutral-800 ${column.className}`}
+    >
+      <button
+        type="button"
+        onClick={() => onSort(column.key)}
+        className="group flex w-full items-center gap-1.5 px-4 py-3 text-left transition hover:bg-neutral-50 dark:hover:bg-neutral-800/50"
+      >
+        <span className="text-neutral-400 dark:text-neutral-500">
+          {column.icon}
+        </span>
+        <span className="truncate">{column.label}</span>
+        <SortArrow active={active} dir={sortDir} />
+      </button>
+    </th>
+  );
+}
+
+function SortArrow({ active, dir }: { active: boolean; dir: SortDir }) {
+  if (active) {
+    return (
+      <span className="ml-auto shrink-0 text-neutral-700 dark:text-neutral-200">
+        {dir === "asc" ? <ChevronUpIcon /> : <ChevronDownIcon />}
+      </span>
+    );
+  }
+  return (
+    <span className="ml-auto shrink-0 text-neutral-300 opacity-0 transition group-hover:opacity-100 dark:text-neutral-600">
+      <ChevronsUpDownIcon />
+    </span>
   );
 }
 
@@ -162,21 +288,6 @@ function MetaRow({ app }: { app: ApplicationDTO }) {
         </span>
       ))}
     </div>
-  );
-}
-
-function HeaderLabel({
-  icon,
-  children,
-}: {
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      <span className="text-neutral-400 dark:text-neutral-500">{icon}</span>
-      {children}
-    </span>
   );
 }
 
@@ -209,6 +320,30 @@ function Td({
     >
       {children}
     </td>
+  );
+}
+
+function ChevronUpIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m18 15-6-6-6 6" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+function ChevronsUpDownIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m7 15 5 5 5-5M7 9l5-5 5 5" />
+    </svg>
   );
 }
 

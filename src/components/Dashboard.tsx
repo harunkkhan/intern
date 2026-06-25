@@ -3,13 +3,16 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow, parseISO } from "date-fns";
-import type { ApplicationDTO } from "@/lib/types";
+import { STATUS_RANK, type ApplicationDTO } from "@/lib/types";
 import type { SyncStateDTO } from "@/lib/queries";
 import SearchBar from "@/components/SearchBar";
 import Filters from "@/components/Filters";
 import Sidebar, { type View } from "@/components/Sidebar";
 import SettingsPanel from "@/components/SettingsPanel";
-import ApplicationsTable from "@/components/ApplicationsTable";
+import ApplicationsTable, {
+  type SortKey,
+  type SortDir,
+} from "@/components/ApplicationsTable";
 import AddEntryModal from "@/components/AddEntryModal";
 import ApplicationDetail, {
   type DetailsPatch,
@@ -30,6 +33,8 @@ export default function Dashboard({
   const [industry, setIndustry] = useState("all");
   const [companyType, setCompanyType] = useState("all");
   const [view, setView] = useState<View>("dashboard");
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [addOpen, setAddOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
@@ -78,6 +83,25 @@ export default function Dashboard({
       return true;
     });
   }, [applications, status, term, industry, companyType, query]);
+
+  const sorted = useMemo(
+    () => (sortKey ? sortApplications(filtered, sortKey, sortDir) : filtered),
+    [filtered, sortKey, sortDir],
+  );
+
+  function handleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  }
+
+  function clearSort() {
+    setSortKey(null);
+    setSortDir("asc");
+  }
 
   const selected = applications.find((a) => a.id === selectedId) ?? null;
 
@@ -243,9 +267,13 @@ export default function Dashboard({
                   <EmptyState onSync={handleSync} syncing={syncing} />
                 ) : (
                   <ApplicationsTable
-                    applications={filtered}
+                    applications={sorted}
                     selectedId={selectedId}
                     onSelect={setSelectedId}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={handleSort}
+                    onClearSort={clearSort}
                   />
                 )}
               </div>
@@ -291,4 +319,49 @@ function EmptyState({
       </button>
     </div>
   );
+}
+
+// String/categorical columns sort alphabetically, Applied by date, Status by
+// funnel rank. Empty values always sort to the bottom regardless of direction.
+function sortValue(app: ApplicationDTO, key: SortKey): string | number | null {
+  switch (key) {
+    case "company":
+      return app.company;
+    case "position":
+      return app.position;
+    case "term":
+      return app.term;
+    case "industry":
+      return app.industry;
+    case "companyType":
+      return app.companyType;
+    case "appliedAt":
+      return app.appliedAt ? parseISO(app.appliedAt).getTime() : null;
+    case "status":
+      return STATUS_RANK[app.status];
+  }
+}
+
+function sortApplications(
+  apps: ApplicationDTO[],
+  key: SortKey,
+  dir: SortDir,
+): ApplicationDTO[] {
+  const sign = dir === "asc" ? 1 : -1;
+  return [...apps].sort((a, b) => {
+    const va = sortValue(a, key);
+    const vb = sortValue(b, key);
+    const aEmpty = va === null || va === "";
+    const bEmpty = vb === null || vb === "";
+    if (aEmpty && bEmpty) return 0;
+    if (aEmpty) return 1;
+    if (bEmpty) return -1;
+    if (typeof va === "number" && typeof vb === "number") {
+      return (va - vb) * sign;
+    }
+    return (
+      String(va).localeCompare(String(vb), undefined, { sensitivity: "base" }) *
+      sign
+    );
+  });
 }
