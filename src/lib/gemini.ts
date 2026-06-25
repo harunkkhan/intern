@@ -31,7 +31,7 @@ Return:
 - isApplicationRelated: true only for emails about the recipient's own application lifecycle.
 - company: the hiring company's name (not the ATS/email platform like Greenhouse, Lever, Workday, iCIMS). Null if unknown.
 - position: the role/title applied for. Null if unknown.
-- term: the internship cycle the role is for, ONLY if explicitly stated in the email (e.g. "Summer 2027 Internship"). One of: Fall 2026, Spring 2027, Summer 2027, Winter 2027. Null if not stated.
+- term: the internship cycle the role is for, ONLY if explicitly stated in the email (e.g. "Summer 2027 Internship"). One of: Fall 2026, Spring 2027, Summer 2027, Winter 2027, or "Any" only when the email explicitly says the role spans/allows any cycle. Null if no term is mentioned (do not use "Any" for unstated terms).
 - industry: the hiring company's primary industry.
 - companyType: the single most specific/recognizable tier for the hiring company. Categories overlap, so prefer the most distinctive: FAANG (Meta, Apple, Amazon, Netflix, Google, Microsoft) > Big Tech (other large well-known tech: Nvidia, Salesforce, Adobe, Oracle, etc.) > Fortune 100 / Fortune 500 (large public companies by rank, typically non-tech-defining) > Unicorn ($1B+ private, e.g. well-funded AI/tech startups) > Startup (smaller/early private) > Enterprise (other large established firm) > Nonprofit / Government. Use "Other" only when genuinely unclear.
 - status: where the application now stands based on THIS email:

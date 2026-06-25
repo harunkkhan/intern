@@ -31,7 +31,9 @@ export const STATUS_RANK: Record<ApplicationStatus, number> = {
 };
 
 // Which internship cycle the application is for. Fixed to the upcoming cycles.
+// "Any" means the cycle is unknown or the role could apply to several.
 export const TERMS = [
+  "Any",
   "Fall 2026",
   "Spring 2027",
   "Summer 2027",
@@ -58,7 +60,7 @@ export const INDUSTRIES = [
   "Technology",
   "Finance",
   "Consulting",
-  "Healthcare",
+  "Healthcare/Life Sciences",
   "Retail / E-commerce",
   "Aerospace / Defense",
   "Energy",
