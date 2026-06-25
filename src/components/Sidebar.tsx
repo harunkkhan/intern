@@ -14,79 +14,151 @@ export default function Sidebar({
   onNavigate: (view: View) => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <aside
-      className={`sticky top-0 flex h-screen shrink-0 flex-col border-r border-neutral-200 bg-white transition-[width] duration-200 dark:border-neutral-800 dark:bg-neutral-900 ${
-        collapsed ? "w-14" : "w-60"
-      }`}
-    >
-      <div
-        className={`flex items-center px-3 py-4 ${
-          collapsed ? "justify-center" : "justify-between"
+    <>
+      {/* Mobile top bar */}
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-neutral-200 bg-white px-4 py-3 md:hidden dark:border-neutral-800 dark:bg-neutral-900">
+        <Logo className="pl-1 text-xl text-neutral-900 dark:text-neutral-100" />
+        <button
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          title="Open menu"
+          aria-label="Open menu"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
+        >
+          <MenuIcon />
+        </button>
+      </header>
+
+      {/* Mobile drawer */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setMobileOpen(false)}
+            aria-hidden="true"
+          />
+          <aside className="absolute left-0 top-0 flex h-full w-64 max-w-[80%] flex-col border-r border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+            <div className="flex items-center justify-between px-3 py-4">
+              <Logo className="pl-1 text-2xl text-neutral-900 dark:text-neutral-100" />
+              <button
+                type="button"
+                onClick={() => setMobileOpen(false)}
+                title="Close menu"
+                aria-label="Close menu"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
+              >
+                <CloseIcon />
+              </button>
+            </div>
+            <Nav
+              view={view}
+              collapsed={false}
+              onNavigate={(v) => {
+                onNavigate(v);
+                setMobileOpen(false);
+              }}
+            />
+            <SignOut collapsed={false} />
+          </aside>
+        </div>
+      )}
+
+      {/* Desktop sidebar */}
+      <aside
+        className={`sticky top-0 hidden h-screen shrink-0 flex-col border-r border-neutral-200 bg-white transition-[width] duration-200 md:flex dark:border-neutral-800 dark:bg-neutral-900 ${
+          collapsed ? "w-14" : "w-60"
         }`}
       >
-        {collapsed ? (
-          <div className="group relative flex h-8 w-full items-center justify-center">
-            <Logo className="text-2xl text-neutral-900 transition group-hover:opacity-0 dark:text-neutral-100" />
-            <button
-              type="button"
-              onClick={() => setCollapsed(false)}
-              title="Expand sidebar"
-              aria-label="Expand sidebar"
-              className="absolute inset-0 flex items-center justify-center rounded-lg text-neutral-500 opacity-0 transition hover:bg-neutral-100 hover:text-neutral-900 group-hover:opacity-100 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
-            >
-              <PanelIcon />
-            </button>
-          </div>
-        ) : (
-          <>
-            <Logo className="pl-1 text-2xl text-neutral-900 dark:text-neutral-100" />
-            <button
-              type="button"
-              onClick={() => setCollapsed(true)}
-              title="Collapse sidebar"
-              aria-label="Collapse sidebar"
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
-            >
-              <PanelIcon />
-            </button>
-          </>
-        )}
-      </div>
+        <div
+          className={`flex items-center px-3 py-4 ${
+            collapsed ? "justify-center" : "justify-between"
+          }`}
+        >
+          {collapsed ? (
+            <div className="group relative flex h-8 w-full items-center justify-center">
+              <Logo className="text-2xl text-neutral-900 transition group-hover:opacity-0 dark:text-neutral-100" />
+              <button
+                type="button"
+                onClick={() => setCollapsed(false)}
+                title="Expand sidebar"
+                aria-label="Expand sidebar"
+                className="absolute inset-0 flex items-center justify-center rounded-lg text-neutral-500 opacity-0 transition hover:bg-neutral-100 hover:text-neutral-900 group-hover:opacity-100 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
+              >
+                <PanelIcon />
+              </button>
+            </div>
+          ) : (
+            <>
+              <Logo className="pl-1 text-2xl text-neutral-900 dark:text-neutral-100" />
+              <button
+                type="button"
+                onClick={() => setCollapsed(true)}
+                title="Collapse sidebar"
+                aria-label="Collapse sidebar"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
+              >
+                <PanelIcon />
+              </button>
+            </>
+          )}
+        </div>
 
-      <nav className="flex flex-col gap-1 px-3">
-        <NavItem
-          label="Dashboard"
-          active={view === "dashboard"}
-          collapsed={collapsed}
-          onClick={() => onNavigate("dashboard")}
-          icon={<DashboardIcon />}
-        />
-        <NavItem
-          label="Settings"
-          active={view === "settings"}
-          collapsed={collapsed}
-          onClick={() => onNavigate("settings")}
-          icon={<SettingsIcon />}
-        />
-      </nav>
+        <Nav view={view} collapsed={collapsed} onNavigate={onNavigate} />
 
-      <div className="mt-auto border-t border-neutral-200 p-3 dark:border-neutral-800">
-        <form action={doSignOut}>
-          <button
-            type="submit"
-            title="Sign out"
-            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100 ${
-              collapsed ? "justify-center" : ""
-            }`}
-          >
-            <LogoutIcon />
-            {!collapsed && "Sign out"}
-          </button>
-        </form>
-      </div>
-    </aside>
+        <SignOut collapsed={collapsed} />
+      </aside>
+    </>
+  );
+}
+
+function Nav({
+  view,
+  collapsed,
+  onNavigate,
+}: {
+  view: View;
+  collapsed: boolean;
+  onNavigate: (view: View) => void;
+}) {
+  return (
+    <nav className="flex flex-col gap-1 px-3">
+      <NavItem
+        label="Dashboard"
+        active={view === "dashboard"}
+        collapsed={collapsed}
+        onClick={() => onNavigate("dashboard")}
+        icon={<DashboardIcon />}
+      />
+      <NavItem
+        label="Settings"
+        active={view === "settings"}
+        collapsed={collapsed}
+        onClick={() => onNavigate("settings")}
+        icon={<SettingsIcon />}
+      />
+    </nav>
+  );
+}
+
+function SignOut({ collapsed }: { collapsed: boolean }) {
+  return (
+    <div className="mt-auto border-t border-neutral-200 p-3 dark:border-neutral-800">
+      <form action={doSignOut}>
+        <button
+          type="submit"
+          title="Sign out"
+          className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100 ${
+            collapsed ? "justify-center" : ""
+          }`}
+        >
+          <LogoutIcon />
+          {!collapsed && "Sign out"}
+        </button>
+      </form>
+    </div>
   );
 }
 
@@ -119,6 +191,22 @@ function NavItem({
       {icon}
       {!collapsed && label}
     </button>
+  );
+}
+
+function MenuIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+      <path d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+      <path d="M18 6 6 18M6 6l12 12" />
+    </svg>
   );
 }
 

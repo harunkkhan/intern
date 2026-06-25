@@ -14,7 +14,49 @@ export default function ApplicationsTable({
   onSelect: (id: string) => void;
 }) {
   return (
-    <div className="overflow-hidden border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+    <>
+      {/* Mobile: stacked cards */}
+      <div className="md:hidden">
+        {applications.length === 0 ? (
+          <div className="border border-neutral-200 bg-white px-4 py-12 text-center text-sm text-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-500">
+            No applications match your filters.
+          </div>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {applications.map((app, i) => (
+              <li key={app.id}>
+                <button
+                  onClick={() => onSelect(app.id)}
+                  className={`flex w-full flex-col gap-2 border p-4 text-left transition ${
+                    selectedId === app.id
+                      ? "border-neutral-300 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800/50"
+                      : "border-neutral-200 bg-white hover:bg-neutral-50/80 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:bg-neutral-800/50"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="flex items-center gap-2 font-medium text-neutral-900 dark:text-neutral-100">
+                        <span className="text-xs tabular-nums text-neutral-400 dark:text-neutral-500">
+                          {i + 1}
+                        </span>
+                        <span className="truncate">{app.company}</span>
+                      </p>
+                      <p className="mt-0.5 truncate text-sm text-neutral-600 dark:text-neutral-400">
+                        {app.position}
+                      </p>
+                    </div>
+                    <StatusBadge status={app.status} />
+                  </div>
+                  <MetaRow app={app} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Desktop: full table */}
+      <div className="hidden overflow-x-auto border border-neutral-200 bg-white md:block dark:border-neutral-800 dark:bg-neutral-900">
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="border-b border-neutral-200 text-left text-[13px] font-medium text-neutral-600 dark:border-neutral-800 dark:text-neutral-400">
@@ -94,6 +136,31 @@ export default function ApplicationsTable({
           )}
         </tbody>
       </table>
+      </div>
+    </>
+  );
+}
+
+function MetaRow({ app }: { app: ApplicationDTO }) {
+  const parts = [
+    app.term,
+    app.industry,
+    app.companyType,
+    app.appliedAt ? format(parseISO(app.appliedAt), "MMM d, yyyy") : null,
+  ].filter(Boolean) as string[];
+
+  if (parts.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-neutral-500 dark:text-neutral-400">
+      {parts.map((part, i) => (
+        <span key={i} className="flex items-center gap-x-2">
+          {i > 0 && (
+            <span className="text-neutral-300 dark:text-neutral-600">·</span>
+          )}
+          <span className="whitespace-nowrap">{part}</span>
+        </span>
+      ))}
     </div>
   );
 }

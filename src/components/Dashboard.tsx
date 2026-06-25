@@ -147,10 +147,10 @@ export default function Dashboard({
     companyType !== "all";
 
   return (
-    <div className="flex min-h-screen bg-white dark:bg-neutral-950">
+    <div className="flex min-h-screen flex-col bg-white md:flex-row dark:bg-neutral-950">
       <Sidebar view={view} onNavigate={setView} />
       <div className="min-w-0 flex-1">
-        <div className="px-4 py-8 sm:px-6 lg:px-8">
+        <div className="px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
           {view === "settings" ? (
             <>
               <header>

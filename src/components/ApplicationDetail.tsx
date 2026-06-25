@@ -63,7 +63,7 @@ export default function ApplicationDetail({
       </button>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <nav className="flex items-center gap-2 text-sm">
+        <nav className="flex min-w-0 flex-wrap items-center gap-2 text-sm">
           <button
             onClick={onBack}
             className="text-neutral-500 transition hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
