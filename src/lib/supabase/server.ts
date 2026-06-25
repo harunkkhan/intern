@@ -16,7 +16,13 @@ export async function createClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options),
+              // Drop maxAge/expires so auth cookies are session cookies —
+              // cleared when the browser closes, forcing a re-sign-in.
+              cookieStore.set(name, value, {
+                ...options,
+                maxAge: undefined,
+                expires: undefined,
+              }),
             );
           } catch {
             // Called from a Server Component — safe to ignore because the

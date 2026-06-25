@@ -21,7 +21,13 @@ export async function updateSession(request: NextRequest) {
           );
           response = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options),
+            // Session cookies (no maxAge/expires) so the session ends when the
+            // browser is closed, forcing the user to sign in again.
+            response.cookies.set(name, value, {
+              ...options,
+              maxAge: undefined,
+              expires: undefined,
+            }),
           );
         },
       },
