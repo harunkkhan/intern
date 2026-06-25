@@ -40,6 +40,8 @@ export function defaultGmailQuery(): string {
   if (process.env.GMAIL_QUERY) return `${after} (${process.env.GMAIL_QUERY})`;
   const phrases = [
     '"thank you for applying"',
+    '"thank you for your interest"',
+    '"thanks for your interest"',
     '"application received"',
     '"we received your application"',
     '"your application"',

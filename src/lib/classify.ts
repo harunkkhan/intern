@@ -45,7 +45,7 @@ const STATUS_PATTERNS: Array<{ re: RegExp; status: ApplicationStatus }> = [
     status: "assessment",
   },
   {
-    re: /\b(thank you for applying|application (received|submitted|complete)|we received your application|received your application|your application (to|for|has been))\b/i,
+    re: /\b(thank you for applying|thank(?:s| you) for your interest|application (received|submitted|complete)|we received your application|received your application|your application (to|for|has been))\b/i,
     status: "applied",
   },
 ];
