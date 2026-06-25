@@ -149,6 +149,7 @@ cron) to drain any backlog; the button reports how many remain.
 | `ALLOWED_EMAIL`                 | The only Gmail address allowed past the auth callback     |
 | `GEMINI_API_KEY`                | Google Gemini API key                                     |
 | `CRON_SECRET`                   | Shared secret protecting `/api/cron/sync` (prod)          |
+| `TRACK_AFTER`                   | Only track emails on/after this date (YYYY-MM-DD)         |
 | `NEXT_PUBLIC_SITE_URL`          | _Optional._ Absolute site URL for the OAuth redirect      |
 | `GMAIL_QUERY`                   | _Optional._ Override the Gmail search used to find email  |
 
@@ -190,6 +191,9 @@ drizzle/                         # generated SQL migrations
 
 - **Single-user by design.** Sign-in is restricted to `ALLOWED_EMAIL`; the app
   stays in Google's "testing" mode (no verification required).
+- **Tracking starts at `TRACK_AFTER`** (default `2026-06-24`). Emails before
+  that date are never fetched or recorded — enforced both in the Gmail query and
+  as a hard guard in the sync loop.
 - Extraction quality depends on Gemini; every application's fields are editable
   in the details drawer, and the type/industry filters update accordingly.
 - Tune the candidate query with `GMAIL_QUERY` if your providers use unusual

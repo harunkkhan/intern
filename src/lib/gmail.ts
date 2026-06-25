@@ -11,10 +11,29 @@ export interface ParsedEmail {
   body: string;
 }
 
+// Only emails on/after this date are tracked. Defaults to 2026-06-24; override
+// with TRACK_AFTER (YYYY-MM-DD). This is enforced again in the sync loop so the
+// cutoff holds even if GMAIL_QUERY is customized.
+const DEFAULT_TRACK_AFTER = "2026-06-24";
+
+export function getTrackAfterDate(): Date {
+  const raw = process.env.TRACK_AFTER || DEFAULT_TRACK_AFTER;
+  const d = new Date(`${raw}T00:00:00Z`);
+  return isNaN(d.getTime()) ? new Date(`${DEFAULT_TRACK_AFTER}T00:00:00Z`) : d;
+}
+
+function gmailDate(d: Date): string {
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  return `${y}/${m}/${day}`;
+}
+
 // Gmail search used to find candidate application emails. Intentionally broad —
 // the classifier filters out noise. Override with the GMAIL_QUERY env var.
 export function defaultGmailQuery(): string {
-  if (process.env.GMAIL_QUERY) return process.env.GMAIL_QUERY;
+  const after = `after:${gmailDate(getTrackAfterDate())}`;
+  if (process.env.GMAIL_QUERY) return `${after} (${process.env.GMAIL_QUERY})`;
   const phrases = [
     '"thank you for applying"',
     '"application received"',
@@ -34,7 +53,7 @@ export function defaultGmailQuery(): string {
     '"extend an offer"',
     '"offer of employment"',
   ];
-  return `newer_than:400d (${phrases.join(" OR ")})`;
+  return `${after} (${phrases.join(" OR ")})`;
 }
 
 export async function listCandidateMessages(

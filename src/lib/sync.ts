@@ -10,6 +10,7 @@ import { getGoogleAuthForUser } from "@/lib/google";
 import {
   defaultGmailQuery,
   fetchEmail,
+  getTrackAfterDate,
   listCandidateMessages,
   type ParsedEmail,
 } from "@/lib/gmail";
@@ -48,6 +49,7 @@ export async function runSync(userId: string): Promise<SyncResult> {
 
     const pending = candidates.filter((c) => !seen.has(c.id));
     const batch = pending.slice(0, MAX_EMAILS_PER_RUN);
+    const trackAfter = getTrackAfterDate();
 
     let created = 0;
     let updated = 0;
@@ -55,15 +57,22 @@ export async function runSync(userId: string): Promise<SyncResult> {
 
     for (const { id } of batch) {
       const email = await fetchEmail(auth, id);
-      const result = await classifyEmail(email);
 
-      const isApp =
-        result.isApplicationRelated && !!result.company && !!result.position;
+      let isApp = false;
+      // Hard cutoff: emails before the tracking start date are never recorded
+      // (and skip the Gemini call). Marked processed so they aren't re-fetched.
+      if (email.date >= trackAfter) {
+        const result = await classifyEmail(email);
+        isApp =
+          result.isApplicationRelated && !!result.company && !!result.position;
 
-      if (isApp) {
-        const outcome = await applyClassification(userId, email, result);
-        if (outcome === "created") created++;
-        else updated++;
+        if (isApp) {
+          const outcome = await applyClassification(userId, email, result);
+          if (outcome === "created") created++;
+          else updated++;
+        } else {
+          skipped++;
+        }
       } else {
         skipped++;
       }
