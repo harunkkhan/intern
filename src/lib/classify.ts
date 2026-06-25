@@ -50,13 +50,13 @@ const STATUS_PATTERNS: Array<{ re: RegExp; status: ApplicationStatus }> = [
   },
 ];
 
-interface RuleSignal {
+export interface RuleSignal {
   likelyRelated: boolean;
   status: ApplicationStatus | null;
   fromAts: boolean;
 }
 
-function analyzeRules(email: ParsedEmail): RuleSignal {
+export function analyzeRules(email: ParsedEmail): RuleSignal {
   const from = email.from.toLowerCase();
   const fromAts = ATS_DOMAINS.some((d) => from.includes(d));
   const haystack = `${email.subject} ${email.snippet}`;
@@ -97,8 +97,9 @@ function notRelated(): ClassificationResult {
     isApplicationRelated: false,
     company: null,
     position: null,
-    positionType: null,
+    term: null,
     industry: null,
+    companyType: null,
     status: null,
     summary: null,
     source: "rules",

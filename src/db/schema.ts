@@ -34,8 +34,9 @@ export const applications = pgTable(
     position: text("position").notNull(),
     // Normalized "company::position" (lowercased) used for idempotent upserts.
     dedupeKey: text("dedupe_key").notNull(),
-    positionType: text("position_type"),
+    term: text("term"),
     industry: text("industry"),
+    companyType: text("company_type"),
     status: text("status").notNull().default("applied"),
     location: text("location"),
     notes: text("notes"),

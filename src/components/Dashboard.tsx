@@ -5,38 +5,40 @@ import { useRouter } from "next/navigation";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import type { ApplicationDTO } from "@/lib/types";
 import type { SyncStateDTO } from "@/lib/queries";
-import { doSignOut } from "@/app/actions";
 import SearchBar from "@/components/SearchBar";
 import Filters from "@/components/Filters";
-import SyncButton from "@/components/SyncButton";
+import Sidebar, { type View } from "@/components/Sidebar";
+import SettingsPanel from "@/components/SettingsPanel";
 import ApplicationsTable from "@/components/ApplicationsTable";
-import DetailsPanel, { type DetailsPatch } from "@/components/DetailsPanel";
+import AddEntryModal from "@/components/AddEntryModal";
+import ApplicationDetail, {
+  type DetailsPatch,
+} from "@/components/ApplicationDetail";
 
 export default function Dashboard({
   applications,
   sync,
-  userEmail,
 }: {
   applications: ApplicationDTO[];
   sync: SyncStateDTO | null;
-  userEmail: string;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
-  const [positionType, setPositionType] = useState("all");
+  const [term, setTerm] = useState("all");
   const [industry, setIndustry] = useState("all");
+  const [companyType, setCompanyType] = useState("all");
+  const [view, setView] = useState<View>("dashboard");
+  const [addOpen, setAddOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  const types = useMemo(
+  const terms = useMemo(
     () =>
       Array.from(
-        new Set(
-          applications.map((a) => a.positionType).filter(Boolean) as string[],
-        ),
+        new Set(applications.map((a) => a.term).filter(Boolean) as string[]),
       ).sort(),
     [applications],
   );
@@ -49,14 +51,23 @@ export default function Dashboard({
       ).sort(),
     [applications],
   );
+  const companyTypes = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          applications.map((a) => a.companyType).filter(Boolean) as string[],
+        ),
+      ).sort(),
+    [applications],
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return applications.filter((a) => {
       if (status !== "all" && a.status !== status) return false;
-      if (positionType !== "all" && a.positionType !== positionType)
-        return false;
+      if (term !== "all" && a.term !== term) return false;
       if (industry !== "all" && a.industry !== industry) return false;
+      if (companyType !== "all" && a.companyType !== companyType) return false;
       if (
         q &&
         !a.company.toLowerCase().includes(q) &&
@@ -65,7 +76,7 @@ export default function Dashboard({
         return false;
       return true;
     });
-  }, [applications, status, positionType, industry, query]);
+  }, [applications, status, term, industry, companyType, query]);
 
   const selected = applications.find((a) => a.id === selectedId) ?? null;
 
@@ -77,6 +88,8 @@ export default function Dashboard({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Sync failed");
       const parts = [`${data.created} new`, `${data.updated} updated`];
+      if (data.failed > 0)
+        parts.push(`${data.failed} failed (Gemini busy — sync again)`);
       if (data.remaining > 0)
         parts.push(`${data.remaining} more queued — sync again`);
       setMessage(parts.join(" · "));
@@ -113,8 +126,9 @@ export default function Dashboard({
 
   function resetFilters() {
     setStatus("all");
-    setPositionType("all");
+    setTerm("all");
     setIndustry("all");
+    setCompanyType("all");
   }
 
   const lastSynced =
@@ -123,73 +137,127 @@ export default function Dashboard({
       addSuffix: true,
     })}`;
 
+  const syncStatus =
+    message ?? (sync?.status === "error" ? sync.lastError : lastSynced) ?? null;
+
+  const filtersActive =
+    status !== "all" ||
+    term !== "all" ||
+    industry !== "all" ||
+    companyType !== "all";
+
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        <header className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">
-              Internship Tracker
-            </h1>
-            <p className="mt-1 text-sm text-neutral-500">
-              {applications.length} application
-              {applications.length === 1 ? "" : "s"}
-              {userEmail ? ` · ${userEmail}` : ""}
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <SyncButton syncing={syncing} onClick={handleSync} />
-            <form action={doSignOut}>
-              <button
-                type="submit"
-                className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-600 transition hover:bg-neutral-100"
-              >
-                Sign out
-              </button>
-            </form>
-          </div>
-        </header>
-
-        {(message || lastSynced || sync?.status === "error") && (
-          <p className="mt-3 text-xs text-neutral-500">
-            {message ?? (sync?.status === "error" ? sync.lastError : lastSynced)}
-          </p>
-        )}
-
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <SearchBar value={query} onChange={setQuery} />
-          <Filters
-            status={status}
-            positionType={positionType}
-            industry={industry}
-            types={types}
-            industries={industries}
-            onStatus={setStatus}
-            onType={setPositionType}
-            onIndustry={setIndustry}
-            onReset={resetFilters}
-          />
-        </div>
-
-        <div className="mt-4">
-          {applications.length === 0 ? (
-            <EmptyState onSync={handleSync} syncing={syncing} />
-          ) : (
-            <ApplicationsTable
-              applications={filtered}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
+    <div className="flex min-h-screen bg-white dark:bg-neutral-950">
+      <Sidebar view={view} onNavigate={setView} />
+      <div className="min-w-0 flex-1">
+        <div className="px-4 py-8 sm:px-6 lg:px-8">
+          {view === "settings" ? (
+            <>
+              <header>
+                <h1 className="text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
+                  Settings
+                </h1>
+                <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                  Appearance and inbox sync
+                </p>
+              </header>
+              <SettingsPanel
+                syncing={syncing}
+                onSync={handleSync}
+                syncStatus={syncStatus}
+              />
+            </>
+          ) : selected ? (
+            <ApplicationDetail
+              app={selected}
+              saving={saving}
+              onBack={() => setSelectedId(null)}
+              onSave={handleSave}
+              onDelete={handleDelete}
             />
+          ) : (
+            <>
+              <header className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <h1 className="text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
+                    Harun's Internship Tracker
+                  </h1>
+                  <span className="text-neutral-400 dark:text-neutral-500">
+                    •
+                  </span>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                    {applications.length} application
+                    {applications.length === 1 ? "" : "s"}
+                  </p>
+                </div>
+              </header>
+
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <SearchBar value={query} onChange={setQuery} />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Filters
+                    status={status}
+                    term={term}
+                    industry={industry}
+                    companyType={companyType}
+                    terms={terms}
+                    industries={industries}
+                    companyTypes={companyTypes}
+                    onStatus={setStatus}
+                    onTerm={setTerm}
+                    onIndustry={setIndustry}
+                    onCompanyType={setCompanyType}
+                  />
+                  {filtersActive ? (
+                    <button
+                      onClick={resetFilters}
+                      title="Clear filters"
+                      aria-label="Clear filters"
+                      className="inline-flex items-center justify-center rounded-none bg-neutral-900 px-2.5 py-2 text-white transition hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M13.013 3H2l8 9.46V19l4 2v-8.54l.9-1.055" />
+                        <path d="m22 3-5 5" />
+                        <path d="m17 3 5 5" />
+                      </svg>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setAddOpen(true)}
+                      className="inline-flex items-center gap-1.5 rounded-none bg-neutral-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M12 5v14M5 12h14" />
+                      </svg>
+                      Add entry
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-4">
+                {applications.length === 0 ? (
+                  <EmptyState onSync={handleSync} syncing={syncing} />
+                ) : (
+                  <ApplicationsTable
+                    applications={filtered}
+                    selectedId={selectedId}
+                    onSelect={setSelectedId}
+                  />
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>
 
-      <DetailsPanel
-        app={selected}
-        saving={saving}
-        onClose={() => setSelectedId(null)}
-        onSave={handleSave}
-        onDelete={handleDelete}
+      <AddEntryModal
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onCreated={() => {
+          setAddOpen(false);
+          router.refresh();
+        }}
       />
     </div>
   );
@@ -203,18 +271,18 @@ function EmptyState({
   syncing: boolean;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-neutral-300 bg-white px-6 py-16 text-center">
-      <h2 className="text-base font-medium text-neutral-800">
+    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-neutral-300 bg-white px-6 py-16 text-center dark:border-neutral-700 dark:bg-neutral-900">
+      <h2 className="text-base font-medium text-neutral-800 dark:text-neutral-200">
         No applications yet
       </h2>
-      <p className="mt-1 max-w-sm text-sm text-neutral-500">
+      <p className="mt-1 max-w-sm text-sm text-neutral-500 dark:text-neutral-400">
         Sync your inbox to scan for application confirmations, assessments,
         interview invites, offers, and rejections.
       </p>
       <button
         onClick={onSync}
         disabled={syncing}
-        className="mt-5 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-60"
+        className="mt-5 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
       >
         {syncing ? "Syncing…" : "Sync inbox now"}
       </button>

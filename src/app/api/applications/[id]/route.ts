@@ -3,7 +3,12 @@ import { and, eq } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/db";
 import { applications } from "@/db/schema";
-import { APPLICATION_STATUSES, INDUSTRIES, POSITION_TYPES } from "@/lib/types";
+import {
+  APPLICATION_STATUSES,
+  COMPANY_TYPES,
+  INDUSTRIES,
+  TERMS,
+} from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -43,16 +48,22 @@ export async function PATCH(
     patch.status = body.status;
   }
   if (
-    typeof body.positionType === "string" &&
-    (POSITION_TYPES as readonly string[]).includes(body.positionType)
+    typeof body.term === "string" &&
+    (TERMS as readonly string[]).includes(body.term)
   ) {
-    patch.positionType = body.positionType;
+    patch.term = body.term;
   }
   if (
     typeof body.industry === "string" &&
     (INDUSTRIES as readonly string[]).includes(body.industry)
   ) {
     patch.industry = body.industry;
+  }
+  if (
+    typeof body.companyType === "string" &&
+    (COMPANY_TYPES as readonly string[]).includes(body.companyType)
+  ) {
+    patch.companyType = body.companyType;
   }
 
   let company = existing.company;

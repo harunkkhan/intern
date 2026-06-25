@@ -10,8 +10,9 @@ import type {
   ApplicationDTO,
   ApplicationEventDTO,
   ApplicationStatus,
+  CompanyType,
   Industry,
-  PositionType,
+  Term,
 } from "@/lib/types";
 
 // The cron has no user session; it resolves the single allowed user from the
@@ -65,8 +66,9 @@ export async function getApplicationsForUser(
     id: a.id,
     company: a.company,
     position: a.position,
-    positionType: (a.positionType as PositionType | null) ?? null,
+    term: (a.term as Term | null) ?? null,
     industry: (a.industry as Industry | null) ?? null,
+    companyType: (a.companyType as CompanyType | null) ?? null,
     status: a.status as ApplicationStatus,
     appliedAt: a.appliedAt ? a.appliedAt.toISOString() : null,
     lastEventAt: a.lastEventAt ? a.lastEventAt.toISOString() : null,

@@ -24,10 +24,6 @@ export default async function Home() {
   ]);
 
   return (
-    <Dashboard
-      applications={applications}
-      sync={sync}
-      userEmail={user.email ?? ""}
-    />
+    <Dashboard applications={applications} sync={sync} />
   );
 }

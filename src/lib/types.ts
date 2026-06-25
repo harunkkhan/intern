@@ -30,18 +30,29 @@ export const STATUS_RANK: Record<ApplicationStatus, number> = {
   withdrawn: -2,
 };
 
-export const POSITION_TYPES = [
-  "Software Engineering",
-  "Data / ML",
-  "Product Management",
-  "Hardware / Electrical",
-  "Quant / Finance",
-  "Design",
-  "Business / Operations",
-  "Research",
+// Which internship cycle the application is for. Fixed to the upcoming cycles.
+export const TERMS = [
+  "Fall 2026",
+  "Spring 2027",
+  "Summer 2027",
+  "Winter 2027",
+] as const;
+export type Term = (typeof TERMS)[number];
+
+// Company tier/category. Categories overlap (FAANG is also Fortune 500), so the
+// classifier picks the single most specific/recognizable label.
+export const COMPANY_TYPES = [
+  "FAANG",
+  "Big Tech",
+  "Fortune 100",
+  "Fortune 500",
+  "Unicorn",
+  "Startup",
+  "Enterprise",
+  "Nonprofit / Government",
   "Other",
 ] as const;
-export type PositionType = (typeof POSITION_TYPES)[number];
+export type CompanyType = (typeof COMPANY_TYPES)[number];
 
 export const INDUSTRIES = [
   "Technology",
@@ -65,8 +76,9 @@ export interface ClassificationResult {
   isApplicationRelated: boolean;
   company: string | null;
   position: string | null;
-  positionType: PositionType | null;
+  term: Term | null;
   industry: Industry | null;
+  companyType: CompanyType | null;
   status: ApplicationStatus | null;
   summary: string | null;
   // How this classification was produced — useful for debugging / the UI.
@@ -87,8 +99,9 @@ export interface ApplicationDTO {
   id: string;
   company: string;
   position: string;
-  positionType: PositionType | null;
+  term: Term | null;
   industry: Industry | null;
+  companyType: CompanyType | null;
   status: ApplicationStatus;
   appliedAt: string | null; // ISO
   lastEventAt: string | null; // ISO

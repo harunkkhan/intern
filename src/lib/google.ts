@@ -26,6 +26,12 @@ export async function getGoogleAuthForUser(
     );
   }
 
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    throw new Error(
+      "GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are not set. They must match the Google OAuth client configured in Supabase Auth → Providers → Google.",
+    );
+  }
+
   const client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,

@@ -1,5 +1,5 @@
 {
-  "id": "9dd224ab-3152-4a88-9d6a-0396c461b5fb",
+  "id": "684caae8-4a0a-4f6f-a748-2bad5aaae299",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -156,14 +156,20 @@
           "primaryKey": false,
           "notNull": true
         },
-        "position_type": {
-          "name": "position_type",
+        "term": {
+          "name": "term",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
         "industry": {
           "name": "industry",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "company_type": {
+          "name": "company_type",
           "type": "text",
           "primaryKey": false,
           "notNull": false
