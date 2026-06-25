@@ -14,6 +14,7 @@ import AddEntryModal from "@/components/AddEntryModal";
 import ApplicationDetail, {
   type DetailsPatch,
 } from "@/components/ApplicationDetail";
+import { logoFont } from "@/components/Logo";
 
 export default function Dashboard({
   applications,
@@ -179,7 +180,9 @@ export default function Dashboard({
             <>
               <header className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                  <h1 className="text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
+                  <h1
+                    className={`${logoFont.className} text-2xl italic tracking-tight text-neutral-900 dark:text-neutral-100`}
+                  >
                     Harun's Internship Tracker
                   </h1>
                   <span className="text-neutral-400 dark:text-neutral-500">

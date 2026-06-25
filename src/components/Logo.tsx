@@ -1,6 +1,6 @@
 import { Playfair_Display } from "next/font/google";
 
-const logoFont = Playfair_Display({
+export const logoFont = Playfair_Display({
   subsets: ["latin"],
   weight: "600",
   style: "italic",
