@@ -84,10 +84,17 @@ export default function Dashboard({
     });
   }, [applications, status, term, industry, companyType, query]);
 
-  const sorted = useMemo(
-    () => (sortKey ? sortApplications(filtered, sortKey, sortDir) : filtered),
-    [filtered, sortKey, sortDir],
-  );
+  const sorted = useMemo(() => {
+    const ordered = sortKey
+      ? sortApplications(filtered, sortKey, sortDir)
+      : filtered;
+    // Rejections always sink to the bottom, regardless of recency or the active
+    // column sort. Array.sort is stable, so order within each group is kept.
+    return [...ordered].sort(
+      (a, b) =>
+        (a.status === "rejected" ? 1 : 0) - (b.status === "rejected" ? 1 : 0),
+    );
+  }, [filtered, sortKey, sortDir]);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {

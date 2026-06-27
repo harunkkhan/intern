@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   applications,
@@ -147,6 +147,30 @@ async function applyClassification(
     )
     .limit(1);
 
+  // No exact (company + position) match — e.g. a follow-up email whose role
+  // title differs from a manually-added entry, or omits it entirely. Fall back
+  // to an existing entry at the SAME company whose role title matches once both
+  // are normalized (filler words / casing / punctuation stripped). This lets an
+  // interview/OA/offer email land on the entry you already created instead of
+  // spawning a duplicate. The most recently active matching entry wins.
+  if (!app) {
+    const sameCompany = await db
+      .select()
+      .from(applications)
+      .where(
+        and(
+          eq(applications.userId, userId),
+          sql`lower(${applications.company}) = ${company.toLowerCase()}`,
+        ),
+      );
+    app = sameCompany
+      .filter((a) => positionsMatch(a.position, position))
+      .sort(
+        (x, y) =>
+          (y.lastEventAt?.getTime() ?? 0) - (x.lastEventAt?.getTime() ?? 0),
+      )[0];
+  }
+
   let created = false;
   if (!app) {
     [app] = await db
@@ -202,6 +226,69 @@ async function applyClassification(
     .where(eq(applications.id, app.id));
 
   return created ? "created" : "updated";
+}
+
+// Tokens that describe the cycle/seniority/wrapping of a posting rather than the
+// role itself. Stripped before comparing titles so "Software Engineer Intern"
+// and "Software Engineer, Summer 2027" are recognized as the same role.
+const POSITION_FILLER = new Set([
+  "intern",
+  "interns",
+  "internship",
+  "internships",
+  "co",
+  "op",
+  "coop",
+  "program",
+  "programme",
+  "summer",
+  "fall",
+  "autumn",
+  "winter",
+  "spring",
+  "new",
+  "grad",
+  "graduate",
+  "fulltime",
+  "parttime",
+  "contract",
+  "temporary",
+  "the",
+  "a",
+  "an",
+  "of",
+  "for",
+  "role",
+  "position",
+  "opening",
+  "req",
+  "id",
+  "i",
+  "ii",
+  "iii",
+]);
+
+function positionTokens(position: string): Set<string> {
+  return new Set(
+    position
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, " ")
+      .replace(/\b20\d\d\b/g, " ")
+      .split(/\s+/)
+      .filter((w) => w && !POSITION_FILLER.has(w)),
+  );
+}
+
+// Two titles match when one's distinguishing tokens are a subset of the other's
+// (after filler removal) — tolerant of word order, casing, and extra qualifiers
+// while still keeping genuinely different roles apart.
+function positionsMatch(a: string, b: string): boolean {
+  const ta = positionTokens(a);
+  const tb = positionTokens(b);
+  if (ta.size === 0 || tb.size === 0) return false;
+  const [small, large] = ta.size <= tb.size ? [ta, tb] : [tb, ta];
+  for (const t of small) if (!large.has(t)) return false;
+  return true;
 }
 
 async function setSyncState(

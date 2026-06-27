@@ -46,6 +46,7 @@ export type Term = (typeof TERMS)[number];
 export const COMPANY_TYPES = [
   "FAANG",
   "Big Tech",
+  "Quant",
   "Fortune 100",
   "Fortune 500",
   "Unicorn",
