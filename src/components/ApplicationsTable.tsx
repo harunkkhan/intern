@@ -77,12 +77,12 @@ export default function ApplicationsTable({
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="flex items-center gap-2 font-medium text-neutral-900 dark:text-neutral-100">
-                          <span className="text-xs tabular-nums text-neutral-400 dark:text-neutral-500">
+                          <span className="shrink-0 text-xs tabular-nums text-neutral-400 dark:text-neutral-500">
                             {i + 1}
                           </span>
-                          <span className="truncate">{app.company}</span>
+                          <span className="min-w-0 truncate">{app.company}</span>
                         </p>
                         <p className="mt-0.5 truncate text-sm text-neutral-600 dark:text-neutral-400">
                           {app.position}
