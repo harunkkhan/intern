@@ -88,7 +88,9 @@ export default function ApplicationsTable({
                           {app.position}
                         </p>
                       </div>
-                      <StatusBadge status={app.status} />
+                      <div className="shrink-0">
+                        <StatusBadge status={app.status} />
+                      </div>
                     </div>
                     <MetaRow app={app} />
                   </button>
