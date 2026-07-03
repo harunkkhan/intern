@@ -70,7 +70,7 @@ export default function ApplicationsTable({
                 <li key={app.id}>
                   <button
                     onClick={() => onSelect(app.id)}
-                    className={`flex w-full flex-col gap-2 border p-4 text-left transition ${
+                    className={`flex w-full flex-col gap-2 overflow-hidden border p-4 text-left transition ${
                       selectedId === app.id
                         ? "border-neutral-300 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800/50"
                         : "border-neutral-200 bg-white hover:bg-neutral-50/80 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:bg-neutral-800/50"
