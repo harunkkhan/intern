@@ -227,8 +227,10 @@ export default function Dashboard({
               </header>
 
               <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <SearchBar value={query} onChange={setQuery} />
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="w-full min-w-0 max-w-md">
+                  <SearchBar value={query} onChange={setQuery} />
+                </div>
+                <div className="flex shrink-0 flex-wrap items-center gap-2 sm:flex-nowrap">
                   <Filters
                     status={status}
                     term={term}
