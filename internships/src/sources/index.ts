@@ -3,6 +3,7 @@
 import type { Adapter } from "../types.ts";
 import { githubJson } from "./githubJson.ts";
 import { html } from "./html.ts";
+import { scraped } from "./scraped.ts";
 import {
   ashby,
   greenhouse,
@@ -18,6 +19,9 @@ export const ADAPTERS = {
   ashby,
   workday,
   smartrecruiters,
+  // Playwright + BeautifulSoup, for companies whose postings live only on their
+  // own site. See internships/src/sources/scraped.ts.
+  scraped,
   html,
 } satisfies Record<string, Adapter>;
 

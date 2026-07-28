@@ -120,14 +120,20 @@ async function loadSources(
   if (ignoreInterval || only) return filtered;
 
   // The workflow fires every 10 minutes, but each source declares how often it
-  // actually wants to be hit. Skipping here is what keeps ~95 company career
-  // pages from being requested 144 times a day each.
+  // actually wants to be hit, and a failing source backs off on top of that.
   const now = Date.now();
   return filtered.filter(
     (r) =>
       r.lastPolledAt === null ||
-      now - r.lastPolledAt.getTime() >= r.pollIntervalMinutes * 60_000,
+      now - r.lastPolledAt.getTime() >= effectiveIntervalMs(r),
   );
+}
+
+/** Poll interval, doubled per consecutive failure and capped at 24h. */
+function effectiveIntervalMs(source: SourceRow): number {
+  const base = source.pollIntervalMinutes * 60_000;
+  const backoff = 2 ** Math.min(source.consecutiveFailures, 7);
+  return Math.min(base * backoff, 24 * 60 * 60_000);
 }
 
 interface SourceOutcome {
@@ -148,7 +154,9 @@ async function pollSource(
   args: Args,
 ): Promise<SourceOutcome> {
   const startedAt = new Date();
-  const firstRun = source.lastPolledAt === null;
+  // Keyed on seededAt, not lastPolledAt: a failed attempt advances the retry
+  // clock but must not burn the one-time seeding grace.
+  const firstRun = source.seededAt === null;
   const rejections = new Map<string, number>();
   const base: SourceOutcome = {
     label: source.label,
@@ -175,7 +183,14 @@ async function pollSource(
       if (!args.dryRun) {
         await db
           .update(jobSources)
-          .set({ lastPolledAt: new Date(), lastError: null })
+          // "Unchanged" is a successful poll — the source answered, its content
+          // just hadn't moved — so it clears the failure streak like any success.
+          .set({
+            lastPolledAt: new Date(),
+            seededAt: source.seededAt ?? new Date(),
+            lastError: null,
+            consecutiveFailures: 0,
+          })
           .where(eq(jobSources.id, source.id));
         await recordRun(source.id, startedAt, { skipped: true });
       }
@@ -274,7 +289,9 @@ async function pollSource(
       .set({
         lastSha: result.sha ?? source.lastSha,
         lastPolledAt: new Date(),
+        seededAt: source.seededAt ?? new Date(),
         lastError: null,
+        consecutiveFailures: 0,
       })
       .where(eq(jobSources.id, source.id));
 
@@ -295,12 +312,17 @@ async function pollSource(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     if (!args.dryRun) {
-      // lastPolledAt is deliberately untouched: a source that has never
-      // succeeded stays in first-run mode so its eventual first success seeds
-      // quietly instead of flooding.
+      // lastPolledAt is bumped on failure too, so a permanently-broken source
+      // backs off instead of being retried every run forever. seededAt is left
+      // alone, which is what keeps the one-time seeding grace intact for a source
+      // whose first successful poll comes after some failed ones.
       await db
         .update(jobSources)
-        .set({ lastError: message })
+        .set({
+          lastError: message,
+          lastPolledAt: new Date(),
+          consecutiveFailures: source.consecutiveFailures + 1,
+        })
         .where(eq(jobSources.id, source.id));
       await recordRun(source.id, startedAt, { error: message });
     }
@@ -533,7 +555,9 @@ async function main(): Promise<void> {
         enabled: true,
         lastSha: null,
         lastPolledAt: null,
+        seededAt: null,
         lastError: null,
+        consecutiveFailures: 0,
         createdAt: new Date(),
       }));
     } else {

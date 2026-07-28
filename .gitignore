@@ -36,3 +36,9 @@ yarn-error.log*
 
 # worktrees
 .worktrees/
+
+# python (scrapers/)
+.venv/
+venv/
+__pycache__/
+*.py[cod]

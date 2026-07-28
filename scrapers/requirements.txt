@@ -1,0 +1,13 @@
+# Scraping stack for company career pages.
+#
+# Playwright rather than Selenium or Scrapy, decided by measurement:
+#   - requests/Scrapy cannot execute JS. On spacex.com/careers/jobs/ that is the
+#     difference between 3 KB with zero postings and 2.3 MB with ten.
+#   - Selenium produced identical extraction but took 8.9s just to start its
+#     driver versus Playwright's near-instant launch, and sends telemetry.
+#   - Crawl4AI wraps Playwright anyway; its differentiator is per-page LLM
+#     extraction, the wrong cost model at 144 runs a day.
+requests==2.32.3
+beautifulsoup4==4.12.3
+lxml==5.3.0
+playwright==1.49.1

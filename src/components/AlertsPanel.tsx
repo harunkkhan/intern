@@ -234,8 +234,13 @@ function Watchlist({
             className="flex flex-wrap items-center gap-3 border-b border-neutral-100 pb-3 last:border-0 last:pb-0 dark:border-neutral-800"
           >
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-neutral-800 dark:text-neutral-200">
-                {c.name}
+              <p className="flex items-baseline gap-2 truncate text-sm font-medium text-neutral-800 dark:text-neutral-200">
+                {c.tier && (
+                  <span className="shrink-0 border border-neutral-300 px-1 py-px text-[10px] font-semibold tracking-wide text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
+                    {c.tier}
+                  </span>
+                )}
+                <span className="truncate">{c.name}</span>
               </p>
               <p className="text-xs text-neutral-500 dark:text-neutral-400">
                 {c.openCount} open · {c.sourceLabel ? "direct board" : "by name"}

@@ -161,14 +161,26 @@ export const jobSources = pgTable(
     // skip the download entirely when nothing changed — the SimplifyJobs feed is
     // ~11 MB and would otherwise be re-fetched every 10 minutes.
     lastSha: text("last_sha"),
-    // NULL until the first successful poll. While it is NULL the poller records
-    // listings but sends nothing, so seeding a source — or adding a company with
-    // 800 open roles — can never fire hundreds of messages.
+    // Last *attempt*, successful or not. Drives the poll interval and backoff.
     lastPolledAt: timestamp("last_polled_at", {
       mode: "date",
       withTimezone: true,
     }),
+    // Set on the first poll that actually succeeds. While NULL the poller records
+    // listings but sends nothing, so seeding a source — or adding a company with
+    // 800 open roles — can never fire hundreds of messages.
+    //
+    // Deliberately separate from lastPolledAt: a failed attempt must still push
+    // the retry clock forward, but must not consume the one-time seeding grace.
+    // Sharing one column would mean a source that failed once then succeeded
+    // would treat its entire backlog as new and text all of it.
+    seededAt: timestamp("seeded_at", { mode: "date", withTimezone: true }),
     lastError: text("last_error"),
+    // Drives exponential backoff on the effective poll interval. Career sites
+    // push back on scrapers — several in this watchlist returned 403 after only
+    // a handful of requests — so a failing source must slow itself down instead
+    // of hammering a host that is already rejecting it. Reset to 0 on success.
+    consecutiveFailures: integer("consecutive_failures").notNull().default(0),
     createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
       .notNull()
       .defaultNow(),

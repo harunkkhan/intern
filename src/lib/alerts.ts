@@ -23,6 +23,7 @@ export interface SubscriberDTO {
 export interface WatchedCompanyDTO {
   id: string;
   name: string;
+  tier: string | null;
   enabled: boolean;
   sourceLabel: string | null;
   /** Active listings currently matching this company across every source. */
@@ -72,6 +73,7 @@ export async function getAlertsData(userId: string): Promise<AlertsData> {
         .select({
           id: watchedCompanies.id,
           name: watchedCompanies.name,
+          tier: watchedCompanies.tier,
           normalizedName: watchedCompanies.normalizedName,
           enabled: watchedCompanies.enabled,
           sourceLabel: jobSources.label,
@@ -155,6 +157,7 @@ export async function getAlertsData(userId: string): Promise<AlertsData> {
     companies: companyRows.map((c) => ({
       id: c.id,
       name: c.name,
+      tier: c.tier,
       enabled: c.enabled,
       sourceLabel: c.sourceLabel,
       openCount: openCounts.get(c.normalizedName) ?? 0,
