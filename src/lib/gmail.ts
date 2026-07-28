@@ -87,41 +87,6 @@ export async function listCandidateMessages(
   return out.slice(0, cap);
 }
 
-// Lightweight header-only fetch (Subject/From/Date) for diagnostics — avoids
-// downloading full message bodies.
-export async function fetchHeaders(
-  auth: GoogleAuthClient,
-  id: string,
-): Promise<{ id: string; threadId: string; subject: string; from: string; date: Date }> {
-  const gmail = google.gmail({ version: "v1", auth });
-  const res = await gmail.users.messages.get({
-    userId: "me",
-    id,
-    format: "metadata",
-    metadataHeaders: ["Subject", "From", "Date"],
-  });
-  const msg = res.data;
-  const headers = msg.payload?.headers ?? [];
-  const header = (name: string) =>
-    headers.find((h) => h.name?.toLowerCase() === name.toLowerCase())?.value ??
-    "";
-  const date = msg.internalDate ? new Date(Number(msg.internalDate)) : new Date(0);
-  return {
-    id: msg.id ?? id,
-    threadId: msg.threadId ?? "",
-    subject: header("subject"),
-    from: header("from"),
-    date,
-  };
-}
-
-// Broad query (no keyword filter) over the tracking window — used by the debug
-// endpoint to show every recent email regardless of the keyword match.
-export function recentAllQuery(): string {
-  const from = new Date(getTrackAfterDate().getTime() - 24 * 60 * 60 * 1000);
-  return `after:${gmailDate(from)}`;
-}
-
 export async function fetchEmail(
   auth: GoogleAuthClient,
   id: string,
