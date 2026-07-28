@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { getAllowedUser } from "@/lib/auth";
 import { db } from "@/db";
 import { applications as applicationsTable } from "@/db/schema";
 import {
@@ -12,10 +12,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAllowedUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

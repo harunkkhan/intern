@@ -95,8 +95,9 @@ In your Google Cloud project:
    - **Site URL:** `http://localhost:3000` (change to your Vercel URL in prod).
    - **Redirect URLs:** add `http://localhost:3000/auth/callback` and, later,
      `https://<your-app>.vercel.app/auth/callback`.
-3. Set `ALLOWED_EMAIL` to the Gmail address you'll sign in with — only that
-   account is allowed past the callback.
+3. Set `ALLOWED_EMAIL` to your own Gmail address. You are always allowed past the
+   callback; everyone else needs a row in `allowed_email` (see
+   [Granting access](#granting-access-to-other-people)).
 
 ### 5. Gemini API key
 
@@ -136,6 +137,55 @@ cron) to drain any backlog; the button reports how many remain.
 
 ---
 
+## Granting access to other people
+
+Access is controlled by the `allowed_email` table plus the `ALLOWED_EMAIL` env var
+(the owner, always allowed). Adding someone takes **two** steps — miss the second
+and they get blocked by Google before the app ever sees them.
+
+### 1. Add them to the app allowlist
+
+Run this in the Supabase SQL editor. Takes effect on their next request; no
+redeploy needed.
+
+```sql
+insert into allowed_email (email, note)
+values ('friend@gmail.com', 'Sam from the group chat');
+```
+
+Revoking is immediate — every page load and API call re-checks the table:
+
+```sql
+delete from allowed_email where email = 'friend@gmail.com';
+```
+
+To see who currently has access:
+
+```sql
+select email, note, created_at from allowed_email order by created_at;
+```
+
+### 2. Add them as a Google OAuth test user
+
+**Google Cloud Console → APIs & Services → OAuth consent screen → Test users →
+Add users.** Because this app requests the `gmail.readonly` *restricted* scope
+while in "Testing" publishing status, Google blocks any account that isn't on this
+list — they'll see *"Access blocked: this app has not completed verification"* at
+the consent screen, before Supabase issues a session.
+
+Two consequences of staying in Testing mode:
+
+- **100 test users max.**
+- **Refresh tokens expire after 7 days.** Background sync silently stops for a
+  user until they sign in again. Going past this needs Google app verification
+  plus a CASA security assessment for the restricted scope.
+
+Once both steps are done they sign in with Google, and that same sign-in grants
+Gmail access — the refresh token is stored per user, so their inbox is scanned
+independently of yours.
+
+---
+
 ## Environment variables
 
 | Variable                        | Purpose                                                   |
@@ -146,7 +196,7 @@ cron) to drain any backlog; the button reports how many remain.
 | `DIRECT_URL`                    | Supabase session pooler (port 5432, migrations)           |
 | `GOOGLE_CLIENT_ID`              | Google OAuth client ID (also set in Supabase)             |
 | `GOOGLE_CLIENT_SECRET`          | Google OAuth client secret (also set in Supabase)         |
-| `ALLOWED_EMAIL`                 | The only Gmail address allowed past the auth callback     |
+| `ALLOWED_EMAIL`                 | Owner's Gmail — always allowed, and the inbox the cron scans |
 | `GEMINI_API_KEY`                | Google Gemini API key                                     |
 | `CRON_SECRET`                   | Shared secret protecting `/api/cron/sync` (prod)          |
 | `TRACK_AFTER`                   | Only track emails on/after this date (YYYY-MM-DD)         |
@@ -189,8 +239,13 @@ drizzle/                         # generated SQL migrations
 
 ## Notes & limitations
 
-- **Single-user by design.** Sign-in is restricted to `ALLOWED_EMAIL`; the app
-  stays in Google's "testing" mode (no verification required).
+- **Access is allowlisted.** `ALLOWED_EMAIL` (the owner) plus any row in the
+  `allowed_email` table. See [Granting access](#granting-access-to-other-people)
+  — note the Google test-user cap and the 7-day token expiry that come with
+  staying in Google's "testing" mode.
+- **The daily cron only syncs the owner.** Other allowlisted users can sign in,
+  connect Gmail, and sync with the button in Settings, but the scheduled job at
+  `/api/cron/sync` still resolves a single user from `ALLOWED_EMAIL`.
 - **Tracking starts at `TRACK_AFTER`** (default `2026-06-24`). Emails before
   that date are never fetched or recorded — enforced both in the Gmail query and
   as a hard guard in the sync loop.

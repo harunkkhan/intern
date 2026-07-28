@@ -1,6 +1,7 @@
 import { asc, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import {
+  allowedEmails,
   applications,
   applicationEvents,
   googleTokens,
@@ -14,6 +15,24 @@ import type {
   Industry,
   Term,
 } from "@/lib/types";
+
+// Sign-in gate. The owner from ALLOWED_EMAIL is always allowed — that keeps an
+// empty (or accidentally emptied) allowed_email table from locking everyone out,
+// and means the owner can't delete their own access. Everyone else needs a row.
+export async function isEmailAllowed(email: string): Promise<boolean> {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) return false;
+
+  const owner = process.env.ALLOWED_EMAIL?.trim().toLowerCase();
+  if (owner && normalized === owner) return true;
+
+  const [row] = await db
+    .select({ email: allowedEmails.email })
+    .from(allowedEmails)
+    .where(eq(allowedEmails.email, normalized))
+    .limit(1);
+  return !!row;
+}
 
 // The cron has no user session; it resolves the single allowed user from the
 // stored Google token row keyed by email.

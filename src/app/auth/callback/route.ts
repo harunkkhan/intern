@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/db";
 import { googleTokens } from "@/db/schema";
+import { isEmailAllowed } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
 // Supabase redirects here after Google sign-in. We exchange the code for a
-// session, enforce the single allowed user, and persist the Google
-// provider_refresh_token (only available right after this exchange) so the cron
-// can call Gmail offline later.
+// session, enforce the allowlist, and persist the Google provider_refresh_token
+// (only available right after this exchange) so the cron can call Gmail offline
+// later.
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
@@ -29,8 +30,7 @@ export async function GET(request: Request) {
       return fail("auth", error?.message);
     }
 
-    const allowed = process.env.ALLOWED_EMAIL?.toLowerCase();
-    if (!allowed || data.user.email.toLowerCase() !== allowed) {
+    if (!(await isEmailAllowed(data.user.email))) {
       await supabase.auth.signOut();
       return fail("not_allowed", data.user.email);
     }

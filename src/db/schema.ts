@@ -12,6 +12,19 @@ import {
 // tables key off the Supabase user id (a UUID) stored as plain text — no
 // cross-schema foreign key, which keeps Drizzle migrations self-contained.
 
+// Emails permitted to sign in, stored lowercased. Rows are added/removed by hand
+// (Supabase dashboard or SQL) and take effect on the next request — no redeploy.
+// The owner from ALLOWED_EMAIL is always allowed on top of this table, so an
+// empty table can never lock everybody out.
+export const allowedEmails = pgTable("allowed_email", {
+  email: text("email").primaryKey(),
+  // Optional label so you can tell who an address belongs to later.
+  note: text("note"),
+  createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 // Google OAuth refresh token captured from the Supabase session at sign-in.
 // The daily cron reads this to call the Gmail API offline.
 export const googleTokens = pgTable("google_token", {

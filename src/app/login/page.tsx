@@ -6,7 +6,8 @@ import Logo from "@/components/Logo";
 const ERROR_MESSAGES: Record<string, string> = {
   missing_code: "Sign-in did not return a code. Please try again.",
   auth: "Could not complete sign-in (code exchange failed).",
-  not_allowed: "That account is not the allowed user (check ALLOWED_EMAIL).",
+  not_allowed:
+    "That account does not have access to this tracker. Ask the owner to add your email.",
   server: "The sign-in callback hit a server error.",
   oauth: "Could not start the Google sign-in flow.",
 };
