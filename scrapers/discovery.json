@@ -47,51 +47,26 @@
     "name": "Google DeepMind",
     "careers_url": null,
     "job_links": 0,
-    "strategy": "unresolved",
-    "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.deepmind.google/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.deepmind.google/about/careers",
-        "rendered": false,
-        "jobs": 1,
-        "hosts": {
-          "google.com": 1
-        }
-      },
-      {
-        "url": "https://www.deepmind.google/about/careers",
-        "rendered": true,
-        "jobs": 1,
-        "hosts": {
-          "google.com": 1
-        }
+    "hosts": {},
+    "needs_render": false,
+    "strategy": "ats",
+    "ats": "greenhouse",
+    "board": {
+      "adapter": "greenhouse",
+      "config": {
+        "board": "deepmind"
       }
-    ]
+    },
+    "sample": [],
+    "note": "board pinned in registry"
   },
   {
     "name": "Renaissance Technologies",
     "careers_url": null,
     "job_links": 0,
-    "strategy": "unresolved",
+    "strategy": "unavailable",
     "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.rentec.com/jobs",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.rentec.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.rentec.com/about/careers",
-        "http_status": 404
-      }
-    ]
+    "note": "no public listings"
   },
   {
     "name": "TGS",
@@ -101,44 +76,43 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.tgsmc.com/jobs",
-        "http_status": 404
+        "url": "https://jobs.jobvite.com/tgsmc",
+        "rendered": false,
+        "jobs": 0,
+        "hosts": {
+          "jobvite.com": 5
+        }
       },
       {
-        "url": "https://www.tgsmc.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.tgsmc.com/about/careers",
-        "http_status": 404
+        "url": "https://jobs.jobvite.com/tgsmc",
+        "rendered": true,
+        "jobs": 0,
+        "hosts": {
+          "jobvite.com": 5
+        }
       }
     ]
   },
   {
     "name": "xAI",
-    "careers_url": null,
-    "job_links": 0,
-    "strategy": "unresolved",
-    "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.x.ai/company/careers/open-positions",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.x.ai/about/careers",
-        "rendered": false,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.x.ai/about/careers",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
+    "careers_url": "https://x.ai/careers/open-roles",
+    "job_links": 200,
+    "hosts": {
+      "job-boards.greenhouse.io": 200
+    },
+    "needs_render": false,
+    "strategy": "ats",
+    "ats": "greenhouse",
+    "board": {
+      "adapter": "greenhouse",
+      "config": {
+        "board": "xai"
       }
+    },
+    "sample": [
+      "Documentation Control Specialist - Infrastructure (Datacenters & Power",
+      "Logistics Specialist (Temporary)",
+      "Warehouse Supervisor (Temporary)"
     ]
   },
   {
@@ -149,19 +123,7 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.citadelsecurities.com/jobs",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.citadelsecurities.com/company/careers/open-positions",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.citadelsecurities.com/about/careers",
+        "url": "https://www.citadelsecurities.com/careers/open-opportunities/",
         "rendered": true,
         "jobs": 0,
         "hosts": {
@@ -199,16 +161,20 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.hudsonrivertrading.com/jobs",
-        "http_status": 404
+        "url": "https://www.hudsonrivertrading.com/careers/",
+        "rendered": false,
+        "jobs": 2,
+        "hosts": {
+          "boards.greenhouse.io": 2
+        }
       },
       {
-        "url": "https://www.hudsonrivertrading.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.hudsonrivertrading.com/about/careers",
-        "http_status": 404
+        "url": "https://www.hudsonrivertrading.com/careers/",
+        "rendered": true,
+        "jobs": 2,
+        "hosts": {
+          "boards.greenhouse.io": 2
+        }
       }
     ]
   },
@@ -220,17 +186,7 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.citadel.com/jobs",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.citadel.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.citadel.com/about/careers",
+        "url": "https://www.citadel.com/careers/open-opportunities/",
         "rendered": true,
         "jobs": 0,
         "hosts": {}
@@ -245,16 +201,16 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.deshaw.com/jobs",
-        "http_status": 404
+        "url": "https://www.deshaw.com/careers",
+        "rendered": false,
+        "jobs": 0,
+        "hosts": {}
       },
       {
-        "url": "https://www.deshaw.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.deshaw.com/about/careers",
-        "http_status": 404
+        "url": "https://www.deshaw.com/careers",
+        "rendered": true,
+        "jobs": 0,
+        "hosts": {}
       }
     ]
   },
@@ -266,16 +222,22 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.jumptrading.com/jobs",
-        "http_status": 404
+        "url": "https://www.jumptrading.com/careers",
+        "rendered": false,
+        "jobs": 2,
+        "hosts": {
+          "job-boards.greenhouse.io": 1,
+          "hackerone.com": 1
+        }
       },
       {
-        "url": "https://www.jumptrading.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.jumptrading.com/about/careers",
-        "http_status": 404
+        "url": "https://www.jumptrading.com/careers",
+        "rendered": true,
+        "jobs": 2,
+        "hosts": {
+          "job-boards.greenhouse.io": 1,
+          "hackerone.com": 1
+        }
       }
     ]
   },
@@ -304,17 +266,13 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.twosigma.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.twosigma.com/about/careers",
+        "url": "https://careers.twosigma.com/careers/OpenRoles",
         "rendered": false,
         "jobs": 0,
         "hosts": {}
       },
       {
-        "url": "https://www.twosigma.com/about/careers",
+        "url": "https://careers.twosigma.com/careers/OpenRoles",
         "rendered": true,
         "jobs": 0,
         "hosts": {}
@@ -329,19 +287,7 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.tesla.com/jobs",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.tesla.com/company/careers/open-positions",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.tesla.com/about/careers",
+        "url": "https://www.tesla.com/careers/search",
         "rendered": true,
         "jobs": 0,
         "hosts": {}
@@ -352,35 +298,25 @@
     "name": "Five Rings",
     "careers_url": null,
     "job_links": 0,
-    "strategy": "unresolved",
-    "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.fiveringsllc.com/company/careers/open-positions",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.fiveringsllc.com/about/careers",
-        "rendered": false,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.fiveringsllc.com/about/careers",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
+    "hosts": {},
+    "needs_render": false,
+    "strategy": "ats",
+    "ats": "greenhouse",
+    "board": {
+      "adapter": "greenhouse",
+      "config": {
+        "board": "fiveringsllc"
       }
-    ]
+    },
+    "sample": [],
+    "note": "board pinned in registry"
   },
   {
     "name": "SpaceX",
     "careers_url": "https://www.spacex.com/careers/jobs/",
-    "job_links": 2040,
+    "job_links": 2041,
     "hosts": {
-      "boards.greenhouse.io": 2034,
+      "boards.greenhouse.io": 2035,
       "job-boards.greenhouse.io": 7
     },
     "needs_render": true,
@@ -437,24 +373,18 @@
     "name": "DRW",
     "careers_url": null,
     "job_links": 0,
-    "strategy": "unresolved",
-    "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.drw.com/jobs",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.drw.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.drw.com/about/careers",
-        "http_status": 404
+    "hosts": {},
+    "needs_render": false,
+    "strategy": "ats",
+    "ats": "greenhouse",
+    "board": {
+      "adapter": "greenhouse",
+      "config": {
+        "board": "drweng"
       }
-    ]
+    },
+    "sample": [],
+    "note": "board pinned in registry"
   },
   {
     "name": "Akuna Capital",
@@ -476,9 +406,9 @@
   {
     "name": "Databricks",
     "careers_url": "https://www.databricks.com/company/careers/open-positions",
-    "job_links": 721,
+    "job_links": 723,
     "hosts": {
-      "(own domain)": 724
+      "(own domain)": 726
     },
     "needs_render": true,
     "strategy": "scrape",
@@ -521,16 +451,18 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.anduril.com/jobs",
-        "http_status": 404
+        "url": "https://www.anduril.com/open-roles",
+        "rendered": false,
+        "jobs": 0,
+        "hosts": {}
       },
       {
-        "url": "https://www.anduril.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.anduril.com/about/careers",
-        "http_status": 404
+        "url": "https://www.anduril.com/open-roles",
+        "rendered": true,
+        "jobs": 0,
+        "hosts": {
+          "boards.greenhouse.io": 100
+        }
       }
     ]
   },
@@ -591,45 +523,37 @@
   },
   {
     "name": "Roblox",
-    "careers_url": null,
-    "job_links": 0,
-    "strategy": "unresolved",
+    "careers_url": "https://careers.roblox.com/jobs",
+    "job_links": 9,
+    "hosts": {
+      "(own domain)": 9
+    },
+    "needs_render": false,
+    "strategy": "scrape",
     "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.roblox.com/jobs",
-        "rendered": true,
-        "error": "render failed: Error: Page.goto: net::ERR_HTTP2_PROTOCOL_ERROR at https://www.roblox.com/jobs\nCall log:\n  - navigating to \"https://www.roblox.com/jobs\", waiting until \"domcontentloaded\"\n"
-      },
-      {
-        "url": "https://www.roblox.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.roblox.com/about/careers",
-        "http_status": 404
-      }
+    "board": null,
+    "sample": [
+      "[2026] Data Scientist, Social",
+      "[2026] Senior Machine Learning Engineer, Recommendation Systems - PhD ",
+      "[2026] Senior Machine Learning Engineer (Systems), Embodied AI/NPCs, M"
     ]
   },
   {
     "name": "Snowflake",
-    "careers_url": null,
-    "job_links": 0,
-    "strategy": "unresolved",
+    "careers_url": "https://careers.snowflake.com/us/en/search-results",
+    "job_links": 10,
+    "hosts": {
+      "(own domain)": 10,
+      "facebook.com": 1
+    },
+    "needs_render": true,
+    "strategy": "scrape",
     "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.snowflake.com/jobs",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.snowflake.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.snowflake.com/about/careers",
-        "http_status": 404
-      }
+    "board": null,
+    "sample": [
+      "Engineering Manager - Transformation & Data Lake",
+      "Principal Solutions Engineer Enablement Manager",
+      "Senior Technical Support Engineer, Observe by Snowflake"
     ]
   },
   {
@@ -731,15 +655,7 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.uber.com/jobs",
-        "http_status": 406
-      },
-      {
-        "url": "https://www.uber.com/company/careers/open-positions",
-        "http_status": 406
-      },
-      {
-        "url": "https://www.uber.com/about/careers",
+        "url": "https://www.uber.com/us/en/careers/list/",
         "http_status": 406
       }
     ]
@@ -786,84 +702,70 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.ramp.com/jobs",
-        "http_status": 404
+        "url": "https://ramp.com/careers",
+        "rendered": false,
+        "jobs": 0,
+        "hosts": {}
       },
       {
-        "url": "https://www.ramp.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.ramp.com/about/careers",
-        "http_status": 404
+        "url": "https://ramp.com/careers",
+        "rendered": true,
+        "jobs": 0,
+        "hosts": {}
       }
     ]
   },
   {
     "name": "Coinbase",
-    "careers_url": null,
-    "job_links": 0,
-    "strategy": "unresolved",
+    "careers_url": "https://www.coinbase.com/careers/positions",
+    "job_links": 155,
+    "hosts": {
+      "(own domain)": 155
+    },
+    "needs_render": false,
+    "strategy": "scrape",
     "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.coinbase.com/jobs",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.coinbase.com/company/careers/open-positions",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.coinbase.com/about/careers",
-        "http_status": 404
-      }
+    "board": null,
+    "sample": [
+      "Associate, Financial Services Partnerships",
+      "Business Operations Senior Associate, Institutional",
+      "Compliance, Threat & Risk Assessment Manager"
     ]
   },
   {
     "name": "Nvidia",
     "careers_url": null,
     "job_links": 0,
-    "strategy": "unresolved",
-    "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.nvidia.com/jobs",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.nvidia.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.nvidia.com/about/careers",
-        "http_status": 404
+    "hosts": {},
+    "needs_render": false,
+    "strategy": "ats",
+    "ats": "workday",
+    "board": {
+      "adapter": "workday",
+      "config": {
+        "host": "nvidia.wd5.myworkdayjobs.com",
+        "tenant": "nvidia",
+        "site": "NVIDIAExternalCareerSite"
       }
-    ]
+    },
+    "sample": [],
+    "note": "board pinned in registry"
   },
   {
     "name": "AWS (Annapurna)",
-    "careers_url": null,
-    "job_links": 0,
-    "strategy": "unresolved",
+    "careers_url": "https://www.amazon.jobs/en/search?base_query=intern",
+    "job_links": 10,
+    "hosts": {
+      "(own domain)": 21
+    },
+    "needs_render": true,
+    "strategy": "scrape",
     "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.amazon.jobs/jobs",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.amazon.jobs/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.amazon.jobs/about/careers",
-        "http_status": 404
-      }
+    "board": null,
+    "sample": [
+      "Engineering Intern",
+      "Engineering Intern",
+      "Sales Rep Intern"
     ]
   },
   {
@@ -874,22 +776,18 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.palantir.com/company/careers/open-positions",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.palantir.com/about/careers",
+        "url": "https://www.palantir.com/careers/",
         "rendered": false,
         "jobs": 0,
         "hosts": {}
       },
       {
-        "url": "https://www.palantir.com/about/careers",
+        "url": "https://www.palantir.com/careers/",
         "rendered": true,
-        "jobs": 0,
-        "hosts": {}
+        "jobs": 1,
+        "hosts": {
+          "jobs.lever.co": 2
+        }
       }
     ]
   },
@@ -970,30 +868,26 @@
     "ats": null,
     "board": null,
     "sample": [
-      "Senior Operations Specialist, Robot Fremont, CA; Sunnyvale, CA; San Jo",
-      "Kitchen Operations Associate, DashMart Tucson, AZ",
-      "Warehouse Associate \u2013 Glendale (Part Time) Phoenix, AZ"
+      "Kitchen Shift Lead, DashMart Charlotte, NC",
+      "Kitchen Operations Associate, DashMart Norfolk, VA",
+      "Senior Associate, Strategy & Operations \u2013 Payments Fraud (Canada) Vanc"
     ]
   },
   {
     "name": "Datadog",
-    "careers_url": null,
-    "job_links": 0,
-    "strategy": "unresolved",
+    "careers_url": "https://careers.datadoghq.com/all-jobs/",
+    "job_links": 10,
+    "hosts": {
+      "(own domain)": 10
+    },
+    "needs_render": true,
+    "strategy": "scrape",
     "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.datadoghq.com/jobs",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.datadoghq.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.datadoghq.com/about/careers",
-        "http_status": 404
-      }
+    "board": null,
+    "sample": [
+      "Senior Partner Marketing Manager, North America Marketing Locations",
+      "Team Lead, Strategic Sourcing (IT, SaaS, Hardware) General & Administr",
+      "Senior Product Manager - Bits Agent Builder Product Management New Yor"
     ]
   },
   {
@@ -1022,25 +916,19 @@
   },
   {
     "name": "MongoDB",
-    "careers_url": null,
-    "job_links": 0,
-    "strategy": "unresolved",
+    "careers_url": "https://www.mongodb.com/company/careers/see-jobs",
+    "job_links": 10,
+    "hosts": {
+      "(own domain)": 10
+    },
+    "needs_render": false,
+    "strategy": "scrape",
     "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.mongodb.com/jobs",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.mongodb.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.mongodb.com/about/careers",
-        "http_status": 404
-      }
+    "board": null,
+    "sample": [
+      "Account Development Representative Dublin, Ireland Full-time",
+      "Account Development Representative Mexico City Full-time",
+      "Account Development Representative Bengaluru Full-time"
     ]
   },
   {
@@ -1055,8 +943,8 @@
     "ats": null,
     "board": null,
     "sample": [
-      "Head of GTM Incentive Strategy San Francisco Apply",
       "Head of GTM Incentive Strategy New York Apply",
+      "Head of GTM Incentive Strategy San Francisco Apply",
       "Sales Development Representative San Francisco Apply"
     ]
   },
@@ -1073,8 +961,8 @@
     "board": null,
     "sample": [
       "Explore jobs",
-      "Client Account Manager I",
-      "Sr. Client Partner"
+      "Manager I, Engineering",
+      "Software Engineer II"
     ]
   },
   {
@@ -1089,9 +977,9 @@
     "ats": null,
     "board": null,
     "sample": [
-      "Materials and Chemistry AI Scientist",
-      "Principal Missile Defense Space Systems Engineer",
-      "Space Cybersecurity Engineer (Intelligence Center)"
+      "IC Full Stack Engineer",
+      "Experimental Quantum Physicist",
+      "NC2/NC3 Systems Engineer"
     ]
   },
   {
@@ -1102,40 +990,35 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.snap.com/jobs",
-        "rendered": true,
+        "url": "https://www.snap.com/en-US/jobs",
+        "rendered": false,
         "jobs": 0,
         "hosts": {}
       },
       {
-        "url": "https://www.snap.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.snap.com/about/careers",
-        "http_status": 404
+        "url": "https://www.snap.com/en-US/jobs",
+        "rendered": true,
+        "jobs": 0,
+        "hosts": {}
       }
     ]
   },
   {
     "name": "Dropbox",
-    "careers_url": null,
-    "job_links": 0,
-    "strategy": "unresolved",
+    "careers_url": "https://jobs.dropbox.com/all-jobs",
+    "job_links": 20,
+    "hosts": {
+      "(own domain)": 25,
+      "dropbox.jobs": 3
+    },
+    "needs_render": false,
+    "strategy": "scrape",
     "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.dropbox.com/jobs",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.dropbox.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.dropbox.com/about/careers",
-        "http_status": 404
-      }
+    "board": null,
+    "sample": [
+      "Senior Director, Revenue Operations",
+      "Sales Operations Manager",
+      "Senior Director, Revenue Operations"
     ]
   },
   {
@@ -1181,20 +1064,20 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.upstart.com/jobs",
-        "rendered": true,
+        "url": "https://www.upstart.com/careers",
+        "rendered": false,
         "jobs": 1,
         "hosts": {
           "(own domain)": 3
         }
       },
       {
-        "url": "https://www.upstart.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.upstart.com/about/careers",
-        "http_status": 404
+        "url": "https://www.upstart.com/careers",
+        "rendered": true,
+        "jobs": 1,
+        "hosts": {
+          "(own domain)": 3
+        }
       }
     ]
   },
@@ -1232,30 +1115,26 @@
       }
     },
     "sample": [
+      "Business Development Manager Sales - Austin, US \u00b7 New York, US Posted ",
       "Research Engineer Intern (Fall 2026) Early Talent - Austin, US Posted ",
-      "Research Engineer Intern (Fall 2026) Early Talent - Lisbon, Portugal P",
-      "Senior Commercial Account Executive Sales - Miami, US \u00b7 Seattle, US \u00b7 "
+      "Research Engineer Intern (Fall 2026) Early Talent - Lisbon, Portugal P"
     ]
   },
   {
     "name": "CrowdStrike",
-    "careers_url": null,
-    "job_links": 0,
-    "strategy": "unresolved",
+    "careers_url": "https://crowdstrike.wd5.myworkdayjobs.com/en-US/crowdstrikecareers",
+    "job_links": 20,
+    "hosts": {
+      "(own domain)": 20
+    },
+    "needs_render": true,
+    "strategy": "scrape",
     "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.crowdstrike.com/jobs",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.crowdstrike.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.crowdstrike.com/about/careers",
-        "http_status": 404
-      }
+    "board": null,
+    "sample": [
+      "Principal Software Engineer, Real Time Data Enrichment Platform (Hybri",
+      "Software Engineer - Sensor, macOS (Hybrid)",
+      "Sr. Manager, Engineering - Data Analytics Infrastructure (Hybrid)"
     ]
   },
   {
@@ -1333,19 +1212,7 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.rubrik.com/jobs",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.rubrik.com/company/careers/open-positions",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.rubrik.com/about/careers",
+        "url": "https://www.rubrik.com/company/careers",
         "rendered": true,
         "jobs": 0,
         "hosts": {}
@@ -1360,20 +1227,20 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.lyft.com/jobs",
-        "rendered": true,
+        "url": "https://www.lyft.com/careers",
+        "rendered": false,
         "jobs": 1,
         "hosts": {
           "free-now.com": 1
         }
       },
       {
-        "url": "https://www.lyft.com/company/careers/open-positions",
-        "http_status": 504
-      },
-      {
-        "url": "https://www.lyft.com/about/careers",
-        "http_status": 404
+        "url": "https://www.lyft.com/careers",
+        "rendered": true,
+        "jobs": 1,
+        "hosts": {
+          "free-now.com": 1
+        }
       }
     ]
   },
@@ -1385,18 +1252,16 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.instacart.com/jobs",
-        "rendered": true,
+        "url": "https://www.instacart.careers/current-openings",
+        "rendered": false,
         "jobs": 0,
         "hosts": {}
       },
       {
-        "url": "https://www.instacart.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.instacart.com/about/careers",
-        "http_status": 404
+        "url": "https://www.instacart.careers/current-openings",
+        "rendered": true,
+        "jobs": 0,
+        "hosts": {}
       }
     ]
   },
@@ -1425,16 +1290,16 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.okta.com/jobs",
-        "http_status": 404
+        "url": "https://www.okta.com/company/careers/",
+        "rendered": false,
+        "jobs": 0,
+        "hosts": {}
       },
       {
-        "url": "https://www.okta.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.okta.com/about/careers",
-        "http_status": 404
+        "url": "https://www.okta.com/company/careers/",
+        "rendered": true,
+        "jobs": 0,
+        "hosts": {}
       }
     ]
   },
@@ -1446,18 +1311,16 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.riotgames.com/jobs",
-        "rendered": true,
+        "url": "https://www.riotgames.com/en/work-with-us/jobs",
+        "rendered": false,
         "jobs": 0,
         "hosts": {}
       },
       {
-        "url": "https://www.riotgames.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.riotgames.com/about/careers",
-        "http_status": 404
+        "url": "https://www.riotgames.com/en/work-with-us/jobs",
+        "rendered": true,
+        "jobs": 0,
+        "hosts": {}
       }
     ]
   },
@@ -1469,18 +1332,16 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.circle.com/jobs",
-        "rendered": true,
+        "url": "https://www.circle.com/careers",
+        "rendered": false,
         "jobs": 0,
         "hosts": {}
       },
       {
-        "url": "https://www.circle.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.circle.com/about/careers",
-        "http_status": 404
+        "url": "https://www.circle.com/careers",
+        "rendered": true,
+        "jobs": 0,
+        "hosts": {}
       }
     ]
   },
@@ -1488,49 +1349,35 @@
     "name": "The Trade Desk",
     "careers_url": null,
     "job_links": 0,
-    "strategy": "unresolved",
-    "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.thetradedesk.com/company/careers/open-positions",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.thetradedesk.com/about/careers",
-        "rendered": false,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.thetradedesk.com/about/careers",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
+    "hosts": {},
+    "needs_render": false,
+    "strategy": "ats",
+    "ats": "greenhouse",
+    "board": {
+      "adapter": "greenhouse",
+      "config": {
+        "board": "thetradedesk"
       }
-    ]
+    },
+    "sample": [],
+    "note": "board pinned in registry"
   },
   {
     "name": "Pure Storage",
     "careers_url": null,
     "job_links": 0,
-    "strategy": "unresolved",
-    "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.purestorage.com/jobs",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.purestorage.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.purestorage.com/about/careers",
-        "http_status": 404
+    "hosts": {},
+    "needs_render": false,
+    "strategy": "ats",
+    "ats": "greenhouse",
+    "board": {
+      "adapter": "greenhouse",
+      "config": {
+        "board": "purestorage"
       }
-    ]
+    },
+    "sample": [],
+    "note": "board pinned in registry"
   },
   {
     "name": "SoFi",
@@ -1540,18 +1387,16 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.sofi.com/jobs",
-        "rendered": true,
+        "url": "https://www.sofi.com/careers/",
+        "rendered": false,
         "jobs": 0,
         "hosts": {}
       },
       {
-        "url": "https://www.sofi.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.sofi.com/about/careers",
-        "http_status": 404
+        "url": "https://www.sofi.com/careers/",
+        "rendered": true,
+        "jobs": 0,
+        "hosts": {}
       }
     ]
   },
@@ -1563,22 +1408,20 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.tiktok.com/company/careers/open-positions",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.tiktok.com/about/careers",
+        "url": "https://lifeattiktok.com/search",
         "rendered": false,
         "jobs": 0,
-        "hosts": {}
+        "hosts": {
+          "careers.tiktok.com": 1
+        }
       },
       {
-        "url": "https://www.tiktok.com/about/careers",
+        "url": "https://lifeattiktok.com/search",
         "rendered": true,
         "jobs": 0,
-        "hosts": {}
+        "hosts": {
+          "careers.tiktok.com": 1
+        }
       }
     ]
   },
@@ -1601,48 +1444,36 @@
   },
   {
     "name": "Amazon",
-    "careers_url": null,
-    "job_links": 0,
-    "strategy": "unresolved",
+    "careers_url": "https://www.amazon.jobs/en/search?base_query=intern",
+    "job_links": 10,
+    "hosts": {
+      "(own domain)": 21
+    },
+    "needs_render": true,
+    "strategy": "scrape",
     "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.amazon.jobs/jobs",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.amazon.jobs/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.amazon.jobs/about/careers",
-        "http_status": 404
-      }
+    "board": null,
+    "sample": [
+      "Engineering Intern",
+      "Engineering Intern",
+      "Sales Rep Intern"
     ]
   },
   {
     "name": "Microsoft",
-    "careers_url": null,
-    "job_links": 0,
-    "strategy": "unresolved",
+    "careers_url": "https://jobs.careers.microsoft.com/global/en/search",
+    "job_links": 15,
+    "hosts": {
+      "(own domain)": 15
+    },
+    "needs_render": true,
+    "strategy": "scrape",
     "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.microsoft.com/jobs",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {
-          "support.microsoft.com": 1
-        }
-      },
-      {
-        "url": "https://www.microsoft.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.microsoft.com/about/careers",
-        "http_status": 404
-      }
+    "board": null,
+    "sample": [
+      "Onsite Construction Scheduler/Planner United States, Wyoming, Cheyenne",
+      "Senior Physical Design Engineer United States, Oregon, Hillsboro + 4 m",
+      "Senior Researcher - Deep Learning - Microsoft Research United States, "
     ]
   },
   {
@@ -1665,40 +1496,36 @@
     "careers_url": "https://careers.amd.com",
     "job_links": 20,
     "hosts": {
-      "careers-amd.icims.com": 8,
+      "careers-amd.icims.com": 9,
       "(own domain)": 20,
       "canadacareers-amd.icims.com": 1,
-      "global-external-amd.icims.com": 2
+      "global-external-amd.icims.com": 1
     },
     "needs_render": true,
     "strategy": "scrape",
     "ats": null,
     "board": null,
     "sample": [
-      "AI Business Planning Specialist",
+      "PLL Design/ Integration Staff Engineer - Adaptive Computing Group",
       "Apply Now",
-      "PCIe, CXL and Highspeed IO Validation Engineer"
+      "AI Business Planning Specialist"
     ]
   },
   {
     "name": "Adobe",
-    "careers_url": null,
-    "job_links": 0,
-    "strategy": "unresolved",
+    "careers_url": "https://careers.adobe.com/us/en/search-results",
+    "job_links": 10,
+    "hosts": {
+      "(own domain)": 10
+    },
+    "needs_render": true,
+    "strategy": "scrape",
     "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.adobe.com/jobs",
-        "error": "ReadTimeout: HTTPSConnectionPool(host='www.adobe.com', port=443): Read timed out. (read timeout=25)"
-      },
-      {
-        "url": "https://www.adobe.com/company/careers/open-positions",
-        "error": "ReadTimeout: HTTPSConnectionPool(host='www.adobe.com', port=443): Read timed out. (read timeout=25)"
-      },
-      {
-        "url": "https://www.adobe.com/about/careers",
-        "error": "ReadTimeout: HTTPSConnectionPool(host='www.adobe.com', port=443): Read timed out. (read timeout=25)"
-      }
+    "board": null,
+    "sample": [
+      "Enterprise Sales Account Manager",
+      "Senior Builder RTCDP Frontier Pod",
+      "Sr. Computer Scientist 1"
     ]
   },
   {
@@ -1709,40 +1536,38 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.atlassian.com/jobs",
-        "rendered": true,
+        "url": "https://www.atlassian.com/company/careers/all-jobs",
+        "rendered": false,
         "jobs": 0,
         "hosts": {}
       },
       {
-        "url": "https://www.atlassian.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.atlassian.com/about/careers",
-        "http_status": 404
+        "url": "https://www.atlassian.com/company/careers/all-jobs",
+        "rendered": true,
+        "jobs": 0,
+        "hosts": {}
       }
     ]
   },
   {
     "name": "DocuSign",
-    "careers_url": null,
-    "job_links": 0,
-    "strategy": "unresolved",
+    "careers_url": "https://careers.docusign.com/jobs",
+    "job_links": 20,
+    "hosts": {
+      "(own domain)": 20,
+      "latamcareers-docusign.icims.com": 2,
+      "indiacareers-docusign.icims.com": 4,
+      "uscareers-docusign.icims.com": 3,
+      "emeacareers-docusign.icims.com": 1
+    },
+    "needs_render": true,
+    "strategy": "scrape",
     "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.docusign.com/jobs",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.docusign.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.docusign.com/about/careers",
-        "http_status": 404
-      }
+    "board": null,
+    "sample": [
+      "Recruiter",
+      "Apply Now",
+      "Platform Software Engineer"
     ]
   },
   {
@@ -1765,11 +1590,11 @@
   {
     "name": "Intuit",
     "careers_url": "https://careers.intuit.com",
-    "job_links": 13,
+    "job_links": 7,
     "hosts": {
-      "jobs.intuit.com": 13
+      "jobs.intuit.com": 7
     },
-    "needs_render": true,
+    "needs_render": false,
     "strategy": "scrape",
     "ats": null,
     "board": null,
@@ -1787,18 +1612,18 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.hubspot.com/jobs",
-        "rendered": true,
+        "url": "https://www.hubspot.com/careers/jobs",
+        "rendered": false,
         "jobs": 0,
         "hosts": {}
       },
       {
-        "url": "https://www.hubspot.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.hubspot.com/about/careers",
-        "http_status": 404
+        "url": "https://www.hubspot.com/careers/jobs",
+        "rendered": true,
+        "jobs": 0,
+        "hosts": {
+          "(own domain)": 12
+        }
       }
     ]
   },
@@ -1855,18 +1680,18 @@
   },
   {
     "name": "Epic Games",
-    "careers_url": "https://www.epicgames.com/careers/jobs",
-    "job_links": 50,
+    "careers_url": "https://www.epicgames.com/careers/jobs/",
+    "job_links": 51,
     "hosts": {
-      "(own domain)": 50
+      "(own domain)": 55
     },
-    "needs_render": false,
+    "needs_render": true,
     "strategy": "scrape",
     "ats": null,
     "board": null,
     "sample": [
+      "AI Programmer Epic Games Engineering Cary, United States",
       "AI Programmer Epic Games Engineering Montreal, Canada",
-      "AI Programmer Epic Games Engineering Porto Alegre, Brazil",
       "AI Programmer Epic Games Engineering Porto Alegre, Brazil"
     ]
   },
@@ -1877,7 +1702,7 @@
     "hosts": {
       "(own domain)": 5
     },
-    "needs_render": false,
+    "needs_render": true,
     "strategy": "scrape",
     "ats": null,
     "board": null,
@@ -1895,19 +1720,13 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.twitch.tv/company/careers/open-positions",
+        "url": "https://www.twitch.tv/jobs/en/",
         "rendered": false,
         "jobs": 0,
         "hosts": {}
       },
       {
-        "url": "https://www.twitch.tv/company/careers/open-positions",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.twitch.tv/about/careers",
+        "url": "https://www.twitch.tv/jobs/en/",
         "rendered": true,
         "jobs": 0,
         "hosts": {}
@@ -1922,17 +1741,13 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.paypal.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.paypal.com/about/careers",
+        "url": "https://careers.pypl.com/search-results",
         "rendered": false,
         "jobs": 0,
         "hosts": {}
       },
       {
-        "url": "https://www.paypal.com/about/careers",
+        "url": "https://careers.pypl.com/search-results",
         "rendered": true,
         "jobs": 0,
         "hosts": {}
@@ -1943,26 +1758,20 @@
     "name": "Workday",
     "careers_url": null,
     "job_links": 0,
-    "strategy": "unresolved",
-    "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.workday.com/jobs",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {
-          "(own domain)": 4
-        }
-      },
-      {
-        "url": "https://www.workday.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.workday.com/about/careers",
-        "http_status": 404
+    "hosts": {},
+    "needs_render": false,
+    "strategy": "ats",
+    "ats": "workday",
+    "board": {
+      "adapter": "workday",
+      "config": {
+        "host": "workday.wd5.myworkdayjobs.com",
+        "tenant": "workday",
+        "site": "Workday"
       }
-    ]
+    },
+    "sample": [],
+    "note": "board pinned in registry"
   },
   {
     "name": "Oracle",
@@ -1972,16 +1781,16 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.oracle.com/jobs",
-        "error": "ConnectionError: HTTPSConnectionPool(host='oracle.taleo.net', port=443): Max retries exceeded with url: /careersection/2/jobsearch.ftl?lang=en (Caused by NameResolutionError(\"HTTPSConnection(host='oracle.taleo.net', port=443): Failed to resolve 'oracle.taleo.net' ([Errno 8] nodename nor servname provided, or not known)\"))"
+        "url": "https://careers.oracle.com/jobs/",
+        "rendered": false,
+        "jobs": 0,
+        "hosts": {}
       },
       {
-        "url": "https://www.oracle.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.oracle.com/about/careers",
-        "http_status": 404
+        "url": "https://careers.oracle.com/jobs/",
+        "rendered": true,
+        "jobs": 0,
+        "hosts": {}
       }
     ]
   },
@@ -1993,7 +1802,7 @@
       "(own domain)": 2,
       "careers.zoom.us": 10
     },
-    "needs_render": false,
+    "needs_render": true,
     "strategy": "scrape",
     "ats": null,
     "board": null,
@@ -2029,61 +1838,51 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.salesforce.com/jobs",
-        "rendered": true,
+        "url": "https://careers.salesforce.com/en/jobs/",
+        "rendered": false,
         "jobs": 0,
         "hosts": {}
       },
       {
-        "url": "https://www.salesforce.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.salesforce.com/about/careers",
-        "http_status": 404
+        "url": "https://careers.salesforce.com/en/jobs/",
+        "rendered": true,
+        "jobs": 0,
+        "hosts": {}
       }
     ]
   },
   {
     "name": "Capital One",
-    "careers_url": null,
-    "job_links": 0,
-    "strategy": "unresolved",
+    "careers_url": "https://www.capitalonecareers.com/search-jobs",
+    "job_links": 15,
+    "hosts": {
+      "(own domain)": 15
+    },
+    "needs_render": false,
+    "strategy": "scrape",
     "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.capitalone.com/jobs",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.capitalone.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.capitalone.com/about/careers",
-        "http_status": 404
-      }
+    "board": null,
+    "sample": [
+      "89088958448 07/28/2026",
+      "96006546832 07/28/2026",
+      "98425606064 07/28/2026"
     ]
   },
   {
     "name": "eBay",
-    "careers_url": null,
-    "job_links": 0,
-    "strategy": "unresolved",
+    "careers_url": "https://jobs.ebayinc.com/us/en/search-results",
+    "job_links": 10,
+    "hosts": {
+      "(own domain)": 10
+    },
+    "needs_render": true,
+    "strategy": "scrape",
     "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.ebay.com/jobs",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.ebay.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.ebay.com/about/careers",
-        "http_status": 404
-      }
+    "board": null,
+    "sample": [
+      "DoD SkillBridge - Honor Role",
+      "Dir, Category Mgmt, US P&A",
+      "Senior Python Engineer, AI"
     ]
   },
   {
@@ -2094,18 +1893,16 @@
     "ats": null,
     "attempts": [
       {
-        "url": "https://www.shopify.com/jobs",
-        "rendered": true,
+        "url": "https://www.shopify.com/careers/search",
+        "rendered": false,
         "jobs": 0,
         "hosts": {}
       },
       {
-        "url": "https://www.shopify.com/company/careers/open-positions",
-        "http_status": 404
-      },
-      {
-        "url": "https://www.shopify.com/about/careers",
-        "http_status": 404
+        "url": "https://www.shopify.com/careers/search",
+        "rendered": true,
+        "jobs": 0,
+        "hosts": {}
       }
     ]
   }

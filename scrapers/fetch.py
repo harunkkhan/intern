@@ -63,7 +63,15 @@ def _get_browser():
         from playwright.sync_api import sync_playwright
 
         _playwright = sync_playwright().start()
-        _browser = _playwright.chromium.launch(args=["--disable-dev-shm-usage"])
+        _browser = _playwright.chromium.launch(
+            args=[
+                "--disable-dev-shm-usage",
+                # careers.roblox.com fails with ERR_HTTP2_PROTOCOL_ERROR under
+                # Chromium's HTTP/2 stack. Forcing HTTP/1.1 costs nothing here and
+                # avoids a class of protocol errors that look like site outages.
+                "--disable-http2",
+            ]
+        )
     return _browser
 
 

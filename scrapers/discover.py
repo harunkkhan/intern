@@ -61,6 +61,24 @@ def probe(company: dict, verbose: bool = False) -> dict:
     name = company["name"]
     attempts: list[dict] = []
 
+    # Companies with no public job board at all. Recorded explicitly so they read
+    # as a known dead end rather than as a scraper that needs fixing.
+    if company.get("unavailable"):
+        return {"name": name, "careers_url": None, "job_links": 0,
+                "strategy": "unavailable", "ats": None,
+                "note": company["unavailable"]}
+
+    # A known board short-circuits probing. Several of these companies front their
+    # ATS with a marketing page that never lists roles, so there is no listing
+    # page to find — the board is the answer.
+    if company.get("ats"):
+        board = company["ats"]
+        return {"name": name,
+                "careers_url": company.get("careers_url"),
+                "job_links": 0, "hosts": {}, "needs_render": False,
+                "strategy": "ats", "ats": board["adapter"], "board": board,
+                "sample": [], "note": "board pinned in registry"}
+
     for url in candidate_urls(company):
         best: dict | None = None
 
@@ -180,10 +198,16 @@ def main() -> int:
     json.dump(results, sys.stdout, indent=2)
     print()
 
-    scrape = sum(1 for r in results if r["strategy"] == "scrape")
-    ats = sum(1 for r in results if r["strategy"] == "ats")
-    bad = sum(1 for r in results if r["strategy"] == "unresolved")
-    print(f"\n  scrape={scrape}  ats={ats}  unresolved={bad}", file=sys.stderr)
+    counts: dict[str, int] = {}
+    for r in results:
+        counts[r["strategy"]] = counts.get(r["strategy"], 0) + 1
+    print(
+        "\n  " + "  ".join(f"{k}={v}" for k, v in sorted(counts.items())),
+        file=sys.stderr,
+    )
+    for r in results:
+        if r["strategy"] == "unresolved":
+            print(f"    unresolved: {r['name']}", file=sys.stderr)
     return 0
 
 

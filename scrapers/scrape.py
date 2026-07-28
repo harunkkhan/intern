@@ -18,8 +18,12 @@ import json
 import sys
 
 from extract import extract_generic, extract_with_selectors
-from fetch import FetchError, close_browser, get_html
+from fetch import FetchError, close_browser, fetch_http, fetch_rendered
 from registry import BY_NAME
+
+# Below this, an HTTP response is treated as not carrying the real listing set and
+# the browser is tried instead.
+MIN_ROWS = 3
 
 
 def scrape(company: dict, url: str | None = None, render: str | None = None) -> list[dict]:
@@ -33,13 +37,28 @@ def scrape(company: dict, url: str | None = None, render: str | None = None) -> 
 
     if render is None:
         render = "always" if company.get("needs_render") else "auto"
-    html = get_html(url, render=render, wait_selector=company.get("wait_selector"))
 
-    rows = (
-        extract_with_selectors(html, url, company["selectors"])
-        if company.get("selectors")
-        else extract_generic(html, url)
-    )
+    def parse(html: str) -> list[dict]:
+        return (
+            extract_with_selectors(html, url, company["selectors"])
+            if company.get("selectors")
+            else extract_generic(html, url)
+        )
+
+    if render == "always":
+        rows = parse(fetch_rendered(url, company.get("wait_selector")))
+    else:
+        status, body = fetch_http(url)
+        if status >= 400 and render == "never":
+            raise FetchError(f"HTTP {status}")
+        rows = parse(body) if status < 400 else []
+        # Escalate on what was actually extracted, not on how much visible text
+        # the page had. careers.roblox.com serves 356 KB containing nine real job
+        # links but almost no prose, so a text-length heuristic calls it a shell
+        # and sends it to a browser that then times out — failing a page that had
+        # already succeeded.
+        if len(rows) < MIN_ROWS and render != "never":
+            rows = parse(fetch_rendered(url, company.get("wait_selector")))
     if not rows:
         # An empty result is indistinguishable from "no open roles", and would
         # deactivate every listing this source has. Fail loudly instead.

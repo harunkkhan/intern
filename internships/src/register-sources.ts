@@ -22,7 +22,8 @@ const { jobSources } = schema;
 interface DiscoveryRow {
   name: string;
   careers_url: string | null;
-  strategy: "scrape" | "ats" | "unresolved";
+  strategy: "scrape" | "ats" | "unresolved" | "unavailable";
+  note?: string;
   ats: string | null;
   hosts?: Record<string, number>;
   job_links?: number;
@@ -49,8 +50,19 @@ try {
   const needsAttention: string[] = [];
 
   for (const row of rows) {
-    if (row.strategy === "unresolved" || !row.careers_url) {
+    if (row.strategy === "unavailable") {
+      // A known dead end, not a scraper waiting to be fixed.
+      needsAttention.push(`${row.name} — ${row.note ?? "no public board"}`);
+      continue;
+    }
+    if (row.strategy === "unresolved") {
       needsAttention.push(`${row.name} — no listing page found`);
+      continue;
+    }
+    // ATS sources are addressed by their board, not by a page, so a missing
+    // careers_url is only disqualifying for the scraped path.
+    if (row.strategy === "scrape" && !row.careers_url) {
+      needsAttention.push(`${row.name} — resolved but no URL recorded`);
       continue;
     }
 
