@@ -1,0 +1,70 @@
+name: Poll job listings
+
+# Vercel's Hobby plan caps its own cron at once per day, so the poller runs here
+# instead. Minutes are free on a public repo.
+#
+# NOTE: GitHub disables scheduled workflows after 60 days with no repository
+# activity. Any commit resets that clock.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Fetch and report only — no writes, no messages"
+        type: boolean
+        default: false
+      source:
+        description: "Poll only this source label (e.g. SimplifyJobs)"
+        type: string
+        required: false
+
+# Runs are idempotent, but overlapping them wastes a runner and doubles the load
+# on every careers page. Queue instead of cancelling so a long run still finishes
+# recording what it fetched.
+concurrency:
+  group: poll-job-listings
+  cancel-in-progress: false
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    # Well above a normal run (~30s). Bounds a hang instead of letting it sit on
+    # the runner for the 6-hour default.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      # The poller imports the web app's Drizzle schema, so it needs the root
+      # install for drizzle-orm and postgres — internships/package.json
+      # deliberately omits them to avoid a second, type-incompatible copy.
+      - name: Install root dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Install poller dependencies
+        run: bun install --frozen-lockfile
+        working-directory: internships
+
+      - name: Poll
+        working-directory: internships
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PROJECT_ID: ${{ secrets.PROJECT_ID }}
+          PROJECT_SECRET: ${{ secrets.PROJECT_SECRET }}
+          ALERT_SITE_URL: ${{ vars.ALERT_SITE_URL }}
+          # Lifts the GitHub API rate limit from 60/hr to 5,000/hr, which matters
+          # when a re-run storm hits the commit-sha checks.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          bun src/poll.ts \
+            ${{ inputs.dry_run && '--dry-run' || '' }} \
+            ${{ inputs.source && format('--source={0}', inputs.source) || '' }}

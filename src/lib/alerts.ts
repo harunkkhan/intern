@@ -1,0 +1,249 @@
+import "server-only";
+import { and, count, desc, eq, sql } from "drizzle-orm";
+import { db } from "@/db";
+import {
+  alertSubscribers,
+  jobListings,
+  jobSources,
+  watchedCompanies,
+} from "@/db/schema";
+
+export const ALERT_SCOPES = ["all", "watchlist"] as const;
+export type AlertScope = (typeof ALERT_SCOPES)[number];
+
+export interface SubscriberDTO {
+  id: string;
+  label: string;
+  phone: string;
+  scope: AlertScope;
+  enabled: boolean;
+  confirmedAt: string | null;
+}
+
+export interface WatchedCompanyDTO {
+  id: string;
+  name: string;
+  enabled: boolean;
+  sourceLabel: string | null;
+  /** Active listings currently matching this company across every source. */
+  openCount: number;
+}
+
+export interface AlertListingDTO {
+  id: string;
+  company: string;
+  title: string;
+  url: string;
+  locations: string[] | null;
+  term: string | null;
+  firstSeenAt: string;
+  sourceLabel: string;
+}
+
+export interface SourceHealthDTO {
+  id: string;
+  label: string;
+  adapter: string;
+  enabled: boolean;
+  lastPolledAt: string | null;
+  lastError: string | null;
+  listingCount: number;
+}
+
+export interface AlertsData {
+  subscribers: SubscriberDTO[];
+  companies: WatchedCompanyDTO[];
+  recent: AlertListingDTO[];
+  sources: SourceHealthDTO[];
+}
+
+const RECENT_LIMIT = 40;
+
+export async function getAlertsData(userId: string): Promise<AlertsData> {
+  const [subscriberRows, companyRows, recentRows, sourceRows] =
+    await Promise.all([
+      db
+        .select()
+        .from(alertSubscribers)
+        .where(eq(alertSubscribers.userId, userId))
+        .orderBy(desc(alertSubscribers.createdAt)),
+
+      db
+        .select({
+          id: watchedCompanies.id,
+          name: watchedCompanies.name,
+          normalizedName: watchedCompanies.normalizedName,
+          enabled: watchedCompanies.enabled,
+          sourceLabel: jobSources.label,
+        })
+        .from(watchedCompanies)
+        .leftJoin(jobSources, eq(watchedCompanies.sourceId, jobSources.id))
+        .where(eq(watchedCompanies.userId, userId))
+        .orderBy(watchedCompanies.name),
+
+      db
+        .select({
+          id: jobListings.id,
+          company: jobListings.company,
+          title: jobListings.title,
+          url: jobListings.url,
+          locations: jobListings.locations,
+          term: jobListings.term,
+          firstSeenAt: jobListings.firstSeenAt,
+          sourceLabel: jobSources.label,
+        })
+        .from(jobListings)
+        .innerJoin(jobSources, eq(jobListings.sourceId, jobSources.id))
+        .where(eq(jobListings.active, true))
+        .orderBy(desc(jobListings.firstSeenAt))
+        .limit(RECENT_LIMIT),
+
+      db
+        .select({
+          id: jobSources.id,
+          label: jobSources.label,
+          adapter: jobSources.adapter,
+          enabled: jobSources.enabled,
+          lastPolledAt: jobSources.lastPolledAt,
+          lastError: jobSources.lastError,
+          listingCount: count(jobListings.id),
+        })
+        .from(jobSources)
+        .leftJoin(
+          jobListings,
+          and(
+            eq(jobListings.sourceId, jobSources.id),
+            eq(jobListings.active, true),
+          ),
+        )
+        .groupBy(jobSources.id)
+        .orderBy(jobSources.label),
+    ]);
+
+  // One grouped count for every watched company rather than a query per row.
+  const openCounts = new Map<string, number>();
+  if (companyRows.length > 0) {
+    const counts = await db
+      .select({
+        normalizedCompany: jobListings.normalizedCompany,
+        total: count(jobListings.id),
+      })
+      .from(jobListings)
+      .where(
+        and(
+          eq(jobListings.active, true),
+          sql`${jobListings.normalizedCompany} = ANY(${sql.param(
+            companyRows.map((c) => c.normalizedName),
+          )}::text[])`,
+        ),
+      )
+      .groupBy(jobListings.normalizedCompany);
+    for (const row of counts) {
+      openCounts.set(row.normalizedCompany, Number(row.total));
+    }
+  }
+
+  return {
+    subscribers: subscriberRows.map((s) => ({
+      id: s.id,
+      label: s.label,
+      phone: s.phone,
+      scope: s.scope as AlertScope,
+      enabled: s.enabled,
+      confirmedAt: s.confirmedAt ? s.confirmedAt.toISOString() : null,
+    })),
+    companies: companyRows.map((c) => ({
+      id: c.id,
+      name: c.name,
+      enabled: c.enabled,
+      sourceLabel: c.sourceLabel,
+      openCount: openCounts.get(c.normalizedName) ?? 0,
+    })),
+    recent: recentRows.map((r) => ({
+      id: r.id,
+      company: r.company,
+      title: r.title,
+      url: r.url,
+      locations: r.locations,
+      term: r.term,
+      firstSeenAt: r.firstSeenAt.toISOString(),
+      sourceLabel: r.sourceLabel,
+    })),
+    sources: sourceRows.map((s) => ({
+      id: s.id,
+      label: s.label,
+      adapter: s.adapter,
+      enabled: s.enabled,
+      lastPolledAt: s.lastPolledAt ? s.lastPolledAt.toISOString() : null,
+      lastError: s.lastError,
+      listingCount: Number(s.listingCount),
+    })),
+  };
+}
+
+/**
+ * Normalizes user input to E.164, which is the only format Spectrum accepts.
+ * Bare 10-digit input is assumed to be +1; anything else must be entered with a
+ * country code so a non-US number can't be silently mangled into a US one.
+ */
+export function normalizePhone(raw: string): string | null {
+  const trimmed = raw.trim();
+  const digits = trimmed.replace(/\D/g, "");
+  if (!digits) return null;
+
+  if (trimmed.startsWith("+")) {
+    return digits.length >= 8 && digits.length <= 15 ? `+${digits}` : null;
+  }
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  return null;
+}
+
+export interface DetectedSource {
+  adapter: string;
+  config: Record<string, string>;
+}
+
+/**
+ * Derives an adapter and its config from a pasted careers URL, so adding a
+ * company doesn't require knowing which ATS it runs. Returns null when the URL
+ * isn't a recognized board — the watchlist entry still works in that case,
+ * matching against the GitHub feeds by company name.
+ */
+export function detectSource(rawUrl: string): DetectedSource | null {
+  let url: URL;
+  try {
+    url = new URL(rawUrl.trim());
+  } catch {
+    return null;
+  }
+  const host = url.hostname.replace(/^www\./i, "").toLowerCase();
+  const segments = url.pathname.split("/").filter(Boolean);
+
+  if (host === "boards.greenhouse.io" || host === "job-boards.greenhouse.io") {
+    const board = segments[0];
+    return board ? { adapter: "greenhouse", config: { board } } : null;
+  }
+  if (host === "jobs.lever.co") {
+    const company = segments[0];
+    return company ? { adapter: "lever", config: { company } } : null;
+  }
+  if (host === "jobs.ashbyhq.com") {
+    const board = segments[0];
+    return board ? { adapter: "ashby", config: { board } } : null;
+  }
+  if (host === "jobs.smartrecruiters.com") {
+    const company = segments[0];
+    return company ? { adapter: "smartrecruiters", config: { company } } : null;
+  }
+  if (host.endsWith(".myworkdayjobs.com")) {
+    const tenant = host.split(".")[0];
+    // Paths look like /en-US/<Site> or /<Site>; the locale segment, when
+    // present, is the only one shaped like "xx-YY".
+    const site = segments.find((s) => !/^[a-z]{2}-[A-Z]{2}$/.test(s));
+    return tenant && site
+      ? { adapter: "workday", config: { host, tenant, site } }
+      : null;
+  }
+  return null;
+}

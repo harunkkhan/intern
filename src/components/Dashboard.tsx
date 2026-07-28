@@ -9,6 +9,8 @@ import SearchBar from "@/components/SearchBar";
 import Filters from "@/components/Filters";
 import Sidebar, { type View } from "@/components/Sidebar";
 import SettingsPanel from "@/components/SettingsPanel";
+import AlertsPanel from "@/components/AlertsPanel";
+import type { AlertsData } from "@/lib/alerts";
 import ApplicationsTable, {
   type SortKey,
   type SortDir,
@@ -22,9 +24,11 @@ import { logoFont } from "@/components/Logo";
 export default function Dashboard({
   applications,
   sync,
+  alerts,
 }: {
   applications: ApplicationDTO[];
   sync: SyncStateDTO | null;
+  alerts: AlertsData;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -198,6 +202,18 @@ export default function Dashboard({
                 onSync={handleSync}
                 syncStatus={syncStatus}
               />
+            </>
+          ) : view === "alerts" ? (
+            <>
+              <header>
+                <h1 className="text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
+                  Alerts
+                </h1>
+                <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                  iMessage alerts for new internship and co-op postings
+                </p>
+              </header>
+              <AlertsPanel data={alerts} />
             </>
           ) : selected ? (
             <ApplicationDetail

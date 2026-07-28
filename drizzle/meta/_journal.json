@@ -15,6 +15,13 @@
       "when": 1785260944140,
       "tag": "0001_jittery_bushwacker",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785264459753,
+      "tag": "0002_daffy_preak",
+      "breakpoints": true
     }
   ]
 }

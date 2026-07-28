@@ -4,7 +4,7 @@ import { useState } from "react";
 import { doSignOut } from "@/app/actions";
 import Logo from "@/components/Logo";
 
-export type View = "dashboard" | "settings";
+export type View = "dashboard" | "alerts" | "settings";
 
 export default function Sidebar({
   view,
@@ -133,6 +133,13 @@ function Nav({
         icon={<DashboardIcon />}
       />
       <NavItem
+        label="Alerts"
+        active={view === "alerts"}
+        collapsed={collapsed}
+        onClick={() => onNavigate("alerts")}
+        icon={<BellIcon />}
+      />
+      <NavItem
         label="Settings"
         active={view === "settings"}
         collapsed={collapsed}
@@ -217,6 +224,15 @@ function DashboardIcon() {
       <rect x="14" y="3" width="7" height="5" rx="1" />
       <rect x="14" y="12" width="7" height="9" rx="1" />
       <rect x="3" y="16" width="7" height="5" rx="1" />
+    </svg>
+  );
+}
+
+function BellIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+      <path d="M10.268 21a2 2 0 0 0 3.464 0" />
+      <path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" />
     </svg>
   );
 }

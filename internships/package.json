@@ -4,10 +4,15 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "poll": "bun src/poll.ts",
+    "poll:dry": "bun src/poll.ts --dry-run",
+    "typecheck": "tsc --noEmit",
     "start": "bun src/index.ts",
     "dev": "bun --watch src/index.ts"
   },
+  "//deps": "drizzle-orm and postgres are deliberately NOT listed here. This package imports the web app's table definitions from ../src/db/schema.ts, and drizzle's types are nominal — two installed copies make the root's PgTable objects unassignable to this package's query builder, which fails to typecheck. Leaving them out lets Node/Bun resolution walk up to the single copy in the repo root's node_modules. Install the root package first.",
   "dependencies": {
+    "cheerio": "^1.1.2",
     "spectrum-ts": "^12.5.0"
   },
   "devDependencies": {
