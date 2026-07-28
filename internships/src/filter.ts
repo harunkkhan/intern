@@ -6,6 +6,7 @@
 // was something deliberately out of scope — an apprenticeship, an AI residency,
 // or an "Investment Analyst Program".
 
+import { isNorthAmerican, titleLooksForeign } from "./location.ts";
 import type { RawListing } from "./types.ts";
 
 // Internships and co-ops only. No new-grad or full-time roles.
@@ -75,7 +76,10 @@ export interface FilterOptions {
 
 export type FilterVerdict =
   | { keep: true }
-  | { keep: false; reason: "no-intern-token" | "disqualifying-title" | "term" };
+  | {
+      keep: false;
+      reason: "no-intern-token" | "disqualifying-title" | "term" | "location";
+    };
 
 export function filterListing(
   listing: RawListing,
@@ -99,6 +103,16 @@ export function filterListing(
     if (ordinal !== null && ordinal < options.termFloor) {
       return { keep: false, reason: "term" };
     }
+  }
+  // US and Canada only. Rejects a listing only when every location it states is
+  // positively identifiable as elsewhere — "Remote", "Flexible - Any Site" and a
+  // missing field all pass, since dropping those would lose real US roles.
+  //
+  // The title is checked too, because scraped pages frequently supply no location
+  // at all and then the location rule is blind: Optiver's "Quantitative Trading
+  // Internship (Singapore)" reached a phone that way.
+  if (!isNorthAmerican(listing.locations) || titleLooksForeign(listing.title)) {
+    return { keep: false, reason: "location" };
   }
   return { keep: true };
 }

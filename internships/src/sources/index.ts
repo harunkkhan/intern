@@ -6,6 +6,7 @@ import { html } from "./html.ts";
 import { scraped } from "./scraped.ts";
 import {
   ashby,
+  eightfold,
   greenhouse,
   lever,
   smartrecruiters,
@@ -19,6 +20,7 @@ export const ADAPTERS = {
   ashby,
   workday,
   smartrecruiters,
+  eightfold,
   // Playwright + BeautifulSoup, for companies whose postings live only on their
   // own site. See internships/src/sources/scraped.ts.
   scraped,

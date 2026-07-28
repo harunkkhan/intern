@@ -79,7 +79,12 @@ try {
         continue;
       }
       adapter = row.board.adapter;
-      config = { ...row.board.config, company: row.name };
+      // Board config is spread LAST so its slug always wins. `company` means the
+      // board slug for lever and smartrecruiters but a display label for the
+      // others, so writing the display name over it produced
+      // api.lever.co/v0/postings/Palantir — a 404. `label` carries the display
+      // name for the adapters that read it.
+      config = { company: row.name, label: row.name, ...row.board.config };
       ats++;
     } else {
       adapter = "scraped";

@@ -128,10 +128,26 @@ def _split_card(a: Tag) -> tuple[str, str]:
             unique.append(b)
 
     if len(unique) >= 2:
-        return unique[0], unique[1]
+        return unique[0], _sane_location(unique[1], unique[0])
     if len(unique) == 1:
         return unique[0], ""
     return _clean_text(a), ""
+
+
+# Real locations are short. Anything long, or containing the title, means the card
+# had no separate location element and we captured the whole blob — which then gets
+# stored as a location and misread downstream. One such row put
+# "Cloud Duales Studium 2027 Bachelor@IBM ... Ehningen, DE" in the location field,
+# where "DE" was matched as Delaware.
+_MAX_LOCATION_LEN = 80
+
+
+def _sane_location(candidate: str, title: str) -> str:
+    if not candidate or len(candidate) > _MAX_LOCATION_LEN:
+        return ""
+    if title and (title in candidate or candidate in title):
+        return ""
+    return candidate
 
 
 def extract_with_selectors(html: str, base_url: str, cfg: dict) -> list[dict]:

@@ -124,6 +124,14 @@
     "attempts": [
       {
         "url": "https://www.citadelsecurities.com/careers/open-opportunities/",
+        "rendered": false,
+        "jobs": 0,
+        "hosts": {
+          "(own domain)": 2
+        }
+      },
+      {
+        "url": "https://www.citadelsecurities.com/careers/open-opportunities/",
         "rendered": true,
         "jobs": 0,
         "hosts": {
@@ -136,22 +144,18 @@
     "name": "Jane Street",
     "careers_url": null,
     "job_links": 0,
-    "strategy": "unresolved",
-    "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.janestreet.com/join-jane-street/open-roles/",
-        "rendered": false,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.janestreet.com/join-jane-street/open-roles/",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
+    "hosts": {},
+    "needs_render": false,
+    "strategy": "ats",
+    "ats": "greenhouse",
+    "board": {
+      "adapter": "greenhouse",
+      "config": {
+        "board": "janestreet"
       }
-    ]
+    },
+    "sample": [],
+    "note": "board pinned in registry"
   },
   {
     "name": "Hudson River Trading",
@@ -187,6 +191,12 @@
     "attempts": [
       {
         "url": "https://www.citadel.com/careers/open-opportunities/",
+        "rendered": false,
+        "jobs": 0,
+        "hosts": {}
+      },
+      {
+        "url": "https://www.citadel.com/careers/open-opportunities/",
         "rendered": true,
         "jobs": 0,
         "hosts": {}
@@ -218,32 +228,22 @@
     "name": "Jump Trading",
     "careers_url": null,
     "job_links": 0,
-    "strategy": "unresolved",
-    "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.jumptrading.com/careers",
-        "rendered": false,
-        "jobs": 2,
-        "hosts": {
-          "job-boards.greenhouse.io": 1,
-          "hackerone.com": 1
-        }
-      },
-      {
-        "url": "https://www.jumptrading.com/careers",
-        "rendered": true,
-        "jobs": 2,
-        "hosts": {
-          "job-boards.greenhouse.io": 1,
-          "hackerone.com": 1
-        }
+    "hosts": {},
+    "needs_render": false,
+    "strategy": "ats",
+    "ats": "greenhouse",
+    "board": {
+      "adapter": "greenhouse",
+      "config": {
+        "board": "jumptrading"
       }
-    ]
+    },
+    "sample": [],
+    "note": "board pinned in registry"
   },
   {
     "name": "Optiver",
-    "careers_url": "https://www.optiver.com/careers",
+    "careers_url": "https://optiver.com/join-us/jobs/",
     "job_links": 16,
     "hosts": {
       "(own domain)": 17
@@ -314,9 +314,9 @@
   {
     "name": "SpaceX",
     "careers_url": "https://www.spacex.com/careers/jobs/",
-    "job_links": 2041,
+    "job_links": 2042,
     "hosts": {
-      "boards.greenhouse.io": 2035,
+      "boards.greenhouse.io": 2036,
       "job-boards.greenhouse.io": 7
     },
     "needs_render": true,
@@ -336,7 +336,7 @@
   },
   {
     "name": "IMC",
-    "careers_url": "https://careers.imc.com",
+    "careers_url": "https://www.imc.com/us/search-careers",
     "job_links": 20,
     "hosts": {
       "(own domain)": 20
@@ -353,7 +353,7 @@
   },
   {
     "name": "SIG",
-    "careers_url": "https://careers.sig.com",
+    "careers_url": "https://careers.sig.com/intern-co-op/jobs",
     "job_links": 10,
     "hosts": {
       "(own domain)": 20,
@@ -364,9 +364,9 @@
     "ats": null,
     "board": null,
     "sample": [
-      "PMO Lead - EMEA",
-      "Technology Project Manager | Market Data",
-      "Application Support Engineer"
+      "Equity Analyst Internship: Summer 2027",
+      "Equity Research Internship: Summer 2027",
+      "Equity Research Analyst Internship: Summer 2027"
     ]
   },
   {
@@ -388,7 +388,7 @@
   },
   {
     "name": "Akuna Capital",
-    "careers_url": "https://www.akunacapital.com/careers",
+    "careers_url": "https://akunacapital.com/careers",
     "job_links": 34,
     "hosts": {
       "(own domain)": 34
@@ -406,9 +406,9 @@
   {
     "name": "Databricks",
     "careers_url": "https://www.databricks.com/company/careers/open-positions",
-    "job_links": 723,
+    "job_links": 722,
     "hosts": {
-      "(own domain)": 726
+      "(own domain)": 725
     },
     "needs_render": true,
     "strategy": "scrape",
@@ -424,47 +424,36 @@
     "name": "Netflix",
     "careers_url": null,
     "job_links": 0,
-    "strategy": "unresolved",
-    "ats": null,
-    "attempts": [
-      {
-        "url": "https://explore.jobs.netflix.net/careers",
-        "rendered": false,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://explore.jobs.netflix.net/careers",
-        "rendered": true,
-        "jobs": 1,
-        "hosts": {
-          "deadline.com": 1
-        }
+    "hosts": {},
+    "needs_render": false,
+    "strategy": "ats",
+    "ats": "eightfold",
+    "board": {
+      "adapter": "eightfold",
+      "config": {
+        "host": "explore.jobs.netflix.net",
+        "domain": "netflix.com"
       }
-    ]
+    },
+    "sample": [],
+    "note": "board pinned in registry"
   },
   {
     "name": "Anduril",
     "careers_url": null,
     "job_links": 0,
-    "strategy": "unresolved",
-    "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.anduril.com/open-roles",
-        "rendered": false,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.anduril.com/open-roles",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {
-          "boards.greenhouse.io": 100
-        }
+    "hosts": {},
+    "needs_render": false,
+    "strategy": "ats",
+    "ats": "greenhouse",
+    "board": {
+      "adapter": "greenhouse",
+      "config": {
+        "board": "andurilindustries"
       }
-    ]
+    },
+    "sample": [],
+    "note": "board pinned in registry"
   },
   {
     "name": "Google",
@@ -698,22 +687,18 @@
     "name": "Ramp",
     "careers_url": null,
     "job_links": 0,
-    "strategy": "unresolved",
-    "ats": null,
-    "attempts": [
-      {
-        "url": "https://ramp.com/careers",
-        "rendered": false,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://ramp.com/careers",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
+    "hosts": {},
+    "needs_render": false,
+    "strategy": "ats",
+    "ats": "ashby",
+    "board": {
+      "adapter": "ashby",
+      "config": {
+        "board": "ramp"
       }
-    ]
+    },
+    "sample": [],
+    "note": "board pinned in registry"
   },
   {
     "name": "Coinbase",
@@ -772,24 +757,18 @@
     "name": "Palantir",
     "careers_url": null,
     "job_links": 0,
-    "strategy": "unresolved",
-    "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.palantir.com/careers/",
-        "rendered": false,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.palantir.com/careers/",
-        "rendered": true,
-        "jobs": 1,
-        "hosts": {
-          "jobs.lever.co": 2
-        }
+    "hosts": {},
+    "needs_render": false,
+    "strategy": "ats",
+    "ats": "lever",
+    "board": {
+      "adapter": "lever",
+      "config": {
+        "company": "palantir"
       }
-    ]
+    },
+    "sample": [],
+    "note": "board pinned in registry"
   },
   {
     "name": "Decagon",
@@ -868,9 +847,9 @@
     "ats": null,
     "board": null,
     "sample": [
-      "Kitchen Shift Lead, DashMart Charlotte, NC",
-      "Kitchen Operations Associate, DashMart Norfolk, VA",
-      "Senior Associate, Strategy & Operations \u2013 Payments Fraud (Canada) Vanc"
+      "Senior Operations Specialist, Robot Fremont, CA; Sunnyvale, CA; San Jo",
+      "Kitchen Operations Associate, DashMart Tucson, AZ",
+      "Warehouse Associate \u2013 Glendale (Part Time) Phoenix, AZ"
     ]
   },
   {
@@ -961,8 +940,8 @@
     "board": null,
     "sample": [
       "Explore jobs",
-      "Manager I, Engineering",
-      "Software Engineer II"
+      "Machine Learning Engineer II, Core Engineering",
+      "Manager I, Engineering"
     ]
   },
   {
@@ -1060,26 +1039,18 @@
     "name": "Upstart",
     "careers_url": null,
     "job_links": 0,
-    "strategy": "unresolved",
-    "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.upstart.com/careers",
-        "rendered": false,
-        "jobs": 1,
-        "hosts": {
-          "(own domain)": 3
-        }
-      },
-      {
-        "url": "https://www.upstart.com/careers",
-        "rendered": true,
-        "jobs": 1,
-        "hosts": {
-          "(own domain)": 3
-        }
+    "hosts": {},
+    "needs_render": false,
+    "strategy": "ats",
+    "ats": "greenhouse",
+    "board": {
+      "adapter": "greenhouse",
+      "config": {
+        "board": "upstart"
       }
-    ]
+    },
+    "sample": [],
+    "note": "board pinned in registry"
   },
   {
     "name": "Vercel",
@@ -1185,9 +1156,9 @@
   {
     "name": "Verkada",
     "careers_url": "https://www.verkada.com/careers",
-    "job_links": 279,
+    "job_links": 278,
     "hosts": {
-      "job-boards.greenhouse.io": 279
+      "job-boards.greenhouse.io": 278
     },
     "needs_render": true,
     "strategy": "ats",
@@ -1208,62 +1179,52 @@
     "name": "Rubrik",
     "careers_url": null,
     "job_links": 0,
-    "strategy": "unresolved",
-    "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.rubrik.com/company/careers",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
+    "hosts": {},
+    "needs_render": false,
+    "strategy": "ats",
+    "ats": "greenhouse",
+    "board": {
+      "adapter": "greenhouse",
+      "config": {
+        "board": "rubrik"
       }
-    ]
+    },
+    "sample": [],
+    "note": "board pinned in registry"
   },
   {
     "name": "Lyft",
     "careers_url": null,
     "job_links": 0,
-    "strategy": "unresolved",
-    "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.lyft.com/careers",
-        "rendered": false,
-        "jobs": 1,
-        "hosts": {
-          "free-now.com": 1
-        }
-      },
-      {
-        "url": "https://www.lyft.com/careers",
-        "rendered": true,
-        "jobs": 1,
-        "hosts": {
-          "free-now.com": 1
-        }
+    "hosts": {},
+    "needs_render": false,
+    "strategy": "ats",
+    "ats": "greenhouse",
+    "board": {
+      "adapter": "greenhouse",
+      "config": {
+        "board": "lyft"
       }
-    ]
+    },
+    "sample": [],
+    "note": "board pinned in registry"
   },
   {
     "name": "Instacart",
     "careers_url": null,
     "job_links": 0,
-    "strategy": "unresolved",
-    "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.instacart.careers/current-openings",
-        "rendered": false,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.instacart.careers/current-openings",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
+    "hosts": {},
+    "needs_render": false,
+    "strategy": "ats",
+    "ats": "greenhouse",
+    "board": {
+      "adapter": "greenhouse",
+      "config": {
+        "board": "instacart"
       }
-    ]
+    },
+    "sample": [],
+    "note": "board pinned in registry"
   },
   {
     "name": "Twilio",
@@ -1277,52 +1238,44 @@
     "ats": null,
     "board": null,
     "sample": [
+      "Strategic Account Executive 4 Sales Remote - US Remote Posted a day ag",
       "Manager, Fraud Operations Ops (Fraud, Compliance, Biz, Prod, Analyst) ",
-      "Senior Analyst, Security Risk Finance Remote - US Remote Posted a day ",
-      "Senior Counsel, Commercial Legal Remote - Canada Remote Posted 4 days "
+      "Senior Analyst, Security Risk Finance Remote - US Remote Posted a day "
     ]
   },
   {
     "name": "Okta",
     "careers_url": null,
     "job_links": 0,
-    "strategy": "unresolved",
-    "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.okta.com/company/careers/",
-        "rendered": false,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.okta.com/company/careers/",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
+    "hosts": {},
+    "needs_render": false,
+    "strategy": "ats",
+    "ats": "greenhouse",
+    "board": {
+      "adapter": "greenhouse",
+      "config": {
+        "board": "okta"
       }
-    ]
+    },
+    "sample": [],
+    "note": "board pinned in registry"
   },
   {
     "name": "Riot Games",
     "careers_url": null,
     "job_links": 0,
-    "strategy": "unresolved",
-    "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.riotgames.com/en/work-with-us/jobs",
-        "rendered": false,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.riotgames.com/en/work-with-us/jobs",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
+    "hosts": {},
+    "needs_render": false,
+    "strategy": "ats",
+    "ats": "greenhouse",
+    "board": {
+      "adapter": "greenhouse",
+      "config": {
+        "board": "riotgames"
       }
-    ]
+    },
+    "sample": [],
+    "note": "board pinned in registry"
   },
   {
     "name": "Circle",
@@ -1383,22 +1336,18 @@
     "name": "SoFi",
     "careers_url": null,
     "job_links": 0,
-    "strategy": "unresolved",
-    "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.sofi.com/careers/",
-        "rendered": false,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.sofi.com/careers/",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
+    "hosts": {},
+    "needs_render": false,
+    "strategy": "ats",
+    "ats": "greenhouse",
+    "board": {
+      "adapter": "greenhouse",
+      "config": {
+        "board": "sofi"
       }
-    ]
+    },
+    "sample": [],
+    "note": "board pinned in registry"
   },
   {
     "name": "TikTok",
@@ -1462,18 +1411,18 @@
   {
     "name": "Microsoft",
     "careers_url": "https://jobs.careers.microsoft.com/global/en/search",
-    "job_links": 15,
+    "job_links": 20,
     "hosts": {
-      "(own domain)": 15
+      "(own domain)": 20
     },
     "needs_render": true,
     "strategy": "scrape",
     "ats": null,
     "board": null,
     "sample": [
-      "Onsite Construction Scheduler/Planner United States, Wyoming, Cheyenne",
-      "Senior Physical Design Engineer United States, Oregon, Hillsboro + 4 m",
-      "Senior Researcher - Deep Learning - Microsoft Research United States, "
+      "Senior Software Engineer United States, Washington, Redmond Posted 13 ",
+      "Senior Quantum Engineer - Readout United States, Washington, Redmond P",
+      "Electrical Engineering Project Manager (Air Gapped Cloud) United State"
     ]
   },
   {
@@ -1496,19 +1445,18 @@
     "careers_url": "https://careers.amd.com",
     "job_links": 20,
     "hosts": {
-      "careers-amd.icims.com": 9,
+      "careers-amd.icims.com": 10,
       "(own domain)": 20,
-      "canadacareers-amd.icims.com": 1,
-      "global-external-amd.icims.com": 1
+      "canadacareers-amd.icims.com": 1
     },
     "needs_render": true,
     "strategy": "scrape",
     "ats": null,
     "board": null,
     "sample": [
-      "PLL Design/ Integration Staff Engineer - Adaptive Computing Group",
+      "Lead Software Systems Engineer \u2013 AI & Automation",
       "Apply Now",
-      "AI Business Planning Specialist"
+      "SoC Design Verification Engineer"
     ]
   },
   {
@@ -1524,8 +1472,8 @@
     "board": null,
     "sample": [
       "Enterprise Sales Account Manager",
-      "Senior Builder RTCDP Frontier Pod",
-      "Sr. Computer Scientist 1"
+      "Principal AI Technologist",
+      "Director of Enterprise Portfolio Commercialization"
     ]
   },
   {
@@ -1608,24 +1556,18 @@
     "name": "HubSpot",
     "careers_url": null,
     "job_links": 0,
-    "strategy": "unresolved",
-    "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.hubspot.com/careers/jobs",
-        "rendered": false,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.hubspot.com/careers/jobs",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {
-          "(own domain)": 12
-        }
+    "hosts": {},
+    "needs_render": false,
+    "strategy": "ats",
+    "ats": "greenhouse",
+    "board": {
+      "adapter": "greenhouse",
+      "config": {
+        "board": "hubspotjobs"
       }
-    ]
+    },
+    "sample": [],
+    "note": "board pinned in registry"
   },
   {
     "name": "Duolingo",
@@ -1639,9 +1581,9 @@
     "ats": null,
     "board": null,
     "sample": [
-      "Ad Sales Lead, Central",
-      "Senior Software Engineer, Backend",
-      "Staff Technical Program Manager"
+      "Senior Data Science Manager",
+      "Senior Data Science Manager",
+      "Ad Sales Lead, Central"
     ]
   },
   {
@@ -1680,10 +1622,10 @@
   },
   {
     "name": "Epic Games",
-    "careers_url": "https://www.epicgames.com/careers/jobs/",
-    "job_links": 51,
+    "careers_url": "https://www.epicgames.com/careers/jobs",
+    "job_links": 50,
     "hosts": {
-      "(own domain)": 55
+      "(own domain)": 50
     },
     "needs_render": true,
     "strategy": "scrape",
@@ -1691,7 +1633,7 @@
     "board": null,
     "sample": [
       "AI Programmer Epic Games Engineering Cary, United States",
-      "AI Programmer Epic Games Engineering Montreal, Canada",
+      "AI Programmer Epic Games Engineering Porto Alegre, Brazil",
       "AI Programmer Epic Games Engineering Porto Alegre, Brazil"
     ]
   },
@@ -1702,7 +1644,7 @@
     "hosts": {
       "(own domain)": 5
     },
-    "needs_render": true,
+    "needs_render": false,
     "strategy": "scrape",
     "ats": null,
     "board": null,
@@ -1716,22 +1658,18 @@
     "name": "Twitch",
     "careers_url": null,
     "job_links": 0,
-    "strategy": "unresolved",
-    "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.twitch.tv/jobs/en/",
-        "rendered": false,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://www.twitch.tv/jobs/en/",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
+    "hosts": {},
+    "needs_render": false,
+    "strategy": "ats",
+    "ats": "greenhouse",
+    "board": {
+      "adapter": "greenhouse",
+      "config": {
+        "board": "twitch"
       }
-    ]
+    },
+    "sample": [],
+    "note": "board pinned in registry"
   },
   {
     "name": "PayPal",
@@ -1802,7 +1740,7 @@
       "(own domain)": 2,
       "careers.zoom.us": 10
     },
-    "needs_render": true,
+    "needs_render": false,
     "strategy": "scrape",
     "ats": null,
     "board": null,
@@ -1814,20 +1752,19 @@
   },
   {
     "name": "IBM",
-    "careers_url": "https://careers.ibm.com",
-    "job_links": 9,
+    "careers_url": "https://www.ibm.com/careers/search",
+    "job_links": 30,
     "hosts": {
-      "(own domain)": 36,
-      "ibm.com": 1
+      "careers.ibm.com": 30
     },
     "needs_render": true,
     "strategy": "scrape",
     "ats": null,
     "board": null,
     "sample": [
-      "Consulting",
-      "Consulting",
-      "Consulting"
+      "Consulting Threat Intelligence Consultant-Threat Analysis Internship A",
+      "Software Engineering Senior Software Engineer II - Confluent Traffic T",
+      "Cloud Master@IBM IBM Cloud Technical Sales Specialist (f/m/x) Internsh"
     ]
   },
   {

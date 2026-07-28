@@ -215,6 +215,77 @@ export const workday: Adapter = async (config) => {
 };
 
 // --------------------------------------------------------------------------
+// Eightfold — config: { host, domain, query? }
+// e.g. { host: "explore.jobs.netflix.net", domain: "netflix.com" }
+//
+// Eightfold powers a company's own careers subdomain, so this reads the same API
+// the company's page calls rather than a third-party board. Netflix's careers
+// page is otherwise unscrapeable: it renders five anchors and no postings.
+// --------------------------------------------------------------------------
+interface EightfoldPosition {
+  id?: number | string;
+  ats_job_id?: string;
+  name?: string;
+  canonicalPositionUrl?: string;
+  locations?: string[];
+  location?: string;
+  department?: string;
+  t_update?: number;
+}
+
+const EIGHTFOLD_PAGE = 50;
+const EIGHTFOLD_MAX_PAGES = 10;
+
+export const eightfold: Adapter = async (config) => {
+  const host = requireString(config, "host");
+  const domain = requireString(config, "domain");
+  const query = optionalString(config, "query") ?? "intern";
+  const company = optionalString(config, "company") ?? domain.split(".")[0]!;
+
+  const listings: RawListing[] = [];
+  const seen = new Set<string>();
+
+  for (let page = 0; page < EIGHTFOLD_MAX_PAGES; page++) {
+    const data = await getJson<{
+      count?: number;
+      positions?: EightfoldPosition[];
+    }>(
+      `https://${host}/api/apply/v2/jobs?domain=${encodeURIComponent(domain)}` +
+        `&query=${encodeURIComponent(query)}&num=${EIGHTFOLD_PAGE}&start=${page * EIGHTFOLD_PAGE}`,
+    );
+
+    const batch = data.positions ?? [];
+    for (const p of batch) {
+      const externalId = p.ats_job_id ?? (p.id !== undefined ? String(p.id) : null);
+      if (!externalId || !p.name || !p.canonicalPositionUrl) continue;
+      if (seen.has(externalId)) continue;
+      seen.add(externalId);
+      listings.push({
+        externalId,
+        company,
+        title: p.name,
+        url: p.canonicalPositionUrl,
+        // Eightfold joins location parts with commas and no spaces:
+        // "Los Gatos,California,United States of America".
+        locations: compact(
+          (p.locations?.length ? p.locations : [p.location]).map((l) =>
+            l ? l.split(",").map((s) => s.trim()).filter(Boolean).join(", ") : null,
+          ),
+        ),
+        term: termFromTitle(p.name),
+        sponsorship: null,
+        category: p.department ?? null,
+        postedAt: p.t_update ? new Date(p.t_update * 1000) : null,
+      });
+    }
+
+    if (batch.length < EIGHTFOLD_PAGE) break;
+    if ((page + 1) * EIGHTFOLD_PAGE >= (data.count ?? 0)) break;
+  }
+  return { listings };
+};
+
+// --------------------------------------------------------------------------
 // SmartRecruiters — config: { company: "Visa" }
 // --------------------------------------------------------------------------
 interface SmartRecruitersPosting {
