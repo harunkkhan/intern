@@ -14,7 +14,12 @@
 
 import { spawn } from "node:child_process";
 import { termFromTitle } from "../normalize.ts";
-import { requireString, type Adapter, type RawListing } from "../types.ts";
+import {
+  optionalString,
+  requireString,
+  type Adapter,
+  type RawListing,
+} from "../types.ts";
 
 // Rendering a career page in Chromium takes ~5s, and a slow site plus retries can
 // stack up; well beyond that means something is wrong.
@@ -32,12 +37,12 @@ interface ScrapedRow {
   postedAt?: string | null;
 }
 
-function runScraper(company: string): Promise<string> {
+function runScraper(company: string, args: string[]): Promise<string> {
   const python = process.env.PYTHON_BIN ?? "python3";
   const cwd = process.env.SCRAPERS_DIR ?? "../scrapers";
 
   return new Promise((resolve, reject) => {
-    const child = spawn(python, ["scrape.py", "--company", company], {
+    const child = spawn(python, ["scrape.py", "--company", company, ...args], {
       cwd,
       env: process.env,
       stdio: ["ignore", "pipe", "pipe"],
@@ -97,7 +102,16 @@ function runScraper(company: string): Promise<string> {
 
 export const scraped: Adapter = async (config) => {
   const company = requireString(config, "company");
-  const stdout = await runScraper(company);
+
+  // The listing URL and render decision come from discovery, stored on the
+  // source, and override registry.py's defaults.
+  const args: string[] = [];
+  const careersUrl = optionalString(config, "careersUrl");
+  if (careersUrl) args.push("--url", careersUrl);
+  if (config.needsRender === true) args.push("--render", "always");
+  else if (config.needsRender === false) args.push("--render", "auto");
+
+  const stdout = await runScraper(company, args);
 
   let rows: ScrapedRow[];
   try {

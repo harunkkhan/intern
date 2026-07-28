@@ -22,15 +22,17 @@ from fetch import FetchError, close_browser, get_html
 from registry import BY_NAME
 
 
-def scrape(company: dict) -> list[dict]:
-    url = company.get("careers_url")
+def scrape(company: dict, url: str | None = None, render: str | None = None) -> list[dict]:
+    # The caller (the poller) passes the URL discovery actually resolved; the
+    # registry value is only a fallback for running this by hand.
+    url = url or company.get("careers_url")
     if not url:
         raise FetchError(
             f"{company['name']} has no careers_url — run discover.py first"
         )
 
-    # "auto" would guess; the registry records what discovery actually measured.
-    render = "always" if company.get("needs_render") else "auto"
+    if render is None:
+        render = "always" if company.get("needs_render") else "auto"
     html = get_html(url, render=render, wait_selector=company.get("wait_selector"))
 
     rows = (
@@ -68,6 +70,8 @@ def scrape(company: dict) -> list[dict]:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--company", required=True)
+    ap.add_argument("--url", help="listing page, overriding the registry")
+    ap.add_argument("--render", choices=["auto", "always", "never"])
     args = ap.parse_args()
 
     company = BY_NAME.get(args.company)
@@ -76,7 +80,7 @@ def main() -> int:
         return 1
 
     try:
-        json.dump(scrape(company), sys.stdout)
+        json.dump(scrape(company, url=args.url, render=args.render), sys.stdout)
         print()
         return 0
     except FetchError as e:

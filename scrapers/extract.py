@@ -62,7 +62,19 @@ def _canonical(url: str) -> str:
 
 
 def extract_generic(html: str, base_url: str) -> list[dict]:
-    """Find postings by looking for job-shaped links. No config needed."""
+    """Find postings by looking for job-shaped links. No config needed.
+
+    Deliberately strict. A path-depth fallback ("any link deeper than the listing
+    page with a hyphenated slug") was tried and removed: across the twelve
+    companies whose markup defeats the strict rule it rescued exactly one, and it
+    did so by reporting navigation — "Markets & Trading", "Programs & Events" —
+    as job postings. Companies this misses are better served by an explicit
+    `selectors` entry in registry.py than by a heuristic that invents listings.
+    """
+    return _extract_links(html, base_url, None)
+
+
+def _extract_links(html: str, base_url: str, relaxed) -> list[dict]:
     soup = BeautifulSoup(html, "lxml")
     for tag in soup(list(CHROME_TAGS)):
         tag.decompose()
@@ -72,10 +84,15 @@ def extract_generic(html: str, base_url: str) -> list[dict]:
         href = a.get("href") or ""
         if href.startswith(("mailto:", "tel:", "javascript:", "#")):
             continue
-        if not JOB_HREF.search(href):
+
+        absolute = urljoin(base_url, href)
+        if relaxed is None:
+            if not JOB_HREF.search(href):
+                continue
+        elif not relaxed(absolute):
             continue
 
-        url = _canonical(urljoin(base_url, href))
+        url = _canonical(absolute)
         title, location = _split_card(a)
         # Card layouts sometimes leave the anchor itself empty and put the text in
         # an ancestor row.

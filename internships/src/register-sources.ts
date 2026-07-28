@@ -71,7 +71,14 @@ try {
       ats++;
     } else {
       adapter = "scraped";
-      config = { company: row.name };
+      // The discovered URL and render decision are persisted here, not left in
+      // registry.py. Discovery measured them; the registry only seeds candidate
+      // domains, so without this the scraper has no page to open.
+      config = {
+        company: row.name,
+        careersUrl: row.careers_url,
+        needsRender: row.needs_render ?? false,
+      };
       scraped++;
     }
 
