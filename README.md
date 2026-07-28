@@ -235,7 +235,107 @@ src/
     types.ts                     # taxonomies + shared types
   components/                    # Dashboard, table, filters, details drawer, …
 drizzle/                         # generated SQL migrations
+internships/                     # iMessage alert poller (Bun + Spectrum)
+  src/
+    poll.ts                      # entrypoint: fetch → record → reserve → send
+    sources/                     # github, ats (greenhouse/lever/ashby/…), scraped
+    filter.ts                    # intern/co-op + term-floor rules
+    message.ts                   # digest formatting
+    send.ts                      # Spectrum iMessage client
+    seed-watchlist.ts            # upsert the tiered company watchlist
+    register-sources.ts          # discovery.json → job_source rows
+scrapers/                        # career-page scraping (Python)
+  fetch.py                       # HTTP first, Playwright when needed
+  extract.py                     # BeautifulSoup extraction + ATS detection
+  discover.py                    # classify a career page; find its board slug
+  scrape.py                      # one company → JSON on stdout
 ```
+
+---
+
+## Job alerts (iMessage)
+
+A second pipeline watches for **new internship and co-op postings** and texts them
+as a digest over iMessage. Managed from the **Alerts** tab: recipients, a company
+watchlist, a recent-postings feed, and per-source health.
+
+Each recipient chooses **all job alerts** or **watchlist only**.
+
+### Where postings come from
+
+| Source kind | How it's read | Why |
+| --- | --- | --- |
+| Community repos | `listings.json` from SimplifyJobs / vanshb03 | Stable uuids, so detection is an id diff. A commit-sha check skips the 11 MB download when nothing changed |
+| Company page fronting an ATS | That ATS's JSON board API | These pages *are* Greenhouse/Ashby front-ends — `figma.com/careers` links every posting to `boards.greenhouse.io/figma`. Same data, one request instead of a rendered browser page |
+| Company on its own system | `scrapers/` — Playwright renders, BeautifulSoup parses | No API exists. Databricks' "Product Management Intern (Summer 2027)" lives only on `databricks.com` |
+
+`scrapers/discover.py` classifies a career page by **where its apply links point**
+and recovers the ATS board slug from the link path, so sources configure
+themselves:
+
+```bash
+pip install -r scrapers/requirements.txt
+python -m playwright install chromium
+python scrapers/discover.py > scrapers/discovery.json
+cd internships && bun src/register-sources.ts ../scrapers/discovery.json
+```
+
+Rendering is never the default — it costs ~4.5s and a Chromium process — so HTTP
+is tried first. The fallback triggers on **job-link count, not page size**:
+Databricks returns 737 KB of text containing zero postings, which fools any
+"does this look rendered" check.
+
+### Filtering
+
+Internships and co-ops only, no new-grad or full-time. Titles must contain an
+intern/co-op token — except on the community feeds, which only list internships
+and where the requirement would drop real postings whose titles omit the word. A
+disqualifying rule always applies, removing roles that *manage* interns
+("Solution Architect Manager - Intern Program"), new-grad pipelines, and adjacent
+programs (apprenticeships, residencies, PhD/MBA tracks).
+
+Terms use a **floor**, `ALERT_TERM_FLOOR` (default `Fall 2026`): any later cycle
+qualifies and only expired ones are dropped, so the rule needs no annual
+widening. Terms that don't parse pass rather than being discarded.
+
+### Running it
+
+```bash
+cd internships
+bun src/poll.ts                  # fetch, record, alert
+bun src/poll.ts --dry-run        # report only; no writes, no messages
+bun src/poll.ts --refetch        # ignore the revision cache after a rule change
+bun src/test-send.ts +15551234567
+bun src/seed-watchlist.ts you@gmail.com
+```
+
+`.github/workflows/poll.yml` runs it every 10 minutes — Vercel's Hobby plan caps
+its own cron at once per day, and Actions minutes are free on a public repo.
+
+### Two safeguards worth knowing
+
+- **Nothing is texted twice.** A delivery row is reserved as `pending` *before*
+  the message is sent, unique on `(subscriber, dedupe_key)`. A crash between
+  reserve and send leaves a retryable row, never a duplicate or a loss — and the
+  key collapses the same job arriving from several sources into one message.
+- **A new source never floods.** A source alerts on nothing until its first
+  *successful* poll (`job_source.seeded_at`). Seeding the community feeds would
+  otherwise have fired ~750 texts, and adding a company with hundreds of open
+  roles would do the same. `seeded_at` is deliberately separate from
+  `last_polled_at`, so a failed attempt advances the retry clock without
+  consuming that one-time grace.
+
+Career sites push back on scrapers, so `job_source.consecutive_failures` drives
+exponential backoff (capped at 24h, reset on success).
+
+### Alerts environment variables
+
+| Variable | Purpose |
+| --- | --- |
+| `PROJECT_ID` / `PROJECT_SECRET` | Spectrum cloud credentials (app.photon.codes) |
+| `ALERT_TERM_FLOOR` | _Optional._ Earliest term to alert on. Default `Fall 2026` |
+| `ALERT_SITE_URL` | _Optional._ Linked from a truncated digest |
+| `PYTHON_BIN` / `SCRAPERS_DIR` | _Optional._ Interpreter and path for `scrapers/` |
 
 ## Notes & limitations
 
