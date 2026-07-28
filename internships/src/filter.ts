@@ -20,27 +20,45 @@ const INTERN_TOKEN = /\b(intern|interns|internship|internships|co-?op|coops?)\b/
 const DISQUALIFYING =
   /\b(senior|staff|principal|director|manager|managers|lead|head|recruit\w*|mentor|new\s+grads?|new\s+graduates?|graduate\s+programs?|graduate\s+programmes?|phd|mba|apprentice\w*|residenc(?:y|ies)|residents?|high\s+school)\b/i;
 
-// Terms to alert on. Matches the TERMS vocabulary in src/lib/types.ts minus
-// "Any". Cycles outside this set are dropped, which is what discards the ~525
-// active-but-expired postings (mostly Summer 2026) that the GitHub feeds still
-// carry. Forward cycles (Fall 2027+) are also dropped — widen this when the
-// recruiting year rolls over.
-const DEFAULT_TERMS = [
-  "Fall 2026",
-  "Spring 2027",
-  "Summer 2027",
-  "Winter 2027",
-] as const;
+// The term filter is a floor, not a fixed set: anything from this cycle onward
+// qualifies, and only expired cycles are dropped. That discards the ~2,100
+// active-but-stale postings the GitHub feeds still carry (mostly Summer 2026)
+// while letting forward cycles through without needing a list that has to be
+// widened every year.
+const DEFAULT_TERM_FLOOR = "Fall 2026";
 
-export function wantedTerms(): Set<string> {
-  const raw = process.env.ALERT_TERMS;
-  const values = raw
-    ? raw
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean)
-    : [...DEFAULT_TERMS];
-  return new Set(values);
+// Season start months, so terms sort chronologically. This is what makes
+// "Winter 2027" (January 2027) rank after "Fall 2026" but "Winter 2026" rank
+// before it — the difference between an upcoming cycle and one already over.
+const SEASON_MONTH: Record<string, number> = {
+  winter: 1,
+  spring: 4,
+  summer: 7,
+  fall: 10,
+  autumn: 10,
+};
+
+/** Sortable position for a "Season Year" term, or null if unparseable. */
+export function termOrdinal(term: string): number | null {
+  const match = term.trim().match(/^(\w+)\s+(\d{4})$/);
+  if (!match) return null;
+  const season = match[1];
+  const year = match[2];
+  if (!season || !year) return null;
+  const month = SEASON_MONTH[season.toLowerCase()];
+  if (month === undefined) return null;
+  return Number(year) * 12 + month;
+}
+
+export function termFloor(): number {
+  const raw = process.env.ALERT_TERM_FLOOR?.trim() || DEFAULT_TERM_FLOOR;
+  const ordinal = termOrdinal(raw);
+  if (ordinal === null) {
+    throw new Error(
+      `ALERT_TERM_FLOOR="${raw}" is not a "Season Year" value (e.g. "Fall 2026")`,
+    );
+  }
+  return ordinal;
 }
 
 export interface FilterOptions {
@@ -51,7 +69,8 @@ export interface FilterOptions {
    * True for ATS boards, which list every role a company has open.
    */
   requireInternToken: boolean;
-  terms: Set<string>;
+  /** From `termFloor()`. Terms earlier than this are expired cycles. */
+  termFloor: number;
 }
 
 export type FilterVerdict =
@@ -70,12 +89,16 @@ export function filterListing(
   if (options.requireInternToken && !INTERN_TOKEN.test(title)) {
     return { keep: false, reason: "no-intern-token" };
   }
-  // A null term means the source didn't say. Those pass rather than being
-  // dropped — ~29% of SimplifyJobs' keepable listings have no parsed term, and
-  // they are overwhelmingly current-cycle postings. Better a little noise than
-  // a missed Summer 2027 role.
-  if (listing.term !== null && !options.terms.has(listing.term)) {
-    return { keep: false, reason: "term" };
+  // A null term means the source didn't say, and an unparseable one means it
+  // said something we don't recognize. Both pass rather than being dropped —
+  // ~29% of SimplifyJobs' keepable listings have no parsed term, and they are
+  // overwhelmingly current-cycle postings. Better a little noise than a missed
+  // Summer 2027 role.
+  if (listing.term !== null) {
+    const ordinal = termOrdinal(listing.term);
+    if (ordinal !== null && ordinal < options.termFloor) {
+      return { keep: false, reason: "term" };
+    }
   }
   return { keep: true };
 }

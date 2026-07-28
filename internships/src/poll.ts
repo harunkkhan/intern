@@ -2,6 +2,7 @@
 //
 //   bun src/poll.ts               # fetch, record, alert
 //   bun src/poll.ts --dry-run     # fetch and report only; no writes, no sends
+//   bun src/poll.ts --refetch     # ignore the revision cache (after a rule change)
 //   bun src/poll.ts --source=SimplifyJobs
 //
 // Ordering matters for safety. Listings are recorded first, then delivery rows
@@ -11,7 +12,7 @@
 
 import { and, asc, desc, eq, inArray, lt, sql } from "drizzle-orm";
 import { closeDb, db, hasDatabase, schema } from "./db.ts";
-import { filterListing, wantedTerms, type FilterVerdict } from "./filter.ts";
+import { filterListing, termFloor, type FilterVerdict } from "./filter.ts";
 import { formatDigest, formatIntro, type DigestListing } from "./message.ts";
 import { dedupeKeyFor, normalizeCompany } from "./normalize.ts";
 import { BUILTIN_SOURCES, resolveAdapter } from "./sources/index.ts";
@@ -36,6 +37,7 @@ const MAX_ATTEMPTS = 3;
 interface Args {
   dryRun: boolean;
   only: string | null;
+  refetch: boolean;
 }
 
 function parseArgs(argv: string[]): Args {
@@ -43,7 +45,11 @@ function parseArgs(argv: string[]): Args {
   for (const arg of argv) {
     if (arg.startsWith("--source=")) only = arg.slice("--source=".length);
   }
-  return { dryRun: argv.includes("--dry-run"), only };
+  return {
+    dryRun: argv.includes("--dry-run"),
+    only,
+    refetch: argv.includes("--refetch"),
+  };
 }
 
 function chunks<T>(items: T[], size: number): T[][] {
@@ -121,7 +127,7 @@ interface SourceOutcome {
 
 async function pollSource(
   source: SourceRow,
-  terms: Set<string>,
+  floor: number,
   args: Args,
 ): Promise<SourceOutcome> {
   const startedAt = new Date();
@@ -140,7 +146,13 @@ async function pollSource(
 
   try {
     const adapter = resolveAdapter(source.adapter);
-    const result = await adapter(source.config, { lastSha: source.lastSha });
+    // The revision cache keys on source content, not on filter rules, so a feed
+    // that hasn't changed is skipped even when the filter has been widened.
+    // `--refetch` forces re-evaluation after a rule change (e.g. raising
+    // ALERT_TERM_FLOOR) instead of waiting for upstream to happen to change.
+    const result = await adapter(source.config, {
+      lastSha: args.refetch ? null : source.lastSha,
+    });
 
     if (result.unchanged) {
       if (!args.dryRun) {
@@ -157,7 +169,7 @@ async function pollSource(
     for (const listing of result.listings) {
       const verdict: FilterVerdict = filterListing(listing, {
         requireInternToken: !source.trustedInternOnly,
-        terms,
+        termFloor: floor,
       });
       if (verdict.keep) {
         kept.push(listing);
@@ -471,9 +483,11 @@ async function sendPending(
 
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
-  const terms = wantedTerms();
+  const floor = termFloor();
   console.log(
-    `${args.dryRun ? "[dry run] " : ""}terms: ${[...terms].join(", ")}`,
+    `${args.dryRun ? "[dry run] " : ""}terms: ${
+      process.env.ALERT_TERM_FLOOR?.trim() || "Fall 2026"
+    } onward`,
   );
 
   const messenger = args.dryRun ? createDryRunMessenger() : createMessenger();
@@ -509,7 +523,7 @@ async function main(): Promise<void> {
     const outcomes = await mapWithConcurrency(
       sources,
       SOURCE_CONCURRENCY,
-      (source) => pollSource(source, terms, args),
+      (source) => pollSource(source, floor, args),
     );
 
     for (const outcome of outcomes) {
