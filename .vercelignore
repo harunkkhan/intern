@@ -1,0 +1,4 @@
+# The Spectrum iMessage notifier runs on GitHub Actions, not Vercel. Its deps are
+# in internships/package.json, which Vercel never installs — keep the folder out
+# of the deployment entirely so it can't affect the web app's build.
+internships
