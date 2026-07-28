@@ -129,7 +129,9 @@ def get_html(url: str, render: str = "auto", wait_selector: str | None = None) -
             raise FetchError(f"HTTP {status}")
         return body
 
-    # 403/429 here means bot protection, which a real browser often satisfies.
+    # A 4xx here often means "not from a client like you" rather than "no such
+    # page" — metacareers answers 400 and uber.com 406 to plain HTTP while serving
+    # a browser normally — so escalate rather than give up.
     if status >= 400 or looks_unrendered(body):
         return fetch_rendered(url, wait_selector)
     return body

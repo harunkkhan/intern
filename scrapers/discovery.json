@@ -2,9 +2,9 @@
   {
     "name": "Anthropic",
     "careers_url": "https://www.anthropic.com/careers/jobs",
-    "job_links": 415,
+    "job_links": 414,
     "hosts": {
-      "job-boards.greenhouse.io": 415
+      "job-boards.greenhouse.io": 414
     },
     "needs_render": false,
     "strategy": "ats",
@@ -16,17 +16,17 @@
       }
     },
     "sample": [
-      "[Expression of Interest] Research Manager, Interpretability San Franci",
-      "Research Engineer / Research Scientist, Tokens New York City, NY; New ",
+      "[Expression of Interest] Research Manager, Interpretability",
+      "Research Engineer / Research Scientist, Tokens",
       "[Expression of Interest] Research Engineer / Scientist, Alignment - Lo"
     ]
   },
   {
     "name": "OpenAI",
     "careers_url": "https://openai.com/careers/search/",
-    "job_links": 744,
+    "job_links": 743,
     "hosts": {
-      "jobs.ashbyhq.com": 744
+      "jobs.ashbyhq.com": 743
     },
     "needs_render": false,
     "strategy": "ats",
@@ -122,14 +122,6 @@
     "strategy": "unresolved",
     "ats": null,
     "attempts": [
-      {
-        "url": "https://www.citadelsecurities.com/careers/open-opportunities/",
-        "rendered": false,
-        "jobs": 0,
-        "hosts": {
-          "(own domain)": 2
-        }
-      },
       {
         "url": "https://www.citadelsecurities.com/careers/open-opportunities/",
         "rendered": true,
@@ -260,23 +252,19 @@
   },
   {
     "name": "Two Sigma",
-    "careers_url": null,
-    "job_links": 0,
-    "strategy": "unresolved",
+    "careers_url": "https://careers.twosigma.com/careers/OpenRoles",
+    "job_links": 10,
+    "hosts": {
+      "(own domain)": 30
+    },
+    "needs_render": false,
+    "strategy": "scrape",
     "ats": null,
-    "attempts": [
-      {
-        "url": "https://careers.twosigma.com/careers/OpenRoles",
-        "rendered": false,
-        "jobs": 0,
-        "hosts": {}
-      },
-      {
-        "url": "https://careers.twosigma.com/careers/OpenRoles",
-        "rendered": true,
-        "jobs": 0,
-        "hosts": {}
-      }
+    "board": null,
+    "sample": [
+      "AI Research Scientist - Campus Full-Time",
+      "AI Research Scientist - Intern [2027 Summer]",
+      "AI Solutions Developer"
     ]
   },
   {
@@ -314,9 +302,9 @@
   {
     "name": "SpaceX",
     "careers_url": "https://www.spacex.com/careers/jobs/",
-    "job_links": 2042,
+    "job_links": 2044,
     "hosts": {
-      "boards.greenhouse.io": 2036,
+      "boards.greenhouse.io": 2038,
       "job-boards.greenhouse.io": 7
     },
     "needs_render": true,
@@ -346,9 +334,9 @@
     "ats": null,
     "board": null,
     "sample": [
-      "Quantitative Trader Intern - Summer 2027 Intern Trading Chicago",
+      "Quantitative Trader Intern - Summer 2027",
       "Apply Now",
-      "Lab Technician Experienced Technology Chicago"
+      "Lab Technician"
     ]
   },
   {
@@ -477,23 +465,27 @@
   },
   {
     "name": "Meta",
-    "careers_url": null,
-    "job_links": 0,
-    "strategy": "unresolved",
+    "careers_url": "https://www.metacareers.com/jobsearch/?roles%5B0%5D=Internship",
+    "job_links": 10,
+    "hosts": {
+      "(own domain)": 10
+    },
+    "needs_render": true,
+    "strategy": "scrape",
     "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.metacareers.com/jobs",
-        "http_status": 400
-      }
+    "board": null,
+    "sample": [
+      "Research Scientist Intern, AI/ML, Core Ads Growth (PhD)",
+      "Research Scientist Intern, AI Alignment",
+      "Research Scientist Intern, FAIR - Language & Multimodal Foundations (P"
     ]
   },
   {
     "name": "Sierra AI",
     "careers_url": "https://www.sierra.ai/careers",
-    "job_links": 171,
+    "job_links": 170,
     "hosts": {
-      "jobs.ashbyhq.com": 171
+      "jobs.ashbyhq.com": 170
     },
     "needs_render": false,
     "strategy": "ats",
@@ -505,9 +497,9 @@
       }
     },
     "sample": [
-      "Agent Engineer, TLM New York, NY",
-      "Agent Engineer, TLM London",
-      "Software Engineer, Agent London"
+      "Agent Engineer, TLM",
+      "Agent Engineer, TLM",
+      "Software Engineer, Agent"
     ]
   },
   {
@@ -638,15 +630,19 @@
   },
   {
     "name": "Uber",
-    "careers_url": null,
-    "job_links": 0,
-    "strategy": "unresolved",
+    "careers_url": "https://www.uber.com/us/en/careers/list/",
+    "job_links": 11,
+    "hosts": {
+      "(own domain)": 11
+    },
+    "needs_render": true,
+    "strategy": "scrape",
     "ats": null,
-    "attempts": [
-      {
-        "url": "https://www.uber.com/us/en/careers/list/",
-        "http_status": 406
-      }
+    "board": null,
+    "sample": [
+      "Saved jobs",
+      "Sr Infrastructure Engineer",
+      "Sr. Counsel"
     ]
   },
   {
@@ -773,9 +769,9 @@
   {
     "name": "Decagon",
     "careers_url": "https://www.decagon.ai/careers",
-    "job_links": 113,
+    "job_links": 112,
     "hosts": {
-      "jobs.ashbyhq.com": 113
+      "jobs.ashbyhq.com": 112
     },
     "needs_render": true,
     "strategy": "ats",
@@ -809,9 +805,9 @@
       }
     },
     "sample": [
-      "Business Development Representative, New York New York, New York",
-      "Business Development Representative, San Francisco San Francisco, Cali",
-      "Governance, Risk, and Compliance Intern (Fall 2026) San Francisco, Cal"
+      "Business Development Representative, New York",
+      "Business Development Representative, San Francisco",
+      "Governance, Risk, and Compliance Intern (Fall 2026)"
     ]
   },
   {
@@ -847,9 +843,9 @@
     "ats": null,
     "board": null,
     "sample": [
-      "Senior Operations Specialist, Robot Fremont, CA; Sunnyvale, CA; San Jo",
-      "Kitchen Operations Associate, DashMart Tucson, AZ",
-      "Warehouse Associate \u2013 Glendale (Part Time) Phoenix, AZ"
+      "Kitchen Operations Associate, DashMart",
+      "Warehouse Associate \u2013 Glendale (Part Time)",
+      "Operations Associate"
     ]
   },
   {
@@ -864,9 +860,9 @@
     "ats": null,
     "board": null,
     "sample": [
-      "Senior Partner Marketing Manager, North America Marketing Locations",
-      "Team Lead, Strategic Sourcing (IT, SaaS, Hardware) General & Administr",
-      "Senior Product Manager - Bits Agent Builder Product Management New Yor"
+      "Senior Partner Marketing Manager, North America",
+      "Team Lead, Strategic Sourcing (IT, SaaS, Hardware)",
+      "Senior Product Manager - Bits Agent Builder"
     ]
   },
   {
@@ -905,27 +901,27 @@
     "ats": null,
     "board": null,
     "sample": [
-      "Account Development Representative Dublin, Ireland Full-time",
-      "Account Development Representative Mexico City Full-time",
-      "Account Development Representative Bengaluru Full-time"
+      "Account Development Representative",
+      "Account Development Representative",
+      "Account Development Representative"
     ]
   },
   {
     "name": "Harvey",
-    "careers_url": "https://www.harvey.ai/careers",
-    "job_links": 10,
-    "hosts": {
-      "(own domain)": 10
+    "careers_url": null,
+    "job_links": 0,
+    "hosts": {},
+    "needs_render": false,
+    "strategy": "ats",
+    "ats": "ashby",
+    "board": {
+      "adapter": "ashby",
+      "config": {
+        "board": "harvey"
+      }
     },
-    "needs_render": true,
-    "strategy": "scrape",
-    "ats": null,
-    "board": null,
-    "sample": [
-      "Head of GTM Incentive Strategy New York Apply",
-      "Head of GTM Incentive Strategy San Francisco Apply",
-      "Sales Development Representative San Francisco Apply"
-    ]
+    "sample": [],
+    "note": "board pinned in registry"
   },
   {
     "name": "Pinterest",
@@ -1030,9 +1026,9 @@
     "ats": null,
     "board": null,
     "sample": [
-      "Account Executive, Broker Channel (TOLA) Sales San Antonio, TX",
-      "Director of Product, Global Tax Platform Product Bangalore, India",
-      "Sales Strategy Senior Analyst Revenue Operations San Francisco, CA"
+      "Account Executive, Broker Channel (TOLA)",
+      "Director of Product, Global Tax Platform",
+      "Sales Strategy Senior Analyst"
     ]
   },
   {
@@ -1064,7 +1060,7 @@
     "ats": null,
     "board": null,
     "sample": [
-      "Account Executive, Majors London",
+      "Account Executive, Majors",
       "Account Executive, Majors (APAC)",
       "Account Executive, Majors- Install Base (APAC)"
     ]
@@ -1086,9 +1082,9 @@
       }
     },
     "sample": [
-      "Business Development Manager Sales - Austin, US \u00b7 New York, US Posted ",
-      "Research Engineer Intern (Fall 2026) Early Talent - Austin, US Posted ",
-      "Research Engineer Intern (Fall 2026) Early Talent - Lisbon, Portugal P"
+      "Business Development Manager",
+      "Research Engineer Intern (Fall 2026)",
+      "Research Engineer Intern (Fall 2026)"
     ]
   },
   {
@@ -1103,18 +1099,18 @@
     "ats": null,
     "board": null,
     "sample": [
+      "Sr. Engineer, Falcon Secure Access (Hybrid, ISR)",
       "Principal Software Engineer, Real Time Data Enrichment Platform (Hybri",
-      "Software Engineer - Sensor, macOS (Hybrid)",
-      "Sr. Manager, Engineering - Data Analytics Infrastructure (Hybrid)"
+      "Software Engineer - Sensor, macOS (Hybrid)"
     ]
   },
   {
     "name": "Affirm",
     "careers_url": "https://www.affirm.com/careers",
-    "job_links": 178,
+    "job_links": 179,
     "hosts": {
       "glassdoor.com": 1,
-      "job-boards.greenhouse.io": 177
+      "job-boards.greenhouse.io": 178
     },
     "needs_render": true,
     "strategy": "ats",
@@ -1170,9 +1166,9 @@
       }
     },
     "sample": [
-      "AV Engineer - East Coast (NYC) New York City, NY United States",
-      "Designer, Int'l Workplace Development (Contract Position) San Mateo, C",
-      "Business Systems - Product Manager San Mateo, CA United States"
+      "AV Engineer - East Coast (NYC)",
+      "Designer, Int'l Workplace Development (Contract Position)",
+      "Business Systems - Product Manager"
     ]
   },
   {
@@ -1238,9 +1234,9 @@
     "ats": null,
     "board": null,
     "sample": [
-      "Strategic Account Executive 4 Sales Remote - US Remote Posted a day ag",
-      "Manager, Fraud Operations Ops (Fraud, Compliance, Biz, Prod, Analyst) ",
-      "Senior Analyst, Security Risk Finance Remote - US Remote Posted a day "
+      "Strategic Account Executive 4",
+      "Manager, Fraud Operations",
+      "Senior Analyst, Security Risk"
     ]
   },
   {
@@ -1377,7 +1373,7 @@
   {
     "name": "Discord",
     "careers_url": "https://www.discord.com/careers",
-    "job_links": 45,
+    "job_links": 47,
     "hosts": {
       "(own domain)": 47
     },
@@ -1386,9 +1382,9 @@
     "ats": null,
     "board": null,
     "sample": [
-      "Accounting",
-      "Advertising Solutions",
-      "Advertising Solutions"
+      "Senior Indirect Tax Analyst",
+      "Account Executive - Tech",
+      "Account Manager, Advertising Solutions"
     ]
   },
   {
@@ -1420,9 +1416,9 @@
     "ats": null,
     "board": null,
     "sample": [
-      "Senior Software Engineer United States, Washington, Redmond Posted 13 ",
-      "Senior Quantum Engineer - Readout United States, Washington, Redmond P",
-      "Electrical Engineering Project Manager (Air Gapped Cloud) United State"
+      "Senior Security Researcher and Principal Security Researcher (Multiple",
+      "Principal Software Engineer",
+      "Software Engineer II"
     ]
   },
   {
@@ -1454,9 +1450,9 @@
     "ats": null,
     "board": null,
     "sample": [
-      "Lead Software Systems Engineer \u2013 AI & Automation",
+      "HR Project Manager, Strategic Projects",
       "Apply Now",
-      "SoC Design Verification Engineer"
+      "ML Systems Research Engineer, RL / Inference / Agent Systems"
     ]
   },
   {
@@ -1472,8 +1468,8 @@
     "board": null,
     "sample": [
       "Enterprise Sales Account Manager",
-      "Principal AI Technologist",
-      "Director of Enterprise Portfolio Commercialization"
+      "Senior Builder RTCDP Frontier Pod",
+      "Sr. Computer Scientist 1"
     ]
   },
   {
@@ -1547,9 +1543,9 @@
     "ats": null,
     "board": null,
     "sample": [
-      "Explore careers at Intuit\u2019s San Francisco office",
-      "Explore careers at Intuit\u2019s San Diego office",
-      "Explore careers at Intuit\u2019s Los Angeles office"
+      "San Francisco",
+      "San Diego",
+      "Los Angeles"
     ]
   },
   {
@@ -1581,8 +1577,8 @@
     "ats": null,
     "board": null,
     "sample": [
-      "Senior Data Science Manager",
-      "Senior Data Science Manager",
+      "Senior Data Science Manager, User Growth",
+      "Senior Data Science Manager, User Growth",
       "Ad Sales Lead, Central"
     ]
   },
@@ -1615,9 +1611,9 @@
     "ats": null,
     "board": null,
     "sample": [
-      "Legal Product & Regulatory Operations Manager",
-      "Engineering Senior Machine Learning Engineer, Personalization, Magenta",
-      "Content Contractor Music Editor ANZ"
+      "Product & Regulatory Operations Manager",
+      "Senior Machine Learning Engineer, Personalization, Magenta",
+      "Contractor Music Editor ANZ"
     ]
   },
   {
@@ -1632,9 +1628,9 @@
     "ats": null,
     "board": null,
     "sample": [
-      "AI Programmer Epic Games Engineering Cary, United States",
-      "AI Programmer Epic Games Engineering Porto Alegre, Brazil",
-      "AI Programmer Epic Games Engineering Porto Alegre, Brazil"
+      "AI Programmer",
+      "AI Programmer",
+      "AI Programmer"
     ]
   },
   {
@@ -1752,19 +1748,20 @@
   },
   {
     "name": "IBM",
-    "careers_url": "https://www.ibm.com/careers/search",
-    "job_links": 30,
+    "careers_url": "https://careers.ibm.com",
+    "job_links": 9,
     "hosts": {
-      "careers.ibm.com": 30
+      "(own domain)": 36,
+      "ibm.com": 1
     },
     "needs_render": true,
     "strategy": "scrape",
     "ats": null,
     "board": null,
     "sample": [
-      "Consulting Threat Intelligence Consultant-Threat Analysis Internship A",
-      "Software Engineering Senior Software Engineer II - Confluent Traffic T",
-      "Cloud Master@IBM IBM Cloud Technical Sales Specialist (f/m/x) Internsh"
+      "Consulting",
+      "Consulting",
+      "Consulting"
     ]
   },
   {
@@ -1800,9 +1797,9 @@
     "ats": null,
     "board": null,
     "sample": [
-      "89088958448 07/28/2026",
-      "96006546832 07/28/2026",
-      "98425606064 07/28/2026"
+      "Senior Manager, Software Engineering - Full Stack (People Manager)",
+      "Area Sales Manager - Lexington, KY",
+      "Senior Lead Software Engineer, Back End (GraphDB & API Platform) (Ente"
     ]
   },
   {

@@ -112,10 +112,13 @@ def probe(company: dict, verbose: bool = False) -> dict:
                 print(f"    {url} [http] -> {e}", file=sys.stderr)
             continue
 
-        # 403/429 is bot protection, which a real browser often satisfies, so
-        # those are still worth rendering. Any other 4xx/5xx means there is no
-        # page here and rendering would be pointless.
-        blocked = status in (401, 403, 429)
+        # These statuses mean "not from a client like you" rather than "no such
+        # page", and a real browser usually gets through — so they are still worth
+        # rendering. metacareers.com answers 400 and uber.com 406 to plain HTTP
+        # while serving a browser fine, and leaving those out of this set is what
+        # made discovery skip them without ever opening a browser. Any other
+        # 4xx/5xx means the page genuinely is not there.
+        blocked = status in (400, 401, 403, 405, 406, 429, 451)
         if status >= 400 and not blocked:
             attempts.append({"url": url, "http_status": status})
             if verbose:

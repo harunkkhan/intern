@@ -22,6 +22,9 @@ from bs4 import BeautifulSoup, Tag
 # links straight out to them.
 JOB_HREF = re.compile(
     r"(/job[s]?/|/position|/opening|/vacanc|/role[s]?/[a-z0-9-]{6,}"
+    # metacareers.com links postings as /profile/job_details/771948392580541 —
+    # "job_details", not "job", so the plain /job/ form misses every Meta role.
+    r"|/job[_-]?detail"
     r"|gh_jid=|jobId="
     # A slug ending in a long numeric requisition id. This is how career pages on
     # a company's own domain usually address a posting, e.g. Databricks'
@@ -116,21 +119,41 @@ def _split_card(a: Tag) -> tuple[str, str]:
     anchor's whole text would produce "Product Management Intern San Francisco".
     Falls back to the anchor's flat text when there is no such structure.
     """
-    blocks = [
-        _clean_text(child)
-        for child in a.find_all(["span", "div", "p", "h2", "h3", "h4"], recursive=True)
-    ]
-    blocks = [b for b in blocks if b]
-    # Deduplicate nested wrappers that repeat their child's text.
-    unique: list[str] = []
-    for b in blocks:
-        if not any(b != u and b in u for u in unique):
-            unique.append(b)
+    # A heading inside the card is the most reliable title there is. Meta's cards
+    # are <a><h3>Research Scientist Intern, …</h3><span>Internship - PhD</span>…</a>
+    # and reading the anchor's whole text yields 200-260 characters of title plus
+    # locations plus team plus blurb.
+    heading = next(
+        (
+            _clean_text(h)
+            for h in a.find_all(["h1", "h2", "h3", "h4", "h5"], recursive=True)
+            if _clean_text(h)
+        ),
+        "",
+    )
 
-    if len(unique) >= 2:
-        return unique[0], _sane_location(unique[1], unique[0])
-    if len(unique) == 1:
-        return unique[0], ""
+    # Leaf blocks only — elements that don't themselves contain another candidate
+    # block. Wrappers repeat their children's text, and keeping them is what
+    # previously discarded the real title: the outer div was seen first, then the
+    # <h3> was dropped for being a substring of it.
+    candidates = a.find_all(["span", "div", "p", "h2", "h3", "h4", "h5"], recursive=True)
+    leaves: list[str] = []
+    for el in candidates:
+        if el.find(["span", "div", "p", "h2", "h3", "h4", "h5"]):
+            continue
+        text = _clean_text(el)
+        if text and text not in leaves:
+            leaves.append(text)
+
+    if heading:
+        location = next(
+            (l for l in leaves if l != heading and l not in heading), ""
+        )
+        return heading, _sane_location(location, heading)
+    if len(leaves) >= 2:
+        return leaves[0], _sane_location(leaves[1], leaves[0])
+    if len(leaves) == 1:
+        return leaves[0], ""
     return _clean_text(a), ""
 
 

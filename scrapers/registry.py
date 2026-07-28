@@ -108,7 +108,13 @@ COMPANIES: list[Company] = [
       ats={"adapter": "greenhouse", "config": {"board": "andurilindustries"}}),
     c("Google", "google.com",
       careers_url="https://www.google.com/about/careers/applications/jobs/results/"),
-    c("Meta", "metacareers.com", careers_url="https://www.metacareers.com/jobs"),
+    # The jobsearch view filtered to the Internship role, which lists far more
+    # than the /jobs keyword search did. needs_render because plain HTTP gets 400
+    # from metacareers; postings link as /profile/job_details/<id>, which the
+    # extractor now recognizes.
+    c("Meta", "metacareers.com",
+      careers_url="https://www.metacareers.com/jobsearch/?roles%5B0%5D=Internship",
+      needs_render=True),
     c("Sierra AI", "sierra.ai"),
     c("Roblox", "roblox.com", careers_url="https://careers.roblox.com/jobs"),
     # ---- A+ -------------------------------------------------------------
@@ -145,7 +151,9 @@ COMPANIES: list[Company] = [
     c("Robinhood", "robinhood.com"),
     c("MongoDB", "mongodb.com",
       careers_url="https://www.mongodb.com/company/careers/see-jobs"),
-    c("Harvey", "harvey.ai"),
+    # harvey.ai/careers stopped exposing job links entirely; the Ashby board
+    # behind it has 346 postings.
+    c("Harvey", "harvey.ai", ats={"adapter": "ashby", "config": {"board": "harvey"}}),
     c("Pinterest", "pinterest.com"),
     c("MITRE", "mitre.org", careers_url="https://careers.mitre.org/us/en/search-results"),
     # ---- A- -------------------------------------------------------------
