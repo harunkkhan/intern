@@ -151,6 +151,12 @@ export const jobSources = pgTable(
     // whose titles omit the word. False for ATS boards, which list every role.
     trustedInternOnly: boolean("trusted_intern_only").notNull().default(false),
     enabled: boolean("enabled").notNull().default(true),
+    // How often this source may be polled. The community feeds are cheap and
+    // change constantly, so they run at the workflow's full 10-minute cadence.
+    // Company career pages are a different matter: ~95 of them polled every 10
+    // minutes is ~14,000 requests a day at those sites, which earns rate limits
+    // and IP blocks. They default to hourly.
+    pollIntervalMinutes: integer("poll_interval_minutes").notNull().default(60),
     // Last content revision seen (a git commit sha, or an ETag). Lets a poll
     // skip the download entirely when nothing changed — the SimplifyJobs feed is
     // ~11 MB and would otherwise be re-fetched every 10 minutes.
@@ -233,6 +239,15 @@ export const watchedCompanies = pgTable(
     userId: text("user_id").notNull(),
     name: text("name").notNull(),
     normalizedName: text("normalized_name").notNull(),
+    // Free-text ranking from the user's own list ("S+", "A++", "B-"). Used for
+    // ordering the watchlist and grouping digests, not for filtering.
+    tier: text("tier"),
+    // Extra normalized names that also count as this company. Necessary because
+    // sources name employers differently than people do: a watchlist entry for
+    // "HRT" must match a listing from "Hudson River Trading", and "Block" must
+    // match both "Square" and "Cash App". Without this, abbreviations and
+    // parent/brand splits silently match nothing at all.
+    aliases: jsonb("aliases").$type<string[]>(),
     // Optional dedicated source polled for this company's own board.
     sourceId: text("source_id").references(() => jobSources.id, {
       onDelete: "set null",

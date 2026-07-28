@@ -9,8 +9,10 @@
 
 // Suffixes and filler that differ between sources for the same employer:
 // SimplifyJobs says "Databricks", an ATS board says "Databricks, Inc.".
+// "and" is here because `&` expands to it below: without stripping it,
+// "D. E. Shaw & Co." and "D.E. Shaw" normalize differently and never match.
 const COMPANY_FILLER =
-  /\b(inc|llc|ltd|limited|corp|corporation|co|company|group|holdings|holding|technologies|technology|labs|laboratories|solutions|systems|the|a)\b/g;
+  /\b(inc|llc|ltd|limited|corp|corporation|co|company|group|holdings|holding|technologies|technology|labs|laboratories|solutions|systems|the|and|a)\b/g;
 
 export function normalizeCompany(name: string): string {
   return name

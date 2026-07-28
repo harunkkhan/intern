@@ -1,0 +1,1 @@
+ALTER TABLE "watched_company" ADD COLUMN "aliases" jsonb;

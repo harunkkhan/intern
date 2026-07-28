@@ -93,24 +93,41 @@ async function ensureBuiltinSources(): Promise<void> {
         adapter: source.adapter,
         config: source.config,
         trustedInternOnly: source.trustedInternOnly,
+        pollIntervalMinutes: source.pollIntervalMinutes,
       })
       .onConflictDoUpdate({
         target: [jobSources.label, jobSources.adapter],
         set: {
           config: source.config,
           trustedInternOnly: source.trustedInternOnly,
+          pollIntervalMinutes: source.pollIntervalMinutes,
         },
       });
   }
 }
 
-async function loadSources(only: string | null): Promise<SourceRow[]> {
+async function loadSources(
+  only: string | null,
+  ignoreInterval: boolean,
+): Promise<SourceRow[]> {
   const rows = await db
     .select()
     .from(jobSources)
     .where(eq(jobSources.enabled, true))
     .orderBy(asc(jobSources.label));
-  return only ? rows.filter((r) => r.label === only) : rows;
+
+  const filtered = only ? rows.filter((r) => r.label === only) : rows;
+  if (ignoreInterval || only) return filtered;
+
+  // The workflow fires every 10 minutes, but each source declares how often it
+  // actually wants to be hit. Skipping here is what keeps ~95 company career
+  // pages from being requested 144 times a day each.
+  const now = Date.now();
+  return filtered.filter(
+    (r) =>
+      r.lastPolledAt === null ||
+      now - r.lastPolledAt.getTime() >= r.pollIntervalMinutes * 60_000,
+  );
 }
 
 interface SourceOutcome {
@@ -216,6 +233,11 @@ async function pollSource(
           set: {
             title: sql`excluded.title`,
             url: sql`excluded.url`,
+            // Refreshed, not just written on insert, so a change to the
+            // normalization rules can be corrected with `--refetch` instead of
+            // leaving old rows permanently unmatchable.
+            company: sql`excluded.company`,
+            normalizedCompany: sql`excluded.normalized_company`,
             dedupeKey: sql`excluded.dedupe_key`,
             locations: sql`excluded.locations`,
             term: sql`excluded.term`,
@@ -328,6 +350,7 @@ async function reserveDeliveries(listingIds: string[]): Promise<number> {
     .select({
       userId: watchedCompanies.userId,
       normalizedName: watchedCompanies.normalizedName,
+      aliases: watchedCompanies.aliases,
     })
     .from(watchedCompanies)
     .where(eq(watchedCompanies.enabled, true));
@@ -335,6 +358,9 @@ async function reserveDeliveries(listingIds: string[]): Promise<number> {
   for (const row of watched) {
     const set = watchlistByUser.get(row.userId) ?? new Set<string>();
     set.add(row.normalizedName);
+    // Aliases are stored already normalized, so they drop straight into the same
+    // lookup set as the canonical name.
+    for (const alias of row.aliases ?? []) set.add(alias);
     watchlistByUser.set(row.userId, set);
   }
 
@@ -503,6 +529,7 @@ async function main(): Promise<void> {
         adapter: s.adapter,
         config: s.config as Record<string, unknown>,
         trustedInternOnly: s.trustedInternOnly,
+        pollIntervalMinutes: s.pollIntervalMinutes,
         enabled: true,
         lastSha: null,
         lastPolledAt: null,
@@ -511,11 +538,11 @@ async function main(): Promise<void> {
       }));
     } else {
       await ensureBuiltinSources();
-      sources = await loadSources(args.only);
+      sources = await loadSources(args.only, args.refetch);
     }
 
     if (sources.length === 0) {
-      console.log("no enabled sources");
+      console.log("no sources due this run");
       return;
     }
     console.log(`polling ${sources.length} source(s)`);

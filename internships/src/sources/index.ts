@@ -34,7 +34,9 @@ export function resolveAdapter(name: string): Adapter {
 }
 
 // Sources every install wants, upserted on each run so a fresh database needs no
-// manual SQL. Both are internship-only repos, hence trustedInternOnly.
+// manual SQL. Both are internship-only repos, hence trustedInternOnly. They poll
+// at the workflow's full cadence: a commit-sha check is one cheap request, and
+// the download only happens when the feed actually changed.
 export const BUILTIN_SOURCES = [
   {
     label: "SimplifyJobs",
@@ -44,6 +46,7 @@ export const BUILTIN_SOURCES = [
       path: ".github/scripts/listings.json",
     },
     trustedInternOnly: true,
+    pollIntervalMinutes: 10,
   },
   {
     label: "vanshb03",
@@ -53,5 +56,6 @@ export const BUILTIN_SOURCES = [
       path: ".github/scripts/listings.json",
     },
     trustedInternOnly: true,
+    pollIntervalMinutes: 10,
   },
 ] as const;

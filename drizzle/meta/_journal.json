@@ -22,6 +22,20 @@
       "when": 1785264459753,
       "tag": "0002_daffy_preak",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1785266041298,
+      "tag": "0003_fair_carlie_cooper",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785266239487,
+      "tag": "0004_careful_romulus",
+      "breakpoints": true
     }
   ]
 }
