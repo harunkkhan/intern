@@ -43,6 +43,13 @@
       "when": 1785268018243,
       "tag": "0005_sturdy_kat_farrell",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785280056797,
+      "tag": "0006_warm_shocker",
+      "breakpoints": true
     }
   ]
 }

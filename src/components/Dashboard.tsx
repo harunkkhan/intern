@@ -10,7 +10,8 @@ import Filters from "@/components/Filters";
 import Sidebar, { type View } from "@/components/Sidebar";
 import SettingsPanel from "@/components/SettingsPanel";
 import AlertsPanel from "@/components/AlertsPanel";
-import type { AlertsData } from "@/lib/alerts";
+import PostingsPanel from "@/components/PostingsPanel";
+import type { AlertsData, PostingsData } from "@/lib/alerts";
 import ApplicationsTable, {
   type SortKey,
   type SortDir,
@@ -25,10 +26,12 @@ export default function Dashboard({
   applications,
   sync,
   alerts,
+  postings,
 }: {
   applications: ApplicationDTO[];
   sync: SyncStateDTO | null;
   alerts: AlertsData;
+  postings: PostingsData;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -214,6 +217,18 @@ export default function Dashboard({
                 </p>
               </header>
               <AlertsPanel data={alerts} />
+            </>
+          ) : view === "postings" ? (
+            <>
+              <header>
+                <h1 className="text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
+                  Postings
+                </h1>
+                <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                  Everything the poller has found, newest first
+                </p>
+              </header>
+              <PostingsPanel data={postings} />
             </>
           ) : selected ? (
             <ApplicationDetail

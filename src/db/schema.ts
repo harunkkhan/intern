@@ -146,6 +146,11 @@ export const jobSources = pgTable(
     // Adapter-specific. { repo, path } | { board } | { host, tenant, site } |
     // { company } | { url, selector }
     config: jsonb("config").$type<Record<string, unknown>>().notNull(),
+    // Which named list on the Alerts tab this source belongs to. See
+    // ALERT_LISTS in src/lib/alertLists.ts. Only meaningful for sources that are
+    // themselves the subject — the community repos — since a company's own board
+    // is grouped by its watched_company entry instead.
+    listKey: text("list_key"),
     // True for sources that only ever list internships (the GitHub repos), where
     // requiring an "intern"/"co-op" token in the title would drop real postings
     // whose titles omit the word. False for ATS boards, which list every role.
@@ -251,6 +256,9 @@ export const watchedCompanies = pgTable(
     userId: text("user_id").notNull(),
     name: text("name").notNull(),
     normalizedName: text("normalized_name").notNull(),
+    // Which named list on the Alerts tab this company belongs to. See
+    // ALERT_LISTS in src/lib/alertLists.ts.
+    listKey: text("list_key").notNull().default("harun"),
     // Free-text ranking from the user's own list ("S+", "A++", "B-"). Used for
     // ordering the watchlist and grouping digests, not for filtering.
     tier: text("tier"),

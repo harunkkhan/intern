@@ -53,6 +53,7 @@ export const BUILTIN_SOURCES = [
     },
     trustedInternOnly: true,
     pollIntervalMinutes: 10,
+    listKey: "general-github",
   },
   {
     label: "vanshb03",
@@ -63,5 +64,6 @@ export const BUILTIN_SOURCES = [
     },
     trustedInternOnly: true,
     pollIntervalMinutes: 10,
+    listKey: "general-github",
   },
 ] as const;

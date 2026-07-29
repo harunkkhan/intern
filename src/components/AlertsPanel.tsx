@@ -6,9 +6,11 @@ import { formatDistanceToNow, parseISO } from "date-fns";
 import type {
   AlertsData,
   AlertScope,
+  ListSourceDTO,
   SubscriberDTO,
   WatchedCompanyDTO,
 } from "@/lib/alerts";
+import { ALERT_LISTS } from "@/lib/alertLists";
 
 export default function AlertsPanel({ data }: { data: AlertsData }) {
   const router = useRouter();
@@ -53,8 +55,27 @@ export default function AlertsPanel({ data }: { data: AlertsData }) {
       )}
 
       <Subscribers data={data.subscribers} busy={busy} mutate={mutate} />
-      <Watchlist data={data.companies} busy={busy} mutate={mutate} />
-      <Recent data={data.recent} />
+
+      {ALERT_LISTS.map((list) =>
+        list.kind === "companies" ? (
+          <Watchlist
+            key={list.key}
+            title={list.name}
+            description={list.description}
+            data={data.companies.filter((c) => c.listKey === list.key)}
+            busy={busy}
+            mutate={mutate}
+          />
+        ) : (
+          <SourceList
+            key={list.key}
+            title={list.name}
+            description={list.description}
+            data={data.listSources.filter((s) => s.listKey === list.key)}
+          />
+        ),
+      )}
+
       <Sources data={data.sources} />
     </div>
   );
@@ -193,16 +214,21 @@ function Subscribers({
 }
 
 function Watchlist({
+  title,
+  description,
   data,
   busy,
   mutate,
 }: {
+  title: string;
+  description: string;
   data: WatchedCompanyDTO[];
   busy: boolean;
   mutate: Mutate;
 }) {
   const [name, setName] = useState("");
   const [careersUrl, setCareersUrl] = useState("");
+  const [expanded, setExpanded] = useState(false);
 
   async function add() {
     const ok = await mutate("/api/alerts/companies", {
@@ -215,10 +241,14 @@ function Watchlist({
     }
   }
 
+  // A hundred companies would bury the rest of the page.
+  const COLLAPSED = 12;
+  const shown = expanded ? data : data.slice(0, COLLAPSED);
+
   return (
     <Card
-      title="Watchlist"
-      description="Companies to follow. A careers URL is optional — without one you still get matches from the community feeds by name."
+      title={`${title}${data.length ? ` · ${data.length}` : ""}`}
+      description={description}
     >
       <div className="space-y-3">
         {data.length === 0 && (
@@ -228,7 +258,7 @@ function Watchlist({
           </p>
         )}
 
-        {data.map((c) => (
+        {shown.map((c) => (
           <div
             key={c.id}
             className="flex flex-wrap items-center gap-3 border-b border-neutral-100 pb-3 last:border-0 last:pb-0 dark:border-neutral-800"
@@ -273,6 +303,18 @@ function Watchlist({
           </div>
         ))}
 
+        {data.length > COLLAPSED && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="text-xs text-neutral-500 underline transition hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
+          >
+            {expanded
+              ? "Show fewer"
+              : `Show all ${data.length}`}
+          </button>
+        )}
+
         <div className="flex flex-wrap items-center gap-2 pt-1">
           <input
             value={name}
@@ -300,48 +342,49 @@ function Watchlist({
   );
 }
 
-function Recent({ data }: { data: AlertsData["recent"] }) {
+/**
+ * A list whose members are feeds rather than companies — the community repos.
+ * Everything such a feed publishes belongs to the list, so there is nothing to
+ * match by name.
+ */
+function SourceList({
+  title,
+  description,
+  data,
+}: {
+  title: string;
+  description: string;
+  data: ListSourceDTO[];
+}) {
   return (
     <Card
-      title="Recent postings"
-      description="The newest listings across every source, whether or not they triggered an alert."
+      title={`${title}${data.length ? ` · ${data.length}` : ""}`}
+      description={description}
     >
       {data.length === 0 ? (
         <p className="text-xs text-neutral-500 dark:text-neutral-400">
-          Nothing recorded yet — the poller runs every 10 minutes.
+          Nothing here yet.
         </p>
       ) : (
-        <ul className="space-y-2.5">
-          {data.map((l) => (
-            <li
-              key={l.id}
-              className="border-b border-neutral-100 pb-2.5 last:border-0 last:pb-0 dark:border-neutral-800"
-            >
-              <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                <a
-                  href={l.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm font-medium text-neutral-900 underline decoration-neutral-300 underline-offset-2 hover:decoration-neutral-900 dark:text-neutral-100 dark:decoration-neutral-600 dark:hover:decoration-neutral-100"
-                >
-                  {l.title}
-                </a>
-                <span className="text-xs text-neutral-400 dark:text-neutral-500">
-                  {formatDistanceToNow(parseISO(l.firstSeenAt), {
-                    addSuffix: true,
-                  })}
+        <ul className="space-y-2">
+          {data.map((s) => (
+            <li key={s.id} className="flex flex-wrap items-baseline gap-x-2">
+              <span className="text-sm text-neutral-800 dark:text-neutral-200">
+                {s.label}
+              </span>
+              <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                {s.listingCount} active ·{" "}
+                {s.lastPolledAt
+                  ? formatDistanceToNow(parseISO(s.lastPolledAt), {
+                      addSuffix: true,
+                    })
+                  : "never polled"}
+              </span>
+              {s.lastError && (
+                <span className="text-xs text-red-600 dark:text-red-400">
+                  · {s.lastError}
                 </span>
-              </div>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                {[
-                  l.company,
-                  l.term,
-                  l.locations?.slice(0, 2).join(" · "),
-                  l.sourceLabel,
-                ]
-                  .filter(Boolean)
-                  .join(" — ")}
-              </p>
+              )}
             </li>
           ))}
         </ul>

@@ -10,10 +10,14 @@
 // alert_delivery is unique on (subscriber_id, dedupe_key), a crash between
 // reserve and send leaves a retryable row rather than a lost or duplicated alert.
 
-import { and, asc, desc, eq, inArray, lt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
 import { closeDb, db, hasDatabase, schema } from "./db.ts";
 import { filterListing, termFloor, type FilterVerdict } from "./filter.ts";
-import { formatDigest, formatIntro, type DigestListing } from "./message.ts";
+import {
+  formatCompanyDigest,
+  formatIntro,
+  type DigestListing,
+} from "./message.ts";
 import { dedupeKeyFor, normalizeCompany } from "./normalize.ts";
 import { BUILTIN_SOURCES, resolveAdapter } from "./sources/index.ts";
 import { createDryRunMessenger, createMessenger, type Messenger } from "./send.ts";
@@ -28,8 +32,26 @@ const {
   pollRuns,
 } = schema;
 
-/** Postings pulled into one digest. Extras stay pending and drain next run. */
+/** Postings drained per subscriber per run. Extras stay pending for next time. */
 const MAX_DELIVERIES_PER_RUN = 40;
+/** Companies texted about per subscriber per run, since each is its own message. */
+const MAX_MESSAGES_PER_RUN = 10;
+
+/**
+ * Postings first seen before this are never alerted on, only recorded.
+ *
+ * Everything already in the database was gathered while building this out, and
+ * none of it should arrive as a notification. Mirrors the TRACK_AFTER convention
+ * the Gmail sync already uses.
+ */
+function alertStart(): Date {
+  const raw = process.env.ALERT_START?.trim() || "2026-07-29";
+  const parsed = new Date(`${raw}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`ALERT_START="${raw}" is not a YYYY-MM-DD date`);
+  }
+  return parsed;
+}
 const CHUNK = 500;
 const SOURCE_CONCURRENCY = 4;
 const MAX_ATTEMPTS = 3;
@@ -94,6 +116,7 @@ async function ensureBuiltinSources(): Promise<void> {
         config: source.config,
         trustedInternOnly: source.trustedInternOnly,
         pollIntervalMinutes: source.pollIntervalMinutes,
+        listKey: source.listKey,
       })
       .onConflictDoUpdate({
         target: [jobSources.label, jobSources.adapter],
@@ -101,6 +124,7 @@ async function ensureBuiltinSources(): Promise<void> {
           config: source.config,
           trustedInternOnly: source.trustedInternOnly,
           pollIntervalMinutes: source.pollIntervalMinutes,
+          listKey: source.listKey,
         },
       });
   }
@@ -391,6 +415,7 @@ async function reserveDeliveries(listingIds: string[]): Promise<number> {
     normalizedCompany: string;
     dedupeKey: string;
   }[] = [];
+  const since = alertStart();
   for (const chunk of chunks(listingIds, CHUNK)) {
     listings.push(
       ...(await db
@@ -400,9 +425,18 @@ async function reserveDeliveries(listingIds: string[]): Promise<number> {
           dedupeKey: jobListings.dedupeKey,
         })
         .from(jobListings)
-        .where(inArray(jobListings.id, chunk))),
+        .where(
+          and(
+            inArray(jobListings.id, chunk),
+            // Anything gathered before the cutoff is history, not news. Without
+            // this, re-seeding or a widened filter could resurface hundreds of
+            // already-known postings as fresh alerts.
+            gte(jobListings.firstSeenAt, since),
+          ),
+        )),
     );
   }
+  if (listings.length === 0) return 0;
 
   const rows: {
     subscriberId: string;
@@ -488,42 +522,69 @@ async function sendPending(
         .where(eq(alertSubscribers.id, subscriber.id));
     }
 
-    const digest: DigestListing[] = pending.map((row) => ({
-      company: row.company,
-      title: row.title,
-      url: row.url,
-      locations: row.locations,
-      term: row.term,
-    }));
-    const ids = pending.map((row) => row.deliveryId);
+    // One message per company. Grouping is by display name rather than the
+    // normalized form so the text reads the way the employer writes it.
+    const byCompany = new Map<
+      string,
+      { listings: DigestListing[]; ids: string[] }
+    >();
+    for (const row of pending) {
+      const group = byCompany.get(row.company) ?? { listings: [], ids: [] };
+      group.listings.push({
+        company: row.company,
+        title: row.title,
+        url: row.url,
+        locations: row.locations,
+        term: row.term,
+      });
+      group.ids.push(row.deliveryId);
+      byCompany.set(row.company, group);
+    }
 
-    try {
-      await messenger.send(
-        subscriber.phone,
-        formatDigest(digest, { siteUrl: process.env.ALERT_SITE_URL ?? null }),
-      );
-      await db
-        .update(alertDeliveries)
-        .set({
-          status: "sent",
-          sentAt: new Date(),
-          attempts: sql`${alertDeliveries.attempts} + 1`,
-          error: null,
-        })
-        .where(inArray(alertDeliveries.id, ids));
-      notified += ids.length;
-      console.log(`  sent ${ids.length} to ${subscriber.label}`);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      await db
-        .update(alertDeliveries)
-        .set({
-          status: "failed",
-          attempts: sql`${alertDeliveries.attempts} + 1`,
-          error: message,
-        })
-        .where(inArray(alertDeliveries.id, ids));
-      console.error(`  send to ${subscriber.label} failed: ${message}`);
+    // A quiet day is a couple of companies; a backlog could be dozens, and each
+    // one is now its own text. The rest stay pending and drain next run.
+    const groups = [...byCompany.entries()].slice(0, MAX_MESSAGES_PER_RUN);
+    const held = byCompany.size - groups.length;
+    if (held > 0) {
+      console.log(`  holding ${held} more compan(ies) for ${subscriber.label}`);
+    }
+
+    for (const [company, group] of groups) {
+      try {
+        await messenger.send(
+          subscriber.phone,
+          formatCompanyDigest(company, group.listings, {
+            siteUrl: process.env.ALERT_SITE_URL ?? null,
+          }),
+        );
+        await db
+          .update(alertDeliveries)
+          .set({
+            status: "sent",
+            sentAt: new Date(),
+            attempts: sql`${alertDeliveries.attempts} + 1`,
+            error: null,
+          })
+          .where(inArray(alertDeliveries.id, group.ids));
+        notified += group.ids.length;
+        console.log(
+          `  sent ${group.ids.length} ${company} posting(s) to ${subscriber.label}`,
+        );
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        // Marked per company, so one failed send doesn't strand the others.
+        await db
+          .update(alertDeliveries)
+          .set({
+            status: "failed",
+            attempts: sql`${alertDeliveries.attempts} + 1`,
+            error: message,
+          })
+          .where(inArray(alertDeliveries.id, group.ids));
+        console.error(
+          `  ${company} -> ${subscriber.label} failed: ${message}`,
+        );
+      }
     }
   }
   return notified;
@@ -535,7 +596,9 @@ async function main(): Promise<void> {
   console.log(
     `${args.dryRun ? "[dry run] " : ""}terms: ${
       process.env.ALERT_TERM_FLOOR?.trim() || "Fall 2026"
-    } onward`,
+    } onward · alerting on postings first seen from ${
+      alertStart().toISOString().slice(0, 10)
+    }`,
   );
 
   const messenger = args.dryRun ? createDryRunMessenger() : createMessenger();
@@ -558,6 +621,7 @@ async function main(): Promise<void> {
         seededAt: null,
         lastError: null,
         consecutiveFailures: 0,
+        listKey: s.listKey,
         createdAt: new Date(),
       }));
     } else {

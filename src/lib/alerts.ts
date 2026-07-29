@@ -1,5 +1,5 @@
 import "server-only";
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   alertSubscribers,
@@ -24,10 +24,23 @@ export interface WatchedCompanyDTO {
   id: string;
   name: string;
   tier: string | null;
+  listKey: string;
   enabled: boolean;
   sourceLabel: string | null;
   /** Active listings currently matching this company across every source. */
   openCount: number;
+}
+
+/** A source that is itself the subject of a list, e.g. a community repo. */
+export interface ListSourceDTO {
+  id: string;
+  label: string;
+  adapter: string;
+  listKey: string;
+  enabled: boolean;
+  lastPolledAt: string | null;
+  lastError: string | null;
+  listingCount: number;
 }
 
 export interface AlertListingDTO {
@@ -54,14 +67,21 @@ export interface SourceHealthDTO {
 export interface AlertsData {
   subscribers: SubscriberDTO[];
   companies: WatchedCompanyDTO[];
-  recent: AlertListingDTO[];
+  /** Sources that belong to a named list in their own right (the repo lists). */
+  listSources: ListSourceDTO[];
   sources: SourceHealthDTO[];
+}
+
+/** Recent postings, shown on their own tab rather than inside Alerts. */
+export interface PostingsData {
+  recent: AlertListingDTO[];
+  total: number;
 }
 
 const RECENT_LIMIT = 40;
 
 export async function getAlertsData(userId: string): Promise<AlertsData> {
-  const [subscriberRows, companyRows, recentRows, sourceRows] =
+  const [subscriberRows, companyRows, listSourceRows, sourceRows] =
     await Promise.all([
       db
         .select()
@@ -74,6 +94,7 @@ export async function getAlertsData(userId: string): Promise<AlertsData> {
           id: watchedCompanies.id,
           name: watchedCompanies.name,
           tier: watchedCompanies.tier,
+          listKey: watchedCompanies.listKey,
           normalizedName: watchedCompanies.normalizedName,
           enabled: watchedCompanies.enabled,
           sourceLabel: jobSources.label,
@@ -83,22 +104,30 @@ export async function getAlertsData(userId: string): Promise<AlertsData> {
         .where(eq(watchedCompanies.userId, userId))
         .orderBy(watchedCompanies.name),
 
+      // Sources that belong to a list in their own right. Company boards are
+      // excluded by the NOT NULL check — those are grouped via watched_company.
       db
         .select({
-          id: jobListings.id,
-          company: jobListings.company,
-          title: jobListings.title,
-          url: jobListings.url,
-          locations: jobListings.locations,
-          term: jobListings.term,
-          firstSeenAt: jobListings.firstSeenAt,
-          sourceLabel: jobSources.label,
+          id: jobSources.id,
+          label: jobSources.label,
+          adapter: jobSources.adapter,
+          listKey: jobSources.listKey,
+          enabled: jobSources.enabled,
+          lastPolledAt: jobSources.lastPolledAt,
+          lastError: jobSources.lastError,
+          listingCount: count(jobListings.id),
         })
-        .from(jobListings)
-        .innerJoin(jobSources, eq(jobListings.sourceId, jobSources.id))
-        .where(eq(jobListings.active, true))
-        .orderBy(desc(jobListings.firstSeenAt))
-        .limit(RECENT_LIMIT),
+        .from(jobSources)
+        .leftJoin(
+          jobListings,
+          and(
+            eq(jobListings.sourceId, jobSources.id),
+            eq(jobListings.active, true),
+          ),
+        )
+        .where(isNotNull(jobSources.listKey))
+        .groupBy(jobSources.id)
+        .orderBy(jobSources.label),
 
       db
         .select({
@@ -158,19 +187,20 @@ export async function getAlertsData(userId: string): Promise<AlertsData> {
       id: c.id,
       name: c.name,
       tier: c.tier,
+      listKey: c.listKey,
       enabled: c.enabled,
       sourceLabel: c.sourceLabel,
       openCount: openCounts.get(c.normalizedName) ?? 0,
     })),
-    recent: recentRows.map((r) => ({
-      id: r.id,
-      company: r.company,
-      title: r.title,
-      url: r.url,
-      locations: r.locations,
-      term: r.term,
-      firstSeenAt: r.firstSeenAt.toISOString(),
-      sourceLabel: r.sourceLabel,
+    listSources: listSourceRows.map((s) => ({
+      id: s.id,
+      label: s.label,
+      adapter: s.adapter,
+      listKey: s.listKey ?? "",
+      enabled: s.enabled,
+      lastPolledAt: s.lastPolledAt ? s.lastPolledAt.toISOString() : null,
+      lastError: s.lastError,
+      listingCount: Number(s.listingCount),
     })),
     sources: sourceRows.map((s) => ({
       id: s.id,
@@ -181,6 +211,46 @@ export async function getAlertsData(userId: string): Promise<AlertsData> {
       lastError: s.lastError,
       listingCount: Number(s.listingCount),
     })),
+  };
+}
+
+/** Backs the Postings tab. Separate query so Alerts doesn't pay for it. */
+export async function getPostingsData(): Promise<PostingsData> {
+  const [rows, [totals]] = await Promise.all([
+    db
+      .select({
+        id: jobListings.id,
+        company: jobListings.company,
+        title: jobListings.title,
+        url: jobListings.url,
+        locations: jobListings.locations,
+        term: jobListings.term,
+        firstSeenAt: jobListings.firstSeenAt,
+        sourceLabel: jobSources.label,
+      })
+      .from(jobListings)
+      .innerJoin(jobSources, eq(jobListings.sourceId, jobSources.id))
+      .where(eq(jobListings.active, true))
+      .orderBy(desc(jobListings.firstSeenAt))
+      .limit(RECENT_LIMIT),
+    db
+      .select({ total: count(jobListings.id) })
+      .from(jobListings)
+      .where(eq(jobListings.active, true)),
+  ]);
+
+  return {
+    recent: rows.map((r) => ({
+      id: r.id,
+      company: r.company,
+      title: r.title,
+      url: r.url,
+      locations: r.locations,
+      term: r.term,
+      firstSeenAt: r.firstSeenAt.toISOString(),
+      sourceLabel: r.sourceLabel,
+    })),
+    total: Number(totals?.total ?? 0),
   };
 }
 
