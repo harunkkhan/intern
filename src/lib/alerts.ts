@@ -1,5 +1,5 @@
 import "server-only";
-import { and, count, desc, eq, isNotNull, sql } from "drizzle-orm";
+import { and, count, desc, eq, ilike, isNotNull, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   alertSubscribers,
@@ -72,10 +72,14 @@ export interface AlertsData {
   sources: SourceHealthDTO[];
 }
 
-/** Recent postings, shown on their own tab rather than inside Alerts. */
+/** One page of postings, shown on their own tab rather than inside Alerts. */
 export interface PostingsData {
-  recent: AlertListingDTO[];
+  rows: AlertListingDTO[];
+  /** Rows matching the current query, across every page. */
   total: number;
+  page: number;
+  pageSize: number;
+  query: string;
 }
 
 const RECENT_LIMIT = 40;
@@ -214,8 +218,35 @@ export async function getAlertsData(userId: string): Promise<AlertsData> {
   };
 }
 
-/** Backs the Postings tab. Separate query so Alerts doesn't pay for it. */
-export async function getPostingsData(): Promise<PostingsData> {
+export const POSTINGS_PAGE_SIZE = 25;
+
+/**
+ * Backs the Postings tab. Paged and filtered in Postgres rather than in the
+ * browser: there are well over a thousand active listings, so shipping them all
+ * to filter client-side would be a large payload that grows with every poll, and
+ * searching only the loaded page would quietly miss matches.
+ */
+export async function getPostingsData(
+  options: { page?: number; query?: string } = {},
+): Promise<PostingsData> {
+  const query = (options.query ?? "").trim();
+  const page = Math.max(0, Math.floor(options.page ?? 0));
+
+  const filters = [eq(jobListings.active, true)];
+  if (query) {
+    const like = `%${query.replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
+    filters.push(
+      or(
+        ilike(jobListings.company, like),
+        ilike(jobListings.title, like),
+        ilike(jobListings.term, like),
+        // locations is jsonb; casting to text lets one LIKE cover every entry.
+        sql`${jobListings.locations}::text ILIKE ${like}`,
+      )!,
+    );
+  }
+  const where = and(...filters);
+
   const [rows, [totals]] = await Promise.all([
     db
       .select({
@@ -230,17 +261,18 @@ export async function getPostingsData(): Promise<PostingsData> {
       })
       .from(jobListings)
       .innerJoin(jobSources, eq(jobListings.sourceId, jobSources.id))
-      .where(eq(jobListings.active, true))
+      .where(where)
       .orderBy(desc(jobListings.firstSeenAt))
-      .limit(RECENT_LIMIT),
+      .limit(POSTINGS_PAGE_SIZE)
+      .offset(page * POSTINGS_PAGE_SIZE),
     db
       .select({ total: count(jobListings.id) })
       .from(jobListings)
-      .where(eq(jobListings.active, true)),
+      .where(where),
   ]);
 
   return {
-    recent: rows.map((r) => ({
+    rows: rows.map((r) => ({
       id: r.id,
       company: r.company,
       title: r.title,
@@ -251,6 +283,9 @@ export async function getPostingsData(): Promise<PostingsData> {
       sourceLabel: r.sourceLabel,
     })),
     total: Number(totals?.total ?? 0),
+    page,
+    pageSize: POSTINGS_PAGE_SIZE,
+    query,
   };
 }
 
