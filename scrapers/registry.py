@@ -121,7 +121,10 @@ COMPANIES: list[Company] = [
     c("Snowflake", "snowflake.com",
       careers_url="https://careers.snowflake.com/us/en/search-results"),
     c("Waymo", "waymo.com"),
-    c("Stripe", "stripe.com", careers_url="https://stripe.com/jobs/search"),
+    # stripe.com/jobs/search stopped exposing job links entirely — it rendered
+    # 192 of them previously and now renders none. Their Greenhouse board has 538.
+    c("Stripe", "stripe.com",
+      ats={"adapter": "greenhouse", "config": {"board": "stripe"}}),
     # No careers_url: path probing finds their board, and pinning
     # /careers/students broke it — that page lists no roles.
     c("LinkedIn", "linkedin.com"),
@@ -227,6 +230,22 @@ COMPANIES: list[Company] = [
       careers_url="https://www.capitalonecareers.com/search-jobs"),
     c("eBay", "ebay.com", careers_url="https://jobs.ebayinc.com/us/en/search-results"),
     c("Shopify", "shopify.com", careers_url="https://www.shopify.com/careers/search"),
+
+    # ---- Not a company: NSF's REU site directory -------------------------
+    # 492 research programs across 20 paginated pages, each row carrying a stable
+    # NSF award id. Sits behind an AWS WAF challenge that answers plain HTTP with
+    # a 202 and an empty body, so it must be rendered. Selectors are explicit
+    # because the award link is not the row's first anchor — the first one points
+    # at the host university's own site.
+    c("NSF REU", "nsf.gov",
+      careers_url="https://www.nsf.gov/funding/initiatives/reu/search",
+      needs_render=True,
+      pages=20,
+      selectors={
+          "item": "article.reu-search__teaser",
+          "title": "h3.reu-search-result__title",
+          "link": "a[href*='showAward']",
+      }),
 ]
 
 BY_NAME = {c["name"]: c for c in COMPANIES}

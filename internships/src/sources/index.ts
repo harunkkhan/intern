@@ -2,6 +2,7 @@
 
 import type { Adapter } from "../types.ts";
 import { githubJson } from "./githubJson.ts";
+import { githubMarkdown } from "./githubMarkdown.ts";
 import { html } from "./html.ts";
 import { scraped } from "./scraped.ts";
 import {
@@ -15,6 +16,7 @@ import {
 
 export const ADAPTERS = {
   github: githubJson,
+  githubMarkdown,
   greenhouse,
   lever,
   ashby,
@@ -65,5 +67,43 @@ export const BUILTIN_SOURCES = [
     trustedInternOnly: true,
     pollIntervalMinutes: 10,
     listKey: "general-github",
+  },
+  {
+    // Publishes the same listings.json shape as the general feeds, with extra
+    // opportunity_type / target_year fields we don't need.
+    label: "underclassmen-opportunities",
+    adapter: "github",
+    config: {
+      repo: "Jose-Gael-Cruz-Lopez/underclassmen-opportunities",
+      path: ".github/scripts/listings.json",
+    },
+    trustedInternOnly: true,
+    pollIntervalMinutes: 10,
+    listKey: "underclassmen-github",
+  },
+  {
+    // README tables only — no JSON — and its rows are programs rather than
+    // individual reqs, so a new row means a newly-tracked program.
+    label: "underclassmen-internships",
+    adapter: "githubMarkdown",
+    config: {
+      repo: "zapplyjobs/underclassmen-internships",
+      path: "README.md",
+    },
+    trustedInternOnly: true,
+    pollIntervalMinutes: 10,
+    listKey: "underclassmen-github",
+  },
+  {
+    // NSF's REU directory. Rendered rather than fetched (AWS WAF answers plain
+    // HTTP with an empty 202) and paginated 25 at a time, so it runs hourly
+    // rather than at the workflow's full cadence — 20 browser page loads is not
+    // something to repeat every ten minutes for a directory that changes yearly.
+    label: "NSF REU",
+    adapter: "scraped",
+    config: { company: "NSF REU" },
+    trustedInternOnly: true,
+    pollIntervalMinutes: 360,
+    listKey: "summer-reu",
   },
 ] as const;

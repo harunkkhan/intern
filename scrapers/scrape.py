@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 
 from extract import extract_generic, extract_with_selectors
 from fetch import FetchError, close_browser, fetch_http, fetch_rendered
@@ -24,6 +25,9 @@ from registry import BY_NAME
 # Below this, an HTTP response is treated as not carrying the real listing set and
 # the browser is tried instead.
 MIN_ROWS = 3
+# Pause between pages of a paginated source, so a twenty-page sweep doesn't look
+# like an attack to the host's WAF.
+PAGE_DELAY_SECONDS = 2.0
 
 
 def scrape(company: dict, url: str | None = None, render: str | None = None) -> list[dict]:
@@ -38,27 +42,56 @@ def scrape(company: dict, url: str | None = None, render: str | None = None) -> 
     if render is None:
         render = "always" if company.get("needs_render") else "auto"
 
-    def parse(html: str) -> list[dict]:
+    def parse(html: str, base: str) -> list[dict]:
         return (
-            extract_with_selectors(html, url, company["selectors"])
+            extract_with_selectors(html, base, company["selectors"])
             if company.get("selectors")
-            else extract_generic(html, url)
+            else extract_generic(html, base)
         )
 
-    if render == "always":
-        rows = parse(fetch_rendered(url, company.get("wait_selector")))
-    else:
-        status, body = fetch_http(url)
+    def fetch_one(page_url: str) -> list[dict]:
+        if render == "always":
+            return parse(fetch_rendered(page_url, company.get("wait_selector")), page_url)
+        status, body = fetch_http(page_url)
         if status >= 400 and render == "never":
             raise FetchError(f"HTTP {status}")
-        rows = parse(body) if status < 400 else []
+        rows = parse(body, page_url) if status < 400 else []
         # Escalate on what was actually extracted, not on how much visible text
         # the page had. careers.roblox.com serves 356 KB containing nine real job
         # links but almost no prose, so a text-length heuristic calls it a shell
         # and sends it to a browser that then times out — failing a page that had
         # already succeeded.
         if len(rows) < MIN_ROWS and render != "never":
-            rows = parse(fetch_rendered(url, company.get("wait_selector")))
+            rows = parse(fetch_rendered(page_url, company.get("wait_selector")), page_url)
+        return rows
+
+    # Paginated listings, e.g. NSF's REU search: 492 sites at 25 per page. Stops
+    # early when a page adds nothing new, so the page count is an upper bound
+    # rather than a fixed cost.
+    pages = int(company.get("pages") or 1)
+    page_param = company.get("page_param") or "page"
+    rows: list[dict] = []
+    seen: set[str] = set()
+    for page in range(pages):
+        # Pace paginated rendering. NSF sits behind an AWS WAF that starts
+        # answering with empty pages when twenty browser loads arrive back to
+        # back, which reads downstream as "markup changed" rather than
+        # "rate limited".
+        if page:
+            time.sleep(PAGE_DELAY_SECONDS)
+        page_url = url
+        if page:
+            joiner = "&" if "?" in url else "?"
+            page_url = f"{url}{joiner}{page_param}={page}"
+        added = 0
+        for row in fetch_one(page_url):
+            if row["url"] in seen:
+                continue
+            seen.add(row["url"])
+            rows.append(row)
+            added += 1
+        if page and added == 0:
+            break
     if not rows:
         # An empty result is indistinguishable from "no open roles", and would
         # deactivate every listing this source has. Fail loudly instead.

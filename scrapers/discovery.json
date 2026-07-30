@@ -557,20 +557,20 @@
   },
   {
     "name": "Stripe",
-    "careers_url": "https://stripe.com/jobs/search",
-    "job_links": 68,
-    "hosts": {
-      "(own domain)": 187
-    },
+    "careers_url": null,
+    "job_links": 0,
+    "hosts": {},
     "needs_render": false,
-    "strategy": "scrape",
-    "ats": null,
-    "board": null,
-    "sample": [
-      "Bridge open roles",
-      "Privy open roles",
-      "Account Executive - Enterprise, Grower"
-    ]
+    "strategy": "ats",
+    "ats": "greenhouse",
+    "board": {
+      "adapter": "greenhouse",
+      "config": {
+        "board": "stripe"
+      }
+    },
+    "sample": [],
+    "note": "board pinned in registry"
   },
   {
     "name": "LinkedIn",

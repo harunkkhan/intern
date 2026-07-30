@@ -14,7 +14,7 @@
 // nothing regardless of how many roles it finds.
 
 import { readFileSync } from "node:fs";
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { closeDb, db, schema } from "./db.ts";
 
 const { jobSources } = schema;
@@ -112,6 +112,25 @@ try {
         target: [jobSources.label, jobSources.adapter],
         set: { config, enabled: true, pollIntervalMinutes: interval },
       });
+
+    // Sources are keyed on (label, adapter), so moving a company to a different
+    // adapter inserts a new row and leaves the old one enabled and failing
+    // forever — Stripe kept scraping a page that no longer lists jobs after its
+    // Greenhouse board was found. Retire the superseded rows.
+    const retired = await db
+      .update(jobSources)
+      .set({ enabled: false, lastError: `superseded by ${adapter}` })
+      .where(
+        and(
+          eq(jobSources.label, row.name),
+          ne(jobSources.adapter, adapter),
+          eq(jobSources.enabled, true),
+        ),
+      )
+      .returning({ adapter: jobSources.adapter });
+    for (const r of retired) {
+      console.log(`  retired ${row.name} (${r.adapter}) — now ${adapter}`);
+    }
   }
 
   console.log(
