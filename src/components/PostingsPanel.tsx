@@ -5,7 +5,7 @@ import { formatDistanceToNow, parseISO } from "date-fns";
 import type { PostingsData } from "@/lib/alerts";
 // Values must come from the client-safe module; @/lib/alerts imports the
 // database client and would end up in the browser bundle.
-import { POSTINGS_PAGE_SIZES } from "@/lib/postings";
+import { POSTINGS_PAGE_SIZES, POSTINGS_WINDOW_DAYS } from "@/lib/postings";
 import SearchBar from "@/components/SearchBar";
 
 /**
@@ -126,14 +126,15 @@ export default function PostingsPanel({ data }: { data: PostingsData }) {
       {state.total === 0 ? (
         <p className="mt-6 rounded-xl border border-dashed border-neutral-300 px-6 py-12 text-center text-sm text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
           {state.query
-            ? `Nothing matches “${state.query}”.`
-            : "Nothing recorded yet — the poller runs every 10 minutes."}
+            ? `Nothing from the last ${POSTINGS_WINDOW_DAYS} days matches “${state.query}”.`
+            : `Nothing has opened in the last ${POSTINGS_WINDOW_DAYS} days.`}
         </p>
       ) : (
         <>
           <p className="mt-4 text-xs text-neutral-500 dark:text-neutral-400">
             {first}–{last} of {state.total}
-            {state.query && " matching"}
+            {state.query && " matching"} · opened in the last{" "}
+            {POSTINGS_WINDOW_DAYS} days
           </p>
 
           <ul

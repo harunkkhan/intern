@@ -44,7 +44,12 @@ try {
   const start = raw.indexOf("[");
   const rows = JSON.parse(raw.slice(start)) as DiscoveryRow[];
 
-  const interval = Number(process.env.SCRAPE_INTERVAL_MINUTES ?? 10);
+  // Scraped company pages are rendered in Chromium and hit the company's own
+  // site, so ~48 of them on a tight loop earns rate limits and IP blocks. ATS
+  // sources read a vendor API built for polling, so they stay at the workflow's
+  // full cadence.
+  const scrapeInterval = Number(process.env.SCRAPE_INTERVAL_MINUTES ?? 30);
+  const atsInterval = Number(process.env.ATS_INTERVAL_MINUTES ?? 10);
   let scraped = 0;
   let ats = 0;
   const needsAttention: string[] = [];
@@ -70,6 +75,7 @@ try {
     // titles must name an internship or co-op to qualify.
     let adapter: string;
     let config: Record<string, unknown>;
+    let pollIntervalMinutes: number;
 
     if (row.strategy === "ats") {
       if (!row.board) {
@@ -85,6 +91,7 @@ try {
       // api.lever.co/v0/postings/Palantir — a 404. `label` carries the display
       // name for the adapters that read it.
       config = { company: row.name, label: row.name, ...row.board.config };
+      pollIntervalMinutes = atsInterval;
       ats++;
     } else {
       adapter = "scraped";
@@ -96,6 +103,7 @@ try {
         careersUrl: row.careers_url,
         needsRender: row.needs_render ?? false,
       };
+      pollIntervalMinutes = scrapeInterval;
       scraped++;
     }
 
@@ -106,11 +114,11 @@ try {
         adapter,
         config,
         trustedInternOnly: false,
-        pollIntervalMinutes: interval,
+        pollIntervalMinutes,
       })
       .onConflictDoUpdate({
         target: [jobSources.label, jobSources.adapter],
-        set: { config, enabled: true, pollIntervalMinutes: interval },
+        set: { config, enabled: true, pollIntervalMinutes },
       });
 
     // Sources are keyed on (label, adapter), so moving a company to a different
@@ -134,7 +142,8 @@ try {
   }
 
   console.log(
-    `registered ${scraped} scraped + ${ats} ATS source(s) at ${interval}min`,
+    `registered ${scraped} scraped source(s) at ${scrapeInterval}min + ` +
+      `${ats} ATS source(s) at ${atsInterval}min`,
   );
   if (needsAttention.length) {
     console.log("\nneeds attention:");

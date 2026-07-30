@@ -10,7 +10,7 @@
 // alert_delivery is unique on (subscriber_id, dedupe_key), a crash between
 // reserve and send leaves a retryable row rather than a lost or duplicated alert.
 
-import { and, asc, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import { closeDb, db, hasDatabase, schema } from "./db.ts";
 import { filterListing, termFloor, type FilterVerdict } from "./filter.ts";
 import {
@@ -52,6 +52,17 @@ function alertStart(): Date {
   }
   return parsed;
 }
+
+/**
+ * How old a posting may be, by the company's own posting date, and still alert.
+ *
+ * ALERT_START alone is not enough. It gates on when *we* first saw a listing, so
+ * adding or fixing a source makes its whole backlog new-to-us and eligible —
+ * which is how a Salesforce role posted on 16 May arrived as a notification 74
+ * days later. Postings whose source reports no date are unaffected, since for
+ * them first_seen is the only signal there is.
+ */
+const MAX_POSTING_AGE_DAYS = 7;
 const CHUNK = 500;
 const SOURCE_CONCURRENCY = 4;
 const MAX_ATTEMPTS = 3;
@@ -416,6 +427,9 @@ async function reserveDeliveries(listingIds: string[]): Promise<number> {
     dedupeKey: string;
   }[] = [];
   const since = alertStart();
+  const maxAge = new Date(
+    Date.now() - MAX_POSTING_AGE_DAYS * 24 * 60 * 60 * 1000,
+  );
   for (const chunk of chunks(listingIds, CHUNK)) {
     listings.push(
       ...(await db
@@ -432,6 +446,12 @@ async function reserveDeliveries(listingIds: string[]): Promise<number> {
             // this, re-seeding or a widened filter could resurface hundreds of
             // already-known postings as fresh alerts.
             gte(jobListings.firstSeenAt, since),
+            // And where the company tells us when it posted, respect that: a
+            // listing we only just discovered can still be months old.
+            or(
+              isNull(jobListings.postedAt),
+              gte(jobListings.postedAt, maxAge),
+            ),
           ),
         )),
     );

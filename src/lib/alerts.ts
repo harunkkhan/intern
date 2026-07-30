@@ -1,5 +1,16 @@
 import "server-only";
-import { and, count, desc, eq, ilike, isNotNull, or, sql } from "drizzle-orm";
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gte,
+  ilike,
+  isNotNull,
+  isNull,
+  or,
+  sql,
+} from "drizzle-orm";
 import { db } from "@/db";
 import {
   alertSubscribers,
@@ -7,7 +18,7 @@ import {
   jobSources,
   watchedCompanies,
 } from "@/db/schema";
-import { normalizePageSize } from "@/lib/postings";
+import { normalizePageSize, POSTINGS_WINDOW_DAYS } from "@/lib/postings";
 
 export const ALERT_SCOPES = ["all", "watchlist"] as const;
 export type AlertScope = (typeof ALERT_SCOPES)[number];
@@ -235,7 +246,20 @@ export async function getPostingsData(
   const page = Math.max(0, Math.floor(options.page ?? 0));
   const pageSize = normalizePageSize(options.pageSize);
 
-  const filters = [eq(jobListings.active, true)];
+  // Only postings that opened within the window. `posted_at` is the company's own
+  // date and is authoritative where a source reports one; where none is reported
+  // — every scraped careers page — the date we first saw it stands in, since
+  // otherwise a third of the corpus could never appear at all.
+  const cutoff = new Date(
+    Date.now() - POSTINGS_WINDOW_DAYS * 24 * 60 * 60 * 1000,
+  );
+  const filters = [
+    eq(jobListings.active, true),
+    or(
+      gte(jobListings.postedAt, cutoff),
+      and(isNull(jobListings.postedAt), gte(jobListings.firstSeenAt, cutoff)),
+    )!,
+  ];
   if (query) {
     const like = `%${query.replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
     filters.push(
