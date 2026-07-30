@@ -15,6 +15,9 @@ export async function GET(req: Request) {
   const rawPage = Number(searchParams.get("page") ?? "0");
   const page = Number.isFinite(rawPage) ? Math.max(0, Math.floor(rawPage)) : 0;
   const query = searchParams.get("q") ?? "";
+  // getPostingsData clamps this to the offered sizes, so an arbitrary value in
+  // the query string can't ask for every row at once.
+  const pageSize = Number(searchParams.get("pageSize") ?? "");
 
-  return NextResponse.json(await getPostingsData({ page, query }));
+  return NextResponse.json(await getPostingsData({ page, query, pageSize }));
 }

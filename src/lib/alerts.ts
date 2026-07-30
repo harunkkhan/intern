@@ -7,6 +7,7 @@ import {
   jobSources,
   watchedCompanies,
 } from "@/db/schema";
+import { normalizePageSize } from "@/lib/postings";
 
 export const ALERT_SCOPES = ["all", "watchlist"] as const;
 export type AlertScope = (typeof ALERT_SCOPES)[number];
@@ -218,7 +219,8 @@ export async function getAlertsData(userId: string): Promise<AlertsData> {
   };
 }
 
-export const POSTINGS_PAGE_SIZE = 25;
+// Page-size options live in src/lib/postings.ts so client components can import
+// them without dragging the database client into the browser bundle.
 
 /**
  * Backs the Postings tab. Paged and filtered in Postgres rather than in the
@@ -227,10 +229,11 @@ export const POSTINGS_PAGE_SIZE = 25;
  * searching only the loaded page would quietly miss matches.
  */
 export async function getPostingsData(
-  options: { page?: number; query?: string } = {},
+  options: { page?: number; query?: string; pageSize?: number } = {},
 ): Promise<PostingsData> {
   const query = (options.query ?? "").trim();
   const page = Math.max(0, Math.floor(options.page ?? 0));
+  const pageSize = normalizePageSize(options.pageSize);
 
   const filters = [eq(jobListings.active, true)];
   if (query) {
@@ -263,8 +266,8 @@ export async function getPostingsData(
       .innerJoin(jobSources, eq(jobListings.sourceId, jobSources.id))
       .where(where)
       .orderBy(desc(jobListings.firstSeenAt))
-      .limit(POSTINGS_PAGE_SIZE)
-      .offset(page * POSTINGS_PAGE_SIZE),
+      .limit(pageSize)
+      .offset(page * pageSize),
     db
       .select({ total: count(jobListings.id) })
       .from(jobListings)
@@ -284,7 +287,7 @@ export async function getPostingsData(
     })),
     total: Number(totals?.total ?? 0),
     page,
-    pageSize: POSTINGS_PAGE_SIZE,
+    pageSize,
     query,
   };
 }

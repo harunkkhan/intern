@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import type { PostingsData } from "@/lib/alerts";
+// Values must come from the client-safe module; @/lib/alerts imports the
+// database client and would end up in the browser bundle.
+import { POSTINGS_PAGE_SIZES } from "@/lib/postings";
 import SearchBar from "@/components/SearchBar";
 
 /**
@@ -20,28 +23,44 @@ export default function PostingsPanel({ data }: { data: PostingsData }) {
   // Guards against an earlier request landing after a later one and overwriting it.
   const requestId = useRef(0);
 
-  const load = useCallback(async (page: number, q: string) => {
-    const id = ++requestId.current;
-    setLoading(true);
-    try {
-      const res = await fetch(
-        `/api/postings?page=${page}&q=${encodeURIComponent(q)}`,
-      );
-      if (!res.ok) return;
-      const next = (await res.json()) as PostingsData;
-      if (id === requestId.current) setState(next);
-    } finally {
-      if (id === requestId.current) setLoading(false);
-    }
-  }, []);
+  const load = useCallback(
+    async (page: number, q: string, size: number) => {
+      const id = ++requestId.current;
+      setLoading(true);
+      try {
+        const res = await fetch(
+          `/api/postings?page=${page}&q=${encodeURIComponent(q)}&pageSize=${size}`,
+        );
+        if (!res.ok) return;
+        const next = (await res.json()) as PostingsData;
+        if (id === requestId.current) setState(next);
+      } finally {
+        if (id === requestId.current) setLoading(false);
+      }
+    },
+    [],
+  );
 
   // Debounced search, always restarting at the first page since the result set
   // changes underneath the current offset.
   useEffect(() => {
     if (query === state.query) return;
-    const timer = setTimeout(() => void load(0, query), 250);
+    const timer = setTimeout(() => void load(0, query, state.pageSize), 250);
     return () => clearTimeout(timer);
-  }, [query, state.query, load]);
+  }, [query, state.query, state.pageSize, load]);
+
+  // Changing the page size keeps the first currently-visible row on screen
+  // rather than jumping back to the start — going 25→50 on page 4 lands on
+  // page 2, showing the same listings plus more, which is what someone widening
+  // the page is asking for.
+  const changePageSize = useCallback(
+    (size: number) => {
+      if (size === state.pageSize) return;
+      const firstRow = state.page * state.pageSize;
+      void load(Math.floor(firstRow / size), state.query, size);
+    },
+    [state.page, state.pageSize, state.query, load],
+  );
 
   const pageCount = Math.max(1, Math.ceil(state.total / state.pageSize));
   const canPrev = state.page > 0;
@@ -50,9 +69,9 @@ export default function PostingsPanel({ data }: { data: PostingsData }) {
   const go = useCallback(
     (page: number) => {
       if (page < 0 || page >= pageCount || page === state.page) return;
-      void load(page, state.query);
+      void load(page, state.query, state.pageSize);
     },
-    [pageCount, state.page, state.query, load],
+    [pageCount, state.page, state.query, state.pageSize, load],
   );
 
   // Left/right arrows page through results. Ignored while typing, so the arrow
@@ -83,8 +102,25 @@ export default function PostingsPanel({ data }: { data: PostingsData }) {
 
   return (
     <div className="mt-6">
-      <div className="w-full min-w-0 max-w-md">
-        <SearchBar value={query} onChange={setQuery} />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="w-full min-w-0 max-w-md">
+          <SearchBar value={query} onChange={setQuery} />
+        </div>
+        <label className="flex shrink-0 items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
+          Per page
+          <select
+            value={state.pageSize}
+            disabled={loading}
+            onChange={(e) => changePageSize(Number(e.target.value))}
+            className="rounded-none border border-neutral-300 bg-white px-2 py-1.5 text-xs text-neutral-800 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200"
+          >
+            {POSTINGS_PAGE_SIZES.map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       {state.total === 0 ? (

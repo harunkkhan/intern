@@ -190,7 +190,10 @@ COMPANIES: list[Company] = [
     c("SoFi", "sofi.com", ats={"adapter": "greenhouse", "config": {"board": "sofi"}}),
     # ---- B+ -------------------------------------------------------------
     c("TikTok", "tiktok.com", careers_url="https://lifeattiktok.com/search"),
-    c("Discord", "discord.com"),
+    # Bare domain is canonical — www.discord.com/careers redirects to it. The
+    # #all-jobs fragment is never sent to the server, so it only affects what the
+    # page renders client-side, which is why this needs Chromium either way.
+    c("Discord", "discord.com", careers_url="https://discord.com/careers#all-jobs"),
     c("Amazon", "amazon.jobs",
       careers_url="https://www.amazon.jobs/en/search?base_query=intern"),
     c("Microsoft", "microsoft.com",
