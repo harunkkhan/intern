@@ -13,11 +13,7 @@
 import { and, asc, desc, eq, gte, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import { closeDb, db, hasDatabase, schema } from "./db.ts";
 import { filterListing, termFloor, type FilterVerdict } from "./filter.ts";
-import {
-  formatCompanyDigest,
-  formatIntro,
-  type DigestListing,
-} from "./message.ts";
+import { formatDigest, formatIntro, type DigestListing } from "./message.ts";
 import { dedupeKeyFor, normalizeCompany } from "./normalize.ts";
 import { BUILTIN_SOURCES, resolveAdapter } from "./sources/index.ts";
 import { createDryRunMessenger, createMessenger, type Messenger } from "./send.ts";
@@ -34,8 +30,6 @@ const {
 
 /** Postings drained per subscriber per run. Extras stay pending for next time. */
 const MAX_DELIVERIES_PER_RUN = 40;
-/** Companies texted about per subscriber per run, since each is its own message. */
-const MAX_MESSAGES_PER_RUN = 10;
 
 /**
  * Postings first seen before this are never alerted on, only recorded.
@@ -542,69 +536,44 @@ async function sendPending(
         .where(eq(alertSubscribers.id, subscriber.id));
     }
 
-    // One message per company. Grouping is by display name rather than the
-    // normalized form so the text reads the way the employer writes it.
-    const byCompany = new Map<
-      string,
-      { listings: DigestListing[]; ids: string[] }
-    >();
-    for (const row of pending) {
-      const group = byCompany.get(row.company) ?? { listings: [], ids: [] };
-      group.listings.push({
-        company: row.company,
-        title: row.title,
-        url: row.url,
-        locations: row.locations,
-        term: row.term,
-      });
-      group.ids.push(row.deliveryId);
-      byCompany.set(row.company, group);
-    }
+    // One message holding everything new, whatever company it came from. Each
+    // line names its employer, so a mixed list still reads cleanly.
+    const digest: DigestListing[] = pending.map((row) => ({
+      company: row.company,
+      title: row.title,
+      url: row.url,
+      locations: row.locations,
+      term: row.term,
+    }));
+    const ids = pending.map((row) => row.deliveryId);
 
-    // A quiet day is a couple of companies; a backlog could be dozens, and each
-    // one is now its own text. The rest stay pending and drain next run.
-    const groups = [...byCompany.entries()].slice(0, MAX_MESSAGES_PER_RUN);
-    const held = byCompany.size - groups.length;
-    if (held > 0) {
-      console.log(`  holding ${held} more compan(ies) for ${subscriber.label}`);
-    }
-
-    for (const [company, group] of groups) {
-      try {
-        await messenger.send(
-          subscriber.phone,
-          formatCompanyDigest(company, group.listings, {
-            siteUrl: process.env.ALERT_SITE_URL ?? null,
-          }),
-        );
-        await db
-          .update(alertDeliveries)
-          .set({
-            status: "sent",
-            sentAt: new Date(),
-            attempts: sql`${alertDeliveries.attempts} + 1`,
-            error: null,
-          })
-          .where(inArray(alertDeliveries.id, group.ids));
-        notified += group.ids.length;
-        console.log(
-          `  sent ${group.ids.length} ${company} posting(s) to ${subscriber.label}`,
-        );
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        // Marked per company, so one failed send doesn't strand the others.
-        await db
-          .update(alertDeliveries)
-          .set({
-            status: "failed",
-            attempts: sql`${alertDeliveries.attempts} + 1`,
-            error: message,
-          })
-          .where(inArray(alertDeliveries.id, group.ids));
-        console.error(
-          `  ${company} -> ${subscriber.label} failed: ${message}`,
-        );
-      }
+    try {
+      await messenger.send(
+        subscriber.phone,
+        formatDigest(digest, { siteUrl: process.env.ALERT_SITE_URL ?? null }),
+      );
+      await db
+        .update(alertDeliveries)
+        .set({
+          status: "sent",
+          sentAt: new Date(),
+          attempts: sql`${alertDeliveries.attempts} + 1`,
+          error: null,
+        })
+        .where(inArray(alertDeliveries.id, ids));
+      notified += ids.length;
+      console.log(`  sent ${ids.length} posting(s) to ${subscriber.label}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      await db
+        .update(alertDeliveries)
+        .set({
+          status: "failed",
+          attempts: sql`${alertDeliveries.attempts} + 1`,
+          error: message,
+        })
+        .where(inArray(alertDeliveries.id, ids));
+      console.error(`  send to ${subscriber.label} failed: ${message}`);
     }
   }
   return notified;

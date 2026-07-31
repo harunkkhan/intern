@@ -1,9 +1,8 @@
 // Digest formatting.
 //
-// One message per company, not one per posting and not one combined digest. A
-// text covering Netflix and Meta together is harder to scan and impossible to
-// act on selectively, while a text per posting would be unusable on a busy day —
-// so postings are batched within a company and split across them.
+// One message per run holding every new posting, whatever company it came from.
+// Each line names its employer, so a mixed digest still reads cleanly without
+// being split across several texts.
 
 export interface DigestListing {
   company: string;
@@ -13,42 +12,35 @@ export interface DigestListing {
   term: string | null;
 }
 
-/** Postings spelled out in full before the message collapses into "+N more". */
-const MAX_DETAILED = 8;
-
 /**
- * One company's new postings. Every listing passed here is expected to be from
- * the same employer; the caller groups them.
+ * Every posting in one message, newest first.
+ *
+ * Nothing is truncated: the point is to have all the links in one place, and the
+ * per-run delivery cap already bounds how long this can get.
  */
-export function formatCompanyDigest(
-  company: string,
+export function formatDigest(
   listings: DigestListing[],
   options: { siteUrl?: string | null } = {},
 ): string {
   const total = listings.length;
-  const heading =
-    total === 1
-      ? `New at ${company}`
-      : `${total} new at ${company}`;
+  const heading = `${total} new internship${total === 1 ? "" : "s"}`;
 
-  const shown = listings.slice(0, MAX_DETAILED);
-  const blocks = shown.map((listing) => {
+  const blocks = listings.map((listing) => {
     const meta = [listing.term, listing.locations?.slice(0, 2).join(" · ")]
       .filter(Boolean)
       .join(" — ");
-    return `• ${listing.title}${meta ? `\n  ${meta}` : ""}\n  ${listing.url}`;
+    return (
+      `• ${listing.company} — ${listing.title}` +
+      (meta ? `\n  ${meta}` : "") +
+      `\n  ${listing.url}`
+    );
   });
-
-  const remaining = total - shown.length;
-  const footer: string[] = [];
-  if (remaining > 0) footer.push(`+${remaining} more`);
-  if (options.siteUrl) footer.push(options.siteUrl);
 
   return [
     heading,
     "",
     blocks.join("\n\n"),
-    ...(footer.length ? ["", footer.join(" → ")] : []),
+    ...(options.siteUrl ? ["", options.siteUrl] : []),
   ]
     .join("\n")
     .trim();
