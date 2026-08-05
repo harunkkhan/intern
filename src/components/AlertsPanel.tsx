@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import type {
+  AlertChannel,
   AlertsData,
   AlertScope,
   ListSourceDTO,
@@ -93,29 +94,37 @@ function Subscribers({
   mutate: Mutate;
 }) {
   const [label, setLabel] = useState("");
-  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [channel, setChannel] = useState<AlertChannel>("imessage");
   const [scope, setScope] = useState<AlertScope>("watchlist");
+
+  const isDiscord = channel === "discord";
 
   async function add() {
     const ok = await mutate("/api/alerts/subscribers", {
       method: "POST",
-      body: JSON.stringify({ label, phone, scope }),
+      body: JSON.stringify({
+        label,
+        scope,
+        channel,
+        ...(isDiscord ? { webhookUrl: address } : { phone: address }),
+      }),
     });
     if (ok) {
       setLabel("");
-      setPhone("");
+      setAddress("");
     }
   }
 
   return (
     <Card
       title="Recipients"
-      description="Phone numbers that receive iMessage alerts. Each one chooses whether it gets everything or only your watchlist."
+      description="Phone numbers that get an iMessage, and Discord channels that get a webhook post. Each one chooses whether it gets everything or only your watchlist."
     >
       <div className="space-y-3">
         {data.length === 0 && (
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            No recipients yet — add a number below.
+            No recipients yet — add a number or a Discord channel below.
           </p>
         )}
 
@@ -125,11 +134,14 @@ function Subscribers({
             className="flex flex-wrap items-center gap-3 border-b border-neutral-100 pb-3 last:border-0 last:pb-0 dark:border-neutral-800"
           >
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-neutral-800 dark:text-neutral-200">
-                {s.label}
+              <p className="flex items-baseline gap-2 truncate text-sm font-medium text-neutral-800 dark:text-neutral-200">
+                <span className="shrink-0 border border-neutral-300 px-1 py-px text-[10px] font-semibold tracking-wide text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
+                  {s.channel === "discord" ? "DISCORD" : "IMESSAGE"}
+                </span>
+                <span className="truncate">{s.label}</span>
               </p>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                {s.phone}
+              <p className="truncate text-xs text-neutral-500 dark:text-neutral-400">
+                {s.destination}
                 {!s.confirmedAt && " · intro message pending"}
               </p>
             </div>
@@ -178,18 +190,36 @@ function Subscribers({
         ))}
 
         <div className="flex flex-wrap items-center gap-2 pt-1">
+          <select
+            value={channel}
+            onChange={(e) => {
+              // The address field means something different per channel, so
+              // switching clears it rather than leaving a phone number sitting
+              // under a "webhook URL" placeholder.
+              setChannel(e.target.value as AlertChannel);
+              setAddress("");
+            }}
+            className="rounded-none border border-neutral-300 bg-white px-2 py-2 text-sm text-neutral-800 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200"
+          >
+            <option value="imessage">iMessage</option>
+            <option value="discord">Discord</option>
+          </select>
           <input
             value={label}
             onChange={(e) => setLabel(e.target.value)}
-            placeholder="Name"
+            placeholder={isDiscord ? "#internships" : "Name"}
             className="min-w-0 flex-1 rounded-none border border-neutral-300 bg-white px-2.5 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
           />
           <input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="(571) 461-9323"
-            inputMode="tel"
-            className="min-w-0 flex-1 rounded-none border border-neutral-300 bg-white px-2.5 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder={
+              isDiscord
+                ? "https://discord.com/api/webhooks/…"
+                : "(571) 461-9323"
+            }
+            inputMode={isDiscord ? "url" : "tel"}
+            className="min-w-0 flex-[2] rounded-none border border-neutral-300 bg-white px-2.5 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
           />
           <select
             value={scope}
@@ -202,12 +232,20 @@ function Subscribers({
           <button
             type="button"
             onClick={add}
-            disabled={busy || !label.trim() || !phone.trim()}
+            disabled={busy || !label.trim() || !address.trim()}
             className="rounded-none bg-neutral-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
           >
             Add
           </button>
         </div>
+
+        {isDiscord && (
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            In Discord: channel <span className="font-medium">Settings →
+            Integrations → Webhooks → New Webhook</span>, then Copy Webhook URL.
+            Only the webhook id is stored in a form the dashboard will show back.
+          </p>
+        )}
       </div>
     </Card>
   );

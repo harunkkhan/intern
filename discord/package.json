@@ -1,0 +1,16 @@
+{
+  "name": "discord-alerts",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "send": "bun src/send-alerts.ts",
+    "send:dry": "bun src/send-alerts.ts --dry-run",
+    "typecheck": "tsc --noEmit"
+  },
+  "//deps": "No runtime dependencies. Posting to a webhook is one fetch, which Bun and Node 22 both ship. drizzle-orm and postgres are resolved from the repo root on purpose: this package imports the web app's table definitions from ../src/db/schema.ts, and drizzle's types are nominal, so a second installed copy makes the root's PgTable objects unassignable here. Install the root package first; there is nothing to install in this directory.",
+  "devDependencies": {
+    "typescript": "^5",
+    "@types/node": "^22"
+  }
+}
