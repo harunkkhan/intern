@@ -13,7 +13,7 @@ import { imessage } from "spectrum-ts/providers/imessage";
 // one. Deriving from `connect`/`openSpace` also preserves the provider tuple,
 // which is what proves to the type system that this app has the iMessage
 // provider attached.
-function connect(projectId: string, projectSecret: string) {
+export function connect(projectId: string, projectSecret: string) {
   return Spectrum({
     projectId,
     projectSecret,
@@ -21,7 +21,20 @@ function connect(projectId: string, projectSecret: string) {
   });
 }
 
-type App = Awaited<ReturnType<typeof connect>>;
+export type App = Awaited<ReturnType<typeof connect>>;
+
+/** Throws rather than returning partial credentials — half a pair is a typo. */
+export function readCredentials(): { projectId: string; projectSecret: string } {
+  const projectId = process.env.PROJECT_ID;
+  const projectSecret = process.env.PROJECT_SECRET;
+  if (!projectId || !projectSecret) {
+    throw new Error(
+      "PROJECT_ID and PROJECT_SECRET are required to send iMessages. " +
+        "Find them in Settings at https://app.photon.codes",
+    );
+  }
+  return { projectId, projectSecret };
+}
 
 // `space.create` takes a bare phone string, so no separate user lookup is needed.
 // (The bundled skill docs show `im.space(user)`; that predates spectrum-ts 12,
@@ -53,14 +66,7 @@ export function createMessenger(): Messenger {
 
   function getApp(): Promise<App> {
     if (!appPromise) {
-      const projectId = process.env.PROJECT_ID;
-      const projectSecret = process.env.PROJECT_SECRET;
-      if (!projectId || !projectSecret) {
-        throw new Error(
-          "PROJECT_ID and PROJECT_SECRET are required to send iMessages. " +
-            "Find them in Settings at https://app.photon.codes",
-        );
-      }
+      const { projectId, projectSecret } = readCredentials();
       appPromise = connect(projectId, projectSecret);
     }
     return appPromise;

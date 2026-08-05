@@ -345,6 +345,36 @@ its own cron at once per day, and Actions minutes are free on a public repo. The
 Discord step runs on `!cancelled()` rather than on success, so a Spectrum outage
 or one broken scraper doesn't also hold up the Discord digest.
 
+### Adding recipients
+
+Recipients live in `alert_subscriber`, and **nothing syncs them from the Photon
+dashboard**. Spectrum Cloud has no recipient directory to read: its `cloud`
+client exposes project and platform metadata only, and the space namespace has
+`create`/`get` but no `list`. The numbers shown in that dashboard are the lines
+this app sends *from*.
+
+Three ways in, then:
+
+```bash
+cd internships
+bun src/listen.ts                                     # anyone who texts the line is subscribed
+bun src/subscribers.ts add +15551234567 --label Ada   # a number you already know
+bun src/subscribers.ts list                           # and disable / enable / retry
+```
+
+…plus the **Alerts** tab, which is the same insert behind a form.
+
+`listen.ts` is the automatic path, and it doubles as the STOP/START handler the
+digests advertise. It has to run continuously: the provider's stream supports
+server-side catch-up, but the cursor driving it starts empty on every process
+start and can't be seeded, so a fresh process only sees messages that arrive
+while it is connected. A cron run would miss everything in between. It reconnects
+on its own with backoff, so any always-on host works.
+
+Someone who texts in is marked confirmed and gets a short acknowledgement;
+someone added from the CLI is not, so the poller opens with the intro that
+explains where the texts came from and how to stop them.
+
 ### Two safeguards worth knowing
 
 - **Nothing is sent twice, on either channel.** A delivery row is reserved as
