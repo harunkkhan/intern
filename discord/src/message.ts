@@ -74,15 +74,17 @@ function blockFor(listing: DigestListing): string {
  */
 export function buildDigest(
   listings: DigestListing[],
-  options: { siteUrl?: string | null } = {},
+  options: { siteUrl?: string | null; footer?: string | null } = {},
 ): DigestMessage[] {
   if (listings.length === 0) return [];
 
   const siteUrl = options.siteUrl?.trim() || null;
+  const footer = options.footer?.trim() || null;
   const budget =
     DISCORD_MAX_CONTENT -
     HEADING_RESERVE -
-    (siteUrl ? siteUrl.length + SEPARATOR.length : 0);
+    (siteUrl ? siteUrl.length + SEPARATOR.length : 0) -
+    (footer ? footer.length + SEPARATOR.length : 0);
 
   const groups: { blocks: string[]; ids: string[]; length: number }[] = [];
   for (const listing of listings) {
@@ -117,6 +119,7 @@ export function buildDigest(
         heading,
         "",
         group.blocks.join(SEPARATOR),
+        ...(footer && isLast ? ["", footer] : []),
         ...(siteUrl && isLast ? ["", siteUrl] : []),
       ]
         .join("\n")
@@ -124,6 +127,48 @@ export function buildDigest(
       deliveryIds: group.ids,
     };
   });
+}
+
+/** An iMessage recipient whose texts aren't getting through. */
+export interface FailingRecipient {
+  phone: string;
+  failed: number;
+}
+
+/** Beyond this the notice would crowd out the postings it's attached to. */
+const MAX_LISTED = 8;
+
+/**
+ * A footer naming the phone numbers whose alerts are failing, so the people in
+ * the channel who aren't getting texts find out here instead of just going
+ * quiet.
+ *
+ * The numbers are printed in full, at the owner's explicit instruction. Anyone
+ * who can read the channel can read them.
+ *
+ * There is deliberately no number to text: whichever line Spectrum sent from is
+ * already in their message history, and naming a second one here would be a
+ * number they've never seen. Replying to the thread they already have is both
+ * simpler to follow and impossible to get wrong.
+ */
+export function formatFailingNotice(
+  recipients: FailingRecipient[],
+): string | null {
+  if (recipients.length === 0) return null;
+
+  const shown = recipients.slice(0, MAX_LISTED);
+  const hidden = recipients.length - shown.length;
+  const lines = shown.map(
+    (r) =>
+      `${escapeMarkdown(r.phone)} — ${r.failed} alert${r.failed === 1 ? "" : "s"} didn't send`,
+  );
+  if (hidden > 0) lines.push(`…and ${hidden} more`);
+
+  return [
+    "**Not getting these by text**",
+    ...lines,
+    "-# Reply to the last text you got from the alerts number and they'll pick back up.",
+  ].join("\n");
 }
 
 /**

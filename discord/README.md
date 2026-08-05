@@ -71,6 +71,36 @@ Rate limits are handled by pacing posts per webhook and honouring `retry_after`
 on a 429. A 401/403/404 is treated as permanent — the webhook was deleted or its
 token rotated, and the error says to re-add it in the Alerts tab.
 
+## The "not getting these by text" footer
+
+The last message of a digest names any iMessage number whose alerts have been
+**permanently given up on**, and tells those people to reply to the texts they
+already get so delivery picks back up:
+
+```
+**Not getting these by text**
++15551234567 — 12 alerts didn't send
+-# Reply to the last text you got from the alerts number and they'll pick back up.
+```
+
+Three deliberate choices:
+
+- **Only `attempts >= MAX_ATTEMPTS` counts.** A delivery that has failed once or
+  twice is still inside the retry window and will most likely go out on the next
+  poll. Naming those people would announce a problem that fixes itself minutes
+  later. Past the cap the poller stops picking the row up, so the alert really is
+  lost — that's the moment worth reporting. Disabled subscribers are skipped
+  entirely: they opted out, so silence is correct.
+- **No number to text is printed.** Whichever line Spectrum sent from is already
+  in the recipient's message history; naming a second one here would be a number
+  they have never seen.
+- **Numbers are shown in full, on the owner's explicit instruction.** Anyone who
+  can read the channel can read them. It is a shared channel — treat the member
+  list as the audience for every number in it.
+
+The footer's length is reserved out of the 2,000-character budget before postings
+are packed, so adding it can cost an extra message but can never overflow one.
+
 ## Environment
 
 | Variable | Purpose |

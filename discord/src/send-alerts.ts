@@ -9,9 +9,15 @@
 // already sitting in the ledger waiting to be drained. Two pollers would mean
 // two hits on every careers page for the same postings.
 
-import { and, desc, eq, inArray, lt, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, lt, sql } from "drizzle-orm";
 import { closeDb, db, hasDatabase, schema } from "./db.ts";
-import { buildDigest, formatIntro, type DigestListing } from "./message.ts";
+import {
+  buildDigest,
+  formatFailingNotice,
+  formatIntro,
+  type DigestListing,
+  type FailingRecipient,
+} from "./message.ts";
 import { createDryRunPoster, createPoster, type Poster } from "./webhook.ts";
 
 const { alertSubscribers, alertDeliveries, jobListings } = schema;
@@ -44,6 +50,46 @@ async function loadSubscribers(): Promise<Subscriber[]> {
 }
 
 /**
+ * iMessage recipients with alerts that have been permanently given up on.
+ *
+ * Only `attempts >= MAX_ATTEMPTS` counts. A row that has failed once or twice is
+ * still in the retry window and will very likely go out on the next poll —
+ * naming those people would mean announcing a problem that fixes itself minutes
+ * later. Once the attempt cap is hit, the poller stops picking the row up and
+ * the alert really is lost, which is the point at which it's worth saying so.
+ *
+ * Disabled subscribers are excluded: they turned alerts off, so their deliveries
+ * not going out is the system working.
+ */
+async function loadFailingRecipients(): Promise<FailingRecipient[]> {
+  const rows = await db
+    .select({
+      phone: alertSubscribers.phone,
+      failed: sql<number>`count(*)::int`,
+    })
+    .from(alertDeliveries)
+    .innerJoin(
+      alertSubscribers,
+      eq(alertDeliveries.subscriberId, alertSubscribers.id),
+    )
+    .where(
+      and(
+        eq(alertSubscribers.channel, "imessage"),
+        eq(alertSubscribers.enabled, true),
+        isNotNull(alertSubscribers.phone),
+        eq(alertDeliveries.status, "failed"),
+        sql`${alertDeliveries.attempts} >= ${MAX_ATTEMPTS}`,
+      ),
+    )
+    .groupBy(alertSubscribers.phone)
+    .orderBy(desc(sql`count(*)`));
+
+  return rows.flatMap((r) =>
+    r.phone ? [{ phone: r.phone, failed: Number(r.failed) }] : [],
+  );
+}
+
+/**
  * Drains one channel's reserved deliveries.
  *
  * Rows left 'pending' or 'failed' by an earlier run are picked up too, so a crash
@@ -56,6 +102,7 @@ async function drain(
   subscriber: Subscriber,
   poster: Poster,
   args: Args,
+  footer: string | null,
 ): Promise<number> {
   const webhookUrl = subscriber.webhookUrl;
   if (!webhookUrl) {
@@ -119,7 +166,7 @@ async function drain(
   // so a full digest is often several posts; marking them all 'sent' only after
   // the last one would re-post everything if the third failed, and marking them
   // all 'failed' would lose what already landed.
-  for (const message of buildDigest(listings, { siteUrl })) {
+  for (const message of buildDigest(listings, { siteUrl, footer })) {
     try {
       await poster.post(webhookUrl, message.content);
     } catch (err) {
@@ -180,12 +227,22 @@ async function main(): Promise<void> {
       `${args.dryRun ? "[dry run] " : ""}draining ${subscribers.length} Discord channel(s)`,
     );
 
+    // Queried once per run, not per channel: the answer is the same for every
+    // channel, and it's a join over the whole delivery table.
+    const failing = await loadFailingRecipients();
+    const footer = formatFailingNotice(failing);
+    if (failing.length > 0) {
+      console.log(
+        `  ${failing.length} number(s) with alerts given up on — noting in the digest`,
+      );
+    }
+
     let delivered = 0;
     for (const subscriber of subscribers) {
       // Sequential on purpose. Channels usually share one Discord rate-limit
       // bucket per webhook but the global limit is per-IP, and the runner has
       // one; fanning out would only trade throughput for 429s.
-      delivered += await drain(subscriber, poster, args);
+      delivered += await drain(subscriber, poster, args, footer);
     }
     console.log(
       args.dryRun
