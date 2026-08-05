@@ -18,6 +18,13 @@ export const ALERT_LISTS = [
       "Companies followed by name. Matches postings from any source, plus their own careers page where one could be resolved.",
   },
   {
+    key: "fortune500",
+    name: "Fortune 500",
+    kind: "companies",
+    description:
+      "The Fortune 500, matched by employer name across every source including the community repos. A snapshot of the ~2024/25 ranking, not a live feed.",
+  },
+  {
     key: "general-github",
     name: "General Github Repos",
     kind: "sources",

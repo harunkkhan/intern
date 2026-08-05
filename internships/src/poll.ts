@@ -485,9 +485,15 @@ async function reserveDeliveries(listingIds: string[]): Promise<number> {
 }
 
 /**
- * Drains reserved deliveries into one digest per subscriber. Also picks up rows
- * left 'pending' or 'failed' by an earlier run, so a crash between reserving and
- * sending self-heals on the next poll instead of silently dropping alerts.
+ * Drains reserved deliveries into one digest per iMessage subscriber. Also picks
+ * up rows left 'pending' or 'failed' by an earlier run, so a crash between
+ * reserving and sending self-heals on the next poll instead of silently dropping
+ * alerts.
+ *
+ * Only `channel = 'imessage'` rows are drained here. Deliveries were reserved
+ * above for every enabled subscriber whatever their channel; the Discord ones are
+ * left pending for `discord/src/send-alerts.ts`, which runs straight after this
+ * and posts them to their webhook.
  */
 async function sendPending(
   messenger: Messenger,
@@ -496,10 +502,20 @@ async function sendPending(
   const subscribers = await db
     .select()
     .from(alertSubscribers)
-    .where(eq(alertSubscribers.enabled, true));
+    .where(
+      and(
+        eq(alertSubscribers.channel, "imessage"),
+        eq(alertSubscribers.enabled, true),
+      ),
+    );
 
   let notified = 0;
   for (const subscriber of subscribers) {
+    // Guaranteed by the CHECK constraint on alert_subscriber, but the column is
+    // nullable now that a row can instead carry a webhook URL.
+    const phone = subscriber.phone;
+    if (!phone) continue;
+
     const pending = await db
       .select({
         deliveryId: alertDeliveries.id,
@@ -527,7 +543,7 @@ async function sendPending(
     // explanation and no way out.
     if (!subscriber.confirmedAt) {
       await messenger.send(
-        subscriber.phone,
+        phone,
         formatIntro(subscriber.label, subscriber.scope),
       );
       await db
@@ -549,7 +565,7 @@ async function sendPending(
 
     try {
       await messenger.send(
-        subscriber.phone,
+        phone,
         formatDigest(digest, { siteUrl: process.env.ALERT_SITE_URL ?? null }),
       );
       await db

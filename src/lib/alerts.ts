@@ -19,14 +19,24 @@ import {
   watchedCompanies,
 } from "@/db/schema";
 import { normalizePageSize, POSTINGS_WINDOW_DAYS } from "@/lib/postings";
+import { redactDiscordWebhook } from "@/lib/discordWebhook";
 
 export const ALERT_SCOPES = ["all", "watchlist"] as const;
 export type AlertScope = (typeof ALERT_SCOPES)[number];
 
+export const ALERT_CHANNELS = ["imessage", "discord"] as const;
+export type AlertChannel = (typeof ALERT_CHANNELS)[number];
+
 export interface SubscriberDTO {
   id: string;
   label: string;
-  phone: string;
+  channel: AlertChannel;
+  /**
+   * What the dashboard shows as the destination. A phone number for iMessage; for
+   * Discord the webhook id only — the token half is a bearer credential and never
+   * leaves the server.
+   */
+  destination: string;
   scope: AlertScope;
   enabled: boolean;
   confirmedAt: string | null;
@@ -194,7 +204,11 @@ export async function getAlertsData(userId: string): Promise<AlertsData> {
     subscribers: subscriberRows.map((s) => ({
       id: s.id,
       label: s.label,
-      phone: s.phone,
+      channel: s.channel as AlertChannel,
+      destination:
+        s.channel === "discord"
+          ? redactDiscordWebhook(s.webhookUrl ?? "")
+          : (s.phone ?? ""),
       scope: s.scope as AlertScope,
       enabled: s.enabled,
       confirmedAt: s.confirmedAt ? s.confirmedAt.toISOString() : null,

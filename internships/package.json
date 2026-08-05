@@ -6,6 +6,8 @@
   "scripts": {
     "poll": "bun src/poll.ts",
     "poll:dry": "bun src/poll.ts --dry-run",
+    "listen": "bun src/listen.ts",
+    "subscribers": "bun src/subscribers.ts",
     "typecheck": "tsc --noEmit",
     "start": "bun src/index.ts",
     "dev": "bun --watch src/index.ts"

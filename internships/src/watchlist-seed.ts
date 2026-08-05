@@ -52,7 +52,15 @@ export const WATCHLIST: SeedCompany[] = [
   {
     name: "SIG",
     tier: "S-",
-    aliases: ["Susquehanna", "Susquehanna International Group"],
+    // The parenthesised form is not redundant with the one above it:
+    // normalizeCompany drops "Group" as filler but keeps "SIG", so the feeds'
+    // "Susquehanna International Group (SIG)" lands on "susquehanna
+    // international sig" and never matched "susquehanna international".
+    aliases: [
+      "Susquehanna",
+      "Susquehanna International Group",
+      "Susquehanna International Group (SIG)",
+    ],
   },
   { name: "DRW", tier: "S-", aliases: ["DRW Trading"] },
   { name: "Akuna Capital", tier: "S-", aliases: ["Akuna"] },

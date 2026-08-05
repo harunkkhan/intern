@@ -64,3 +64,40 @@ export function formatIntro(label: string, scope: string): string {
     "Reply STOP to turn these off.",
   ].join("\n");
 }
+
+/** Describes what a subscriber will receive, in a sentence. */
+function scopeSummary(scope: string): string {
+  return scope === "all"
+    ? "every new internship and co-op posting it finds"
+    : "new internship and co-op postings from the watchlist companies";
+}
+
+/**
+ * Reply to someone who texted the line and was subscribed on the spot. Distinct
+ * from `formatIntro`, which opens a conversation the recipient never asked for
+ * and so has to explain itself; here they made the first move and only need
+ * confirming.
+ */
+export function formatSubscribed(scope: string): string {
+  return [
+    "You're subscribed to internship alerts.",
+    "",
+    `You'll get a digest whenever there's ${scopeSummary(scope)}.`,
+    "",
+    "Reply STOP to turn these off.",
+  ].join("\n");
+}
+
+/** Acknowledges STOP. Silence would read as the opt-out having failed. */
+export function formatStopped(): string {
+  return "Alerts are off. Reply START to turn them back on.";
+}
+
+/** Acknowledges START from someone who had previously opted out. */
+export function formatResumed(scope: string): string {
+  return [
+    "Alerts are back on.",
+    "",
+    `You'll get a digest whenever there's ${scopeSummary(scope)}.`,
+  ].join("\n");
+}

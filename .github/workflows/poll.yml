@@ -86,3 +86,22 @@ jobs:
           bun src/poll.ts \
             ${{ inputs.dry_run && '--dry-run' || '' }} \
             ${{ inputs.source && format('--source={0}', inputs.source) || '' }}
+
+      # The poller reserves a delivery for every enabled subscriber whatever
+      # their channel, then sends only the iMessage ones. This drains the Discord
+      # rows it left pending. No install step: the sender has no runtime
+      # dependencies and resolves drizzle/postgres from the root node_modules.
+      #
+      # `!cancelled()` rather than the default `success()` on purpose — the two
+      # transports share nothing but the ledger, and a Spectrum outage or a single
+      # broken scraper shouldn't also hold up the Discord digest.
+      - name: Post Discord alerts
+        if: ${{ !cancelled() }}
+        working-directory: discord
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DISCORD_MENTION_ROLE_ID: ${{ vars.DISCORD_MENTION_ROLE_ID }}
+          DISCORD_USERNAME: ${{ vars.DISCORD_USERNAME }}
+          DISCORD_AVATAR_URL: ${{ vars.DISCORD_AVATAR_URL }}
+        run: |
+          bun src/send-alerts.ts ${{ inputs.dry_run && '--dry-run' || '' }}

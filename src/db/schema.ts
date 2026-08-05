@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   pgTable,
   text,
@@ -8,6 +9,7 @@ import {
   primaryKey,
   uniqueIndex,
   index,
+  check,
 } from "drizzle-orm/pg-core";
 
 // Auth is handled by Supabase Auth (the `auth.users` schema it manages). App
@@ -283,9 +285,15 @@ export const watchedCompanies = pgTable(
   ],
 );
 
-// An iMessage recipient. Not necessarily an app user — just a phone number the
-// owner has provisioned, which is why these rows key off the user who added them
-// rather than off Supabase auth.
+// Somewhere a digest gets delivered. Not necessarily an app user — a phone
+// number or a Discord channel the owner has provisioned, which is why these rows
+// key off the user who added them rather than off Supabase auth.
+//
+// `channel` decides which column holds the address and which bot drains the row:
+// internships/ sends the 'imessage' ones over Spectrum, discord/ posts the
+// 'discord' ones to their webhook. Both share this table so they also share
+// alert_delivery — the reserve-before-send ledger that makes delivery idempotent
+// is written once rather than reimplemented per transport.
 export const alertSubscribers = pgTable(
   "alert_subscriber",
   {
@@ -294,8 +302,15 @@ export const alertSubscribers = pgTable(
       .$defaultFn(() => crypto.randomUUID()),
     userId: text("user_id").notNull(),
     label: text("label").notNull(),
-    // E.164, e.g. +15714619323.
-    phone: text("phone").notNull(),
+    // imessage — `phone` is set
+    // discord  — `webhook_url` is set
+    channel: text("channel").notNull().default("imessage"),
+    // E.164, e.g. +15714619323. Null on a Discord row.
+    phone: text("phone"),
+    // https://discord.com/api/webhooks/<id>/<token>. Null on an iMessage row.
+    // Bearer-token-equivalent: anyone holding it can post to the channel, so it
+    // is never returned to the browser in full.
+    webhookUrl: text("webhook_url"),
     // all       — every posting that passes the intern/co-op + term filter
     // watchlist — only postings from this user's `watched_company` rows
     scope: text("scope").notNull().default("watchlist"),
@@ -310,8 +325,19 @@ export const alertSubscribers = pgTable(
       .defaultNow(),
   },
   (t) => [
+    // Both are nullable, and Postgres lets a unique index hold many NULLs — so
+    // one index per transport enforces "no duplicate destination" without the
+    // unused column of the other transport ever colliding.
     uniqueIndex("alert_subscriber_phone_idx").on(t.phone),
+    uniqueIndex("alert_subscriber_webhook_idx").on(t.webhookUrl),
     index("alert_subscriber_user_idx").on(t.userId),
+    // A row with no address would be reserved deliveries it can never send,
+    // which looks like a silently broken recipient rather than a bad insert.
+    check(
+      "alert_subscriber_address_ck",
+      sql`(${t.channel} = 'imessage' AND ${t.phone} IS NOT NULL)
+       OR (${t.channel} = 'discord' AND ${t.webhookUrl} IS NOT NULL)`,
+    ),
   ],
 );
 
