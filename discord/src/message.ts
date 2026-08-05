@@ -55,9 +55,11 @@ function blockFor(listing: DigestListing): string {
   const meta = [listing.term, listing.locations?.slice(0, 2).join(" · ")]
     .filter(Boolean)
     .join(" — ");
+  // `-# ` is Discord's subtext: smaller and muted. Term and location are context
+  // for the link above, and at full weight forty of them read as a wall.
   return (
     `• ${link(`${listing.company} — ${listing.title}`, listing.url)}` +
-    (meta ? `\n${escapeMarkdown(meta)}` : "")
+    (meta ? `\n-# ${escapeMarkdown(meta)}` : "")
   );
 }
 

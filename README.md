@@ -244,6 +244,11 @@ internships/                     # iMessage alert poller (Bun + Spectrum)
     send.ts                      # Spectrum iMessage client
     seed-watchlist.ts            # upsert the tiered company watchlist
     register-sources.ts          # discovery.json → job_source rows
+discord/                         # Discord alert bot (Bun + incoming webhook)
+  src/
+    send-alerts.ts               # entrypoint: drain reserved deliveries → post
+    webhook.ts                   # webhook client: pacing, 429s, retries
+    message.ts                   # digest formatting + 2,000-char packing
 scrapers/                        # career-page scraping (Python)
   fetch.py                       # HTTP first, Playwright when needed
   extract.py                     # BeautifulSoup extraction + ATS detection
@@ -253,13 +258,32 @@ scrapers/                        # career-page scraping (Python)
 
 ---
 
-## Job alerts (iMessage)
+## Job alerts (iMessage + Discord)
 
-A second pipeline watches for **new internship and co-op postings** and texts them
-as a digest over iMessage. Managed from the **Alerts** tab: recipients, a company
-watchlist, a recent-postings feed, and per-source health.
+A second pipeline watches for **new internship and co-op postings** and sends them
+as a digest. Managed from the **Alerts** tab: recipients, a company watchlist, a
+recent-postings feed, and per-source health.
 
-Each recipient chooses **all job alerts** or **watchlist only**.
+Each recipient chooses **all job alerts** or **watchlist only**, and is either a
+phone number that gets an iMessage or a Discord channel that gets a webhook post.
+
+**One poller, two senders.** `internships/src/poll.ts` is the only thing that
+fetches job boards. It records listings and reserves an `alert_delivery` row for
+every enabled subscriber whatever their channel, then sends the iMessage ones;
+`discord/src/send-alerts.ts` runs straight after and drains the rest. Splitting
+it the other way — a poller per transport — would mean two hits on every careers
+page for the same postings.
+
+```
+poll.ts ──fetch──> job_listing ──reserve──> alert_delivery ──┬─> internships/ ──> iMessage
+                                                             └─> discord/     ──> webhook
+```
+
+The Discord side is a plain incoming webhook, not a bot user: no gateway, no
+always-on host, so it's one more step in the same 10-minute Action. It is
+therefore send-only — no slash commands, and no `STOP` reply, since nothing is
+listening on the other end. See [`discord/README.md`](discord/README.md) for
+setup.
 
 ### Where postings come from
 
@@ -309,15 +333,27 @@ bun src/test-send.ts +15551234567
 bun src/seed-watchlist.ts you@gmail.com
 ```
 
-`.github/workflows/poll.yml` runs it every 10 minutes — Vercel's Hobby plan caps
-its own cron at once per day, and Actions minutes are free on a public repo.
+```bash
+cd discord
+bun src/send-alerts.ts           # post whatever the poller reserved for Discord
+bun src/send-alerts.ts --dry-run # print the messages; no posts, no writes
+bun src/test-send.ts https://discord.com/api/webhooks/<id>/<token>
+```
+
+`.github/workflows/poll.yml` runs both every 10 minutes — Vercel's Hobby plan caps
+its own cron at once per day, and Actions minutes are free on a public repo. The
+Discord step runs on `!cancelled()` rather than on success, so a Spectrum outage
+or one broken scraper doesn't also hold up the Discord digest.
 
 ### Two safeguards worth knowing
 
-- **Nothing is texted twice.** A delivery row is reserved as `pending` *before*
-  the message is sent, unique on `(subscriber, dedupe_key)`. A crash between
-  reserve and send leaves a retryable row, never a duplicate or a loss — and the
-  key collapses the same job arriving from several sources into one message.
+- **Nothing is sent twice, on either channel.** A delivery row is reserved as
+  `pending` *before* the message goes out, unique on `(subscriber, dedupe_key)`. A
+  crash between reserve and send leaves a retryable row, never a duplicate or a
+  loss — and the key collapses the same job arriving from several sources into one
+  message. Both senders share this ledger, which is the reason Discord channels
+  are rows in `alert_subscriber` rather than a table of their own: the
+  safety-critical part is written once, not reimplemented per transport.
 - **A new source never floods.** A source alerts on nothing until its first
   *successful* poll (`job_source.seeded_at`). Seeding the community feeds would
   otherwise have fired ~750 texts, and adding a company with hundreds of open
@@ -336,6 +372,10 @@ exponential backoff (capped at 24h, reset on success).
 | `ALERT_TERM_FLOOR` | _Optional._ Earliest term to alert on. Default `Fall 2026` |
 | `ALERT_SITE_URL` | _Optional._ Linked from a truncated digest |
 | `PYTHON_BIN` / `SCRAPERS_DIR` | _Optional._ Interpreter and path for `scrapers/` |
+| `DISCORD_USERNAME` / `DISCORD_AVATAR_URL` | _Optional._ Name and avatar the webhook posts under |
+
+Discord webhook URLs are **not** environment variables — they live in
+`alert_subscriber.webhook_url` so one deployment can post to several channels.
 
 ## Notes & limitations
 
