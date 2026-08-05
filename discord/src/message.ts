@@ -91,7 +91,12 @@ export function buildDigest(
   // A role id, not a role name. `@job` typed literally is inert text in Discord;
   // only `<@&id>` is a mention. Unset means post silently — never fall back to
   // a broader ping than was asked for.
-  const roleId = options.mentionRoleId?.trim() || null;
+  //
+  // The snowflake shape is checked rather than trusted: a role *name* pasted
+  // into the variable by mistake would otherwise be interpolated into `<@&job>`,
+  // which posts as visible gibberish at the top of every digest.
+  const raw = options.mentionRoleId?.trim() || null;
+  const roleId = raw && /^\d{15,25}$/.test(raw) ? raw : null;
   const budget =
     DISCORD_MAX_CONTENT -
     HEADING_RESERVE -
