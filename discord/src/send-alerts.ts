@@ -22,8 +22,16 @@ import { createDryRunPoster, createPoster, type Poster } from "./webhook.ts";
 
 const { alertSubscribers, alertDeliveries, jobListings } = schema;
 
-/** Postings drained per channel per run. Extras stay pending for next time. */
-const MAX_DELIVERIES_PER_RUN = 40;
+/**
+ * Postings drained per channel per run. Extras stay pending for next time.
+ *
+ * Overridable so a one-off backlog can go out in a single burst with a single
+ * ping, instead of trickling out 40 at a time over seventeen hourly runs and
+ * notifying the channel on every one of them.
+ */
+const MAX_DELIVERIES_PER_RUN = Number(
+  process.env.DISCORD_MAX_PER_RUN || "40",
+);
 /** Matches the poller: a delivery that has failed this often stops retrying. */
 const MAX_ATTEMPTS = 3;
 
@@ -151,14 +159,42 @@ async function drain(
     }
   }
 
-  const listings: DigestListing[] = pending.map((row) => ({
-    deliveryId: row.deliveryId,
-    company: row.company,
-    title: row.title,
-    url: row.url,
-    locations: row.locations,
-    term: row.term,
-  }));
+  // Collapse the same role listed more than once by one employer.
+  //
+  // alert_delivery already dedupes on `dedupe_key`, but that key prefers the
+  // canonical URL, so two genuinely distinct reqs — TikTok posts "Software
+  // Engineer Intern" many times over, one per team — survive as separate rows
+  // and read as the channel repeating itself. Here they collapse to one line.
+  //
+  // The suppressed rows are still settled: `collapsed` maps the surviving
+  // delivery id to every id it stands for, so a posted message marks all of them
+  // 'sent' rather than leaving duplicates pending to be retried forever.
+  const collapsed = new Map<string, string[]>();
+  const firstSeen = new Map<string, string>();
+  const listings: DigestListing[] = [];
+  for (const row of pending) {
+    const key = `${dedupeToken(row.company)}::${dedupeToken(row.title)}`;
+    const keptId = firstSeen.get(key);
+    if (keptId) {
+      collapsed.get(keptId)!.push(row.deliveryId);
+      continue;
+    }
+    firstSeen.set(key, row.deliveryId);
+    collapsed.set(row.deliveryId, [row.deliveryId]);
+    listings.push({
+      deliveryId: row.deliveryId,
+      company: row.company,
+      title: row.title,
+      url: row.url,
+      locations: row.locations,
+      term: row.term,
+    });
+  }
+  const duplicates = pending.length - listings.length;
+
+  /** Every delivery a message accounts for, including collapsed duplicates. */
+  const settledBy = (ids: string[]) =>
+    ids.flatMap((id) => collapsed.get(id) ?? [id]);
 
   let delivered = 0;
   // Settle per message, not per run. Discord caps a message at 2,000 characters,
@@ -181,7 +217,7 @@ async function drain(
             attempts: sql`${alertDeliveries.attempts} + 1`,
             error: reason,
           })
-          .where(inArray(alertDeliveries.id, message.deliveryIds));
+          .where(inArray(alertDeliveries.id, settledBy(message.deliveryIds)));
       }
       console.error(`  ${subscriber.label}: post failed — ${reason}`);
       // The rest of this digest would almost certainly fail the same way, and
@@ -198,13 +234,16 @@ async function drain(
           attempts: sql`${alertDeliveries.attempts} + 1`,
           error: null,
         })
-        .where(inArray(alertDeliveries.id, message.deliveryIds));
+        .where(inArray(alertDeliveries.id, settledBy(message.deliveryIds)));
     }
-    delivered += message.deliveryIds.length;
+    delivered += settledBy(message.deliveryIds).length;
   }
 
   if (delivered > 0) {
-    console.log(`  ${subscriber.label}: posted ${delivered} posting(s)`);
+    console.log(
+      `  ${subscriber.label}: posted ${delivered} posting(s)` +
+        (duplicates ? ` (${duplicates} duplicate title(s) collapsed)` : ""),
+    );
   }
   return delivered;
 }
@@ -260,3 +299,8 @@ main().catch((err) => {
   console.error(err);
   process.exitCode = 1;
 });
+
+/** Loose key for "same role, same employer": case, spacing and punctuation vary. */
+function dedupeToken(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}

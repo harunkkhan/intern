@@ -60,6 +60,10 @@ function link(text: string, url: string): string {
   return `[${escapeMarkdown(text)}](<${safe}>)`;
 }
 
+/**
+ * One posting, without its employer — the company is a heading above the group
+ * rather than a prefix repeated on every line.
+ */
 function blockFor(listing: DigestListing): string {
   const meta = [listing.term, listing.locations?.slice(0, 2).join(" · ")]
     .filter(Boolean)
@@ -67,9 +71,30 @@ function blockFor(listing: DigestListing): string {
   // `-# ` is Discord's subtext: smaller and muted. Term and location are context
   // for the link above, and at full weight forty of them read as a wall.
   return (
-    `• ${link(`${listing.company} — ${listing.title}`, listing.url)}` +
+    `• ${link(listing.title, listing.url)}` +
     (meta ? `\n-# ${escapeMarkdown(meta)}` : "")
   );
+}
+
+function headingFor(company: string): string {
+  return `**${escapeMarkdown(company)}**`;
+}
+
+/**
+ * Clusters postings by employer while keeping the newest employers first.
+ *
+ * Order is taken from where a company *first* appears in the input, which is
+ * already newest-first — so grouping doesn't bury a company that just posted
+ * behind one that happens to have forty stale roles open.
+ */
+function groupByCompany(listings: DigestListing[]): DigestListing[] {
+  const byCompany = new Map<string, DigestListing[]>();
+  for (const l of listings) {
+    const bucket = byCompany.get(l.company);
+    if (bucket) bucket.push(l);
+    else byCompany.set(l.company, [l]);
+  }
+  return [...byCompany.values()].flat();
 }
 
 /**
@@ -102,24 +127,42 @@ export function buildDigest(
     HEADING_RESERVE -
     (footer ? footer.length + SEPARATOR.length : 0);
 
-  const groups: { blocks: string[]; ids: string[]; length: number }[] = [];
-  for (const listing of listings) {
+  const groups: {
+    blocks: string[];
+    ids: string[];
+    length: number;
+    /** Last employer written into this message, so the heading isn't repeated. */
+    company: string | null;
+  }[] = [];
+
+  for (const listing of groupByCompany(listings)) {
     let block = blockFor(listing);
     // One posting that alone overruns a whole message. Nothing real should hit
     // this, but dropping the row silently would be worse than a clipped line.
     if (block.length > budget) block = `${block.slice(0, budget - 1)}…`;
 
     const current = groups.at(-1);
-    const added = current ? SEPARATOR.length + block.length : block.length;
+    // A heading is needed whenever the employer changes — and always at the top
+    // of a new message, since a company whose roles span a message boundary
+    // would otherwise continue under no heading at all.
+    const needsHeading = !current || current.company !== listing.company;
+    const heading = needsHeading ? headingFor(listing.company) : "";
+    const piece = needsHeading ? `${heading}\n${block}` : block;
+    const added = current ? SEPARATOR.length + piece.length : piece.length;
+
     if (current && current.length + added <= budget) {
-      current.blocks.push(block);
+      current.blocks.push(piece);
       current.ids.push(listing.deliveryId);
       current.length += added;
+      current.company = listing.company;
     } else {
+      // Starting a message: re-emit the heading even mid-company.
+      const opener = `${headingFor(listing.company)}\n${block}`;
       groups.push({
-        blocks: [block],
+        blocks: [opener],
         ids: [listing.deliveryId],
-        length: block.length,
+        length: opener.length,
+        company: listing.company,
       });
     }
   }
