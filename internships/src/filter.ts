@@ -12,6 +12,21 @@ import type { RawListing } from "./types.ts";
 // Internships and co-ops only. No new-grad or full-time roles.
 const INTERN_TOKEN = /\b(intern|interns|internship|internships|co-?op|coops?)\b/i;
 
+/**
+ * What counts as an intern title on a community feed.
+ *
+ * The feeds spell student roles in ways an ATS board doesn't: ByteDance and
+ * Google post "Student Researcher", John Deere posts "Part-Time Student", and
+ * Coca-Cola posts "Extern". All are internships; none contain the word.
+ *
+ * Deliberately excludes "fellow". Anthropic's Fellows Program is arguably one of
+ * these, but so is "HOH Fellows - Spouseworks Fellows", a military-spouse
+ * placement that is not a student internship — and there is nothing in a title
+ * to tell them apart.
+ */
+const STUDENT_TOKEN =
+  /\b(intern|interns|internship|internships|co-?op|coops?|student|students|extern|externship)\b/i;
+
 // Always applied, to every source. Three families of false positive:
 //   1. Roles that *manage* interns — "Solution Architect Manager - Intern Program"
 //   2. New-grad / full-time pipelines — "University Graduate, Software Engineer"
@@ -64,10 +79,20 @@ export function termFloor(): number {
 
 export interface FilterOptions {
   /**
-   * Whether the title must name an internship or co-op. False for the GitHub
-   * feeds, which only ever list internships — requiring the token there would
-   * drop real postings whose titles omit the word (26 of 605 in the sample).
-   * True for ATS boards, which list every role a company has open.
+   * Whether the title must name an internship or co-op *strictly*.
+   *
+   * True for ATS boards, which list every role a company has open. False for the
+   * community feeds, which are mostly internships — but "mostly" is the
+   * operative word, and it used to mean "entirely". Those feeds now carry
+   * Jane Street's "Software Engineer" and "Quantitative Trader", AMD's
+   * "Analog/Mixed-Signal Serdes Design Engineer", and NRG's "Installation
+   * Technician", all full-time roles that a blanket exemption waved straight
+   * through.
+   *
+   * So the exemption is now a looser rule rather than no rule: a trusted feed
+   * still has to look like a student role by STUDENT_TOKEN, which keeps
+   * "Student Researcher" and "Part-Time Student" while dropping the full-time
+   * ones.
    */
   requireInternToken: boolean;
   /** From `termFloor()`. Terms earlier than this are expired cycles. */
@@ -90,7 +115,9 @@ export function filterListing(
   if (DISQUALIFYING.test(title)) {
     return { keep: false, reason: "disqualifying-title" };
   }
-  if (options.requireInternToken && !INTERN_TOKEN.test(title)) {
+  // Strict on ATS boards, looser on the community feeds — but never absent.
+  const token = options.requireInternToken ? INTERN_TOKEN : STUDENT_TOKEN;
+  if (!token.test(title)) {
     return { keep: false, reason: "no-intern-token" };
   }
   // A null term means the source didn't say, and an unparseable one means it

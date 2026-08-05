@@ -57,6 +57,18 @@ unassignable, and the schema is imported from `../src/db/schema.ts`).
 
 ## Two things worth knowing
 
+- **Postings are grouped under a bold employer heading.** The company is a
+  heading above its roles rather than a prefix repeated on every line, and the
+  heading is re-emitted at the top of a new message so a company whose roles
+  span a message boundary never continues under no heading. Employers keep
+  newest-first order, so one with forty stale roles open can't bury one that just
+  posted.
+- **The same role listed twice by one employer is sent once.** `alert_delivery`
+  dedupes on `dedupe_key`, which prefers the canonical URL — so TikTok's many
+  separate "Software Engineer Intern" reqs, one per team, survive as distinct
+  rows and read as the channel repeating itself. The sender collapses them on
+  (employer, title) and still settles every suppressed row, so duplicates aren't
+  left pending to be retried forever.
 - **A message is the unit of settlement, not a run.** Discord caps a message at
   2,000 characters, so a full digest is often several posts. Each one carries the
   delivery ids it covers and marks exactly those rows `sent` the moment it lands.
@@ -123,5 +135,6 @@ are packed, so adding it can cost an extra message but can never overflow one.
 | --- | --- |
 | `DATABASE_URL` | Supabase pooler URL — same value the web app and poller use |
 | `DISCORD_MENTION_ROLE_ID` | _Optional._ Numeric role id a digest pings. Unset = post silently |
+| `DISCORD_MAX_PER_RUN` | _Optional._ Postings drained per run. Default 40; raise for a one-off backlog |
 | `DISCORD_USERNAME` | _Optional._ Overrides the name the webhook posts under |
 | `DISCORD_AVATAR_URL` | _Optional._ Overrides the webhook's avatar |

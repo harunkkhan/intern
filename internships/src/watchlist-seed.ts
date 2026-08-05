@@ -133,7 +133,12 @@ export const WATCHLIST: SeedCompany[] = [
   { name: "SoFi", tier: "A-", aliases: ["Social Finance"] },
 
   // B+
-  { name: "TikTok", tier: "B+", aliases: ["ByteDance"] },
+  // Tracked separately rather than ByteDance being a TikTok alias. They post
+  // different roles — ByteDance's are largely Seed/foundation-model research —
+  // and folding them together made the watchlist read as one 148-role employer
+  // instead of two, with no way to tier or disable them independently.
+  { name: "TikTok", tier: "B+" },
+  { name: "ByteDance", tier: "B+" },
   { name: "Discord", tier: "B+" },
   { name: "Amazon", tier: "B+" },
   { name: "Microsoft", tier: "B+" },
