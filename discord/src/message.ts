@@ -22,12 +22,19 @@ export interface DigestMessage {
   content: string;
   /** The deliveries this message accounts for, marked 'sent' once it lands. */
   deliveryIds: string[];
+  /**
+   * Whether this message's `@everyone` should actually notify. Carried here
+   * rather than decided by the sender so the literal text and the permission to
+   * act on it are set in one place and can't drift apart — a message containing
+   * `@everyone` that was posted without the permission reads as a broken ping.
+   */
+  mentionsEveryone: boolean;
 }
 
 /**
- * Room set aside for the heading and the trailing site link, neither of which
- * exists yet when blocks are being packed. Over-reserving costs at most one
- * extra message on a very full run; under-reserving costs a 400 from Discord.
+ * Room set aside for the heading, which doesn't exist yet when blocks are being
+ * packed. Over-reserving costs at most one extra message on a very full run;
+ * under-reserving costs a 400 from Discord.
  */
 const HEADING_RESERVE = 80;
 const SEPARATOR = "\n\n";
@@ -74,16 +81,14 @@ function blockFor(listing: DigestListing): string {
  */
 export function buildDigest(
   listings: DigestListing[],
-  options: { siteUrl?: string | null; footer?: string | null } = {},
+  options: { footer?: string | null } = {},
 ): DigestMessage[] {
   if (listings.length === 0) return [];
 
-  const siteUrl = options.siteUrl?.trim() || null;
   const footer = options.footer?.trim() || null;
   const budget =
     DISCORD_MAX_CONTENT -
     HEADING_RESERVE -
-    (siteUrl ? siteUrl.length + SEPARATOR.length : 0) -
     (footer ? footer.length + SEPARATOR.length : 0);
 
   const groups: { blocks: string[]; ids: string[]; length: number }[] = [];
@@ -110,7 +115,12 @@ export function buildDigest(
 
   const total = listings.length;
   return groups.map((group, index) => {
+    // Only the first message pings. A digest that overflows into three posts is
+    // still one batch of news, and three notifications for it would train people
+    // to mute the channel — which defeats the point of pinging at all.
+    const first = index === 0;
     const heading =
+      (first ? "@everyone " : "") +
       `**${total} new internship${total === 1 ? "" : "s"}**` +
       (groups.length > 1 ? ` · ${index + 1}/${groups.length}` : "");
     const isLast = index === groups.length - 1;
@@ -120,11 +130,11 @@ export function buildDigest(
         "",
         group.blocks.join(SEPARATOR),
         ...(footer && isLast ? ["", footer] : []),
-        ...(siteUrl && isLast ? ["", siteUrl] : []),
       ]
         .join("\n")
         .trim(),
       deliveryIds: group.ids,
+      mentionsEveryone: first,
     };
   });
 }
@@ -180,20 +190,14 @@ export function formatFailingNotice(
  * inbound side, and everyone reading the channel would see a reply that nothing
  * is listening to. Control lives in the dashboard.
  */
-export function formatIntro(
-  label: string,
-  scope: string,
-  options: { siteUrl?: string | null } = {},
-): string {
+export function formatIntro(label: string, scope: string): string {
   const what =
     scope === "all"
       ? "every new internship and co-op posting it finds"
       : "new internship and co-op postings from the watchlist";
-  const siteUrl = options.siteUrl?.trim() || null;
   return [
     `**Internship alerts are on** — ${escapeMarkdown(label)}`,
     "",
     `This channel gets a digest whenever there's ${what}.`,
-    ...(siteUrl ? ["", `Manage the watchlist and turn this off: ${siteUrl}`] : []),
   ].join("\n");
 }

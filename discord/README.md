@@ -66,6 +66,16 @@ unassignable, and the schema is imported from `../src/db/schema.ts`).
   decoration: a `)` in the URL would otherwise terminate the markdown link early,
   and Greenhouse and Workday both emit parenthesised paths. Suppressing embeds
   matters because forty unfurled link cards is not a readable digest.
+- **Only the first message of a digest pings `@everyone`.** A digest that
+  overflows into three posts is still one batch of news; three notifications for
+  it would train people to mute the channel, which defeats the point. The intro
+  never pings. `allowed_mentions` stays empty except on that first message, and
+  even there it permits only `everyone` — an `@here` or a role name inside a job
+  title can never summon the server.
+
+The webhook needs **Mention @everyone, @here, and All Roles** on the channel for
+the ping to notify. Without it the message still posts, with `@everyone` as inert
+text.
 
 Rate limits are handled by pacing posts per webhook and honouring `retry_after`
 on a 429. A 401/403/404 is treated as permanent — the webhook was deleted or its
@@ -106,6 +116,5 @@ are packed, so adding it can cost an extra message but can never overflow one.
 | Variable | Purpose |
 | --- | --- |
 | `DATABASE_URL` | Supabase pooler URL — same value the web app and poller use |
-| `ALERT_SITE_URL` | _Optional._ Linked from the last message of a digest |
 | `DISCORD_USERNAME` | _Optional._ Overrides the name the webhook posts under |
 | `DISCORD_AVATAR_URL` | _Optional._ Overrides the webhook's avatar |

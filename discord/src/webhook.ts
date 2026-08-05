@@ -15,9 +15,24 @@ const MAX_ATTEMPTS = 4;
 /** A 429 asking for longer than this is not worth holding the Action open for. */
 const MAX_BACKOFF_MS = 15_000;
 
+export interface PostOptions {
+  /**
+   * Let an `@everyone` in the content actually notify the channel.
+   *
+   * Off by default, and narrowed to `everyone` when on: the parse list stays
+   * empty otherwise, so a stray `@here` or a role name inside a job title can
+   * never ping a server full of people.
+   */
+  mentionEveryone?: boolean;
+}
+
 export interface Poster {
   /** Posts one message. Throws if it could not be delivered. */
-  post(webhookUrl: string, content: string): Promise<void>;
+  post(
+    webhookUrl: string,
+    content: string,
+    options?: PostOptions,
+  ): Promise<void>;
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -25,10 +40,11 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /** Prints instead of posting. Used by `--dry-run`. */
 export function createDryRunPoster(): Poster {
   return {
-    async post(webhookUrl, content) {
+    async post(webhookUrl, content, options) {
       const parsed = parseDiscordWebhook(webhookUrl);
       console.log(
-        `\n--- would post to webhook ${parsed?.id ?? "?"} (${content.length} chars) ---\n${content}\n---`,
+        `\n--- would post to webhook ${parsed?.id ?? "?"} (${content.length} chars` +
+          `${options?.mentionEveryone ? ", pings @everyone" : ""}) ---\n${content}\n---`,
       );
     },
   };
@@ -47,7 +63,7 @@ export function createPoster(): Poster {
   }
 
   return {
-    async post(webhookUrl, content) {
+    async post(webhookUrl, content, options) {
       const parsed = parseDiscordWebhook(webhookUrl);
       if (!parsed) {
         throw new Error("not a Discord webhook URL");
@@ -66,9 +82,12 @@ export function createPoster(): Poster {
               content,
               username: process.env.DISCORD_USERNAME || undefined,
               avatar_url: process.env.DISCORD_AVATAR_URL || undefined,
-              // A digest is an announcement, not a summons. Without this an @here
-              // that happened to appear in a job title would ping the server.
-              allowed_mentions: { parse: [] },
+              // Nothing pings unless it was asked for explicitly, and even then
+              // only `@everyone` — an @here or a role name that happened to
+              // appear in a job title still can't summon the server.
+              allowed_mentions: {
+                parse: options?.mentionEveryone ? ["everyone"] : [],
+              },
               flags: DISCORD_SUPPRESS_EMBEDS,
             }),
           });

@@ -135,14 +135,13 @@ async function drain(
 
   if (pending.length === 0) return 0;
 
-  const siteUrl = process.env.ALERT_SITE_URL ?? null;
-
   // Nobody should find job alerts appearing in their channel from an
-  // unexplained webhook with no note of where they came from.
+  // unexplained webhook with no note of where they came from. Never pings —
+  // it's an explanation, not news.
   if (!subscriber.confirmedAt) {
     await poster.post(
       webhookUrl,
-      formatIntro(subscriber.label, subscriber.scope, { siteUrl }),
+      formatIntro(subscriber.label, subscriber.scope),
     );
     if (!args.dryRun) {
       await db
@@ -166,9 +165,11 @@ async function drain(
   // so a full digest is often several posts; marking them all 'sent' only after
   // the last one would re-post everything if the third failed, and marking them
   // all 'failed' would lose what already landed.
-  for (const message of buildDigest(listings, { siteUrl, footer })) {
+  for (const message of buildDigest(listings, { footer })) {
     try {
-      await poster.post(webhookUrl, message.content);
+      await poster.post(webhookUrl, message.content, {
+        mentionEveryone: message.mentionsEveryone,
+      });
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
       if (!args.dryRun) {

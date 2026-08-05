@@ -100,7 +100,6 @@ jobs:
         working-directory: discord
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          ALERT_SITE_URL: ${{ vars.ALERT_SITE_URL }}
           DISCORD_USERNAME: ${{ vars.DISCORD_USERNAME }}
           DISCORD_AVATAR_URL: ${{ vars.DISCORD_AVATAR_URL }}
         run: |
