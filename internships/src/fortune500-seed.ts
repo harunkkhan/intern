@@ -210,7 +210,13 @@ export const FORTUNE_500: SeedCompany[] = [
   { name: "Frontier Communications", tier: "F500" },
 
   // Banks, financial services, and payments
-  { name: "JPMorgan Chase", tier: "F500", aliases: ["JPMorgan", "JP Morgan", "J.P. Morgan", "Chase"] },
+  {
+    name: "JPMorgan Chase",
+    tier: "F500",
+    // "JP Morgan Chase" is a distinct key from "JPMorgan Chase" once normalized —
+    // the space survives, so the two never collapse onto each other.
+    aliases: ["JPMorgan", "JP Morgan", "JP Morgan Chase", "J.P. Morgan", "Chase"],
+  },
   { name: "Bank of America", tier: "F500", aliases: ["BofA", "Merrill Lynch"] },
   { name: "Citigroup", tier: "F500", aliases: ["Citi"] },
   { name: "Wells Fargo", tier: "F500" },
@@ -253,7 +259,7 @@ export const FORTUNE_500: SeedCompany[] = [
   { name: "CME Group", tier: "F500", aliases: ["CME"] },
   { name: "Cboe Global Markets", tier: "F500", aliases: ["Cboe"] },
   { name: "Robinhood Markets", tier: "F500", aliases: ["Robinhood"] },
-  { name: "Berkshire Hathaway", tier: "F500" },
+  { name: "Berkshire Hathaway", tier: "F500", aliases: ["Berkshire Hathaway Energy"] },
   { name: "Fannie Mae", tier: "F500" },
   { name: "Freddie Mac", tier: "F500" },
   { name: "Rocket Companies", tier: "F500", aliases: ["Rocket Mortgage", "Quicken Loans"] },
@@ -361,7 +367,15 @@ export const FORTUNE_500: SeedCompany[] = [
   { name: "RTX", tier: "F500", aliases: ["Raytheon", "Raytheon Technologies", "Collins Aerospace", "Pratt & Whitney"] },
   { name: "Lockheed Martin", tier: "F500" },
   { name: "Northrop Grumman", tier: "F500" },
-  { name: "General Dynamics", tier: "F500" },
+  {
+    name: "General Dynamics",
+    tier: "F500",
+    // GDMS and GDIT post separately from the parent.
+    aliases: [
+      "General Dynamics Mission Systems",
+      "General Dynamics Information Technology",
+    ],
+  },
   { name: "L3Harris Technologies", tier: "F500", aliases: ["L3Harris"] },
   { name: "HII", tier: "F500", aliases: ["Huntington Ingalls Industries", "Huntington Ingalls"] },
   { name: "Textron", tier: "F500" },
@@ -391,7 +405,12 @@ export const FORTUNE_500: SeedCompany[] = [
   { name: "General Motors", tier: "F500", aliases: ["GM", "Cruise"] },
   { name: "Ford Motor", tier: "F500", aliases: ["Ford"] },
   { name: "Tesla", tier: "F500" },
-  { name: "Rivian Automotive", tier: "F500", aliases: ["Rivian"] },
+  {
+    name: "Rivian Automotive",
+    tier: "F500",
+    // The VW joint venture posts under its own employer name.
+    aliases: ["Rivian", "Rivian and Volkswagen Group Technologies"],
+  },
   { name: "Lucid Group", tier: "F500", aliases: ["Lucid Motors"] },
   { name: "Lear", tier: "F500", aliases: ["Lear Corporation"] },
   { name: "Aptiv", tier: "F500" },
