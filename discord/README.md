@@ -66,16 +66,22 @@ unassignable, and the schema is imported from `../src/db/schema.ts`).
   decoration: a `)` in the URL would otherwise terminate the markdown link early,
   and Greenhouse and Workday both emit parenthesised paths. Suppressing embeds
   matters because forty unfurled link cards is not a readable digest.
-- **Only the first message of a digest pings `@everyone`.** A digest that
-  overflows into three posts is still one batch of news; three notifications for
-  it would train people to mute the channel, which defeats the point. The intro
-  never pings. `allowed_mentions` stays empty except on that first message, and
-  even there it permits only `everyone` — an `@here` or a role name inside a job
-  title can never summon the server.
+- **Only the first message of a digest pings.** A digest that overflows into
+  three posts is still one batch of news; three notifications for it would train
+  people to mute the channel, which defeats the point. The intro never pings.
+  `allowed_mentions.parse` is empty on every message, so `@everyone` and `@here`
+  are inert however they turn up in a job title — only the role id in
+  `DISCORD_MENTION_ROLE_ID` can ring, and only on that first message.
 
-The webhook needs **Mention @everyone, @here, and All Roles** on the channel for
-the ping to notify. Without it the message still posts, with `@everyone` as inert
-text.
+The mention is configured as a **numeric role id**, not a name: `@job` typed
+literally is text Discord ignores, and only `<@&123…>` is a real mention. With
+Developer Mode on, get it from **Server Settings → Roles → right-click → Copy
+Role ID**. Leave `DISCORD_MENTION_ROLE_ID` unset and digests post silently —
+it never falls back to a broader ping than was configured.
+
+The role must be **mentionable**, or the webhook needs **Mention @everyone,
+@here, and All Roles** on the channel. Without either, the message still posts
+and the mention renders highlighted but silent, which looks like it worked.
 
 Rate limits are handled by pacing posts per webhook and honouring `retry_after`
 on a 429. A 401/403/404 is treated as permanent — the webhook was deleted or its
@@ -116,5 +122,6 @@ are packed, so adding it can cost an extra message but can never overflow one.
 | Variable | Purpose |
 | --- | --- |
 | `DATABASE_URL` | Supabase pooler URL — same value the web app and poller use |
+| `DISCORD_MENTION_ROLE_ID` | _Optional._ Numeric role id a digest pings. Unset = post silently |
 | `DISCORD_USERNAME` | _Optional._ Overrides the name the webhook posts under |
 | `DISCORD_AVATAR_URL` | _Optional._ Overrides the webhook's avatar |

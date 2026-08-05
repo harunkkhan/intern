@@ -17,13 +17,13 @@ const MAX_BACKOFF_MS = 15_000;
 
 export interface PostOptions {
   /**
-   * Let an `@everyone` in the content actually notify the channel.
+   * Role ids a `<@&id>` in the content is allowed to notify.
    *
-   * Off by default, and narrowed to `everyone` when on: the parse list stays
-   * empty otherwise, so a stray `@here` or a role name inside a job title can
-   * never ping a server full of people.
+   * Empty by default. `parse` stays empty in every case, so `@everyone`,
+   * `@here`, and any other role are inert no matter what a job title happens to
+   * contain — only the ids listed here can ring.
    */
-  mentionEveryone?: boolean;
+  mentionRoleIds?: string[];
 }
 
 export interface Poster {
@@ -42,9 +42,10 @@ export function createDryRunPoster(): Poster {
   return {
     async post(webhookUrl, content, options) {
       const parsed = parseDiscordWebhook(webhookUrl);
+      const roles = options?.mentionRoleIds ?? [];
       console.log(
         `\n--- would post to webhook ${parsed?.id ?? "?"} (${content.length} chars` +
-          `${options?.mentionEveryone ? ", pings @everyone" : ""}) ---\n${content}\n---`,
+          `${roles.length ? `, pings role ${roles.join(", ")}` : ""}) ---\n${content}\n---`,
       );
     },
   };
@@ -83,10 +84,11 @@ export function createPoster(): Poster {
               username: process.env.DISCORD_USERNAME || undefined,
               avatar_url: process.env.DISCORD_AVATAR_URL || undefined,
               // Nothing pings unless it was asked for explicitly, and even then
-              // only `@everyone` — an @here or a role name that happened to
-              // appear in a job title still can't summon the server.
+              // only the named roles — `parse: []` keeps @everyone and @here
+              // inert however they turn up in the content.
               allowed_mentions: {
-                parse: options?.mentionEveryone ? ["everyone"] : [],
+                parse: [],
+                roles: options?.mentionRoleIds ?? [],
               },
               flags: DISCORD_SUPPRESS_EMBEDS,
             }),

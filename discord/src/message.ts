@@ -23,12 +23,14 @@ export interface DigestMessage {
   /** The deliveries this message accounts for, marked 'sent' once it lands. */
   deliveryIds: string[];
   /**
-   * Whether this message's `@everyone` should actually notify. Carried here
-   * rather than decided by the sender so the literal text and the permission to
-   * act on it are set in one place and can't drift apart — a message containing
-   * `@everyone` that was posted without the permission reads as a broken ping.
+   * Role ids this message's mention text should actually notify.
+   *
+   * Carried alongside the content rather than decided by the sender, so the
+   * `<@&id>` in the text and the permission to act on it are set in one place
+   * and can't drift apart — a mention posted without matching `allowed_mentions`
+   * renders as a highlighted but silent ping, which looks like it worked.
    */
-  mentionsEveryone: boolean;
+  mentionRoleIds: string[];
 }
 
 /**
@@ -81,11 +83,15 @@ function blockFor(listing: DigestListing): string {
  */
 export function buildDigest(
   listings: DigestListing[],
-  options: { footer?: string | null } = {},
+  options: { footer?: string | null; mentionRoleId?: string | null } = {},
 ): DigestMessage[] {
   if (listings.length === 0) return [];
 
   const footer = options.footer?.trim() || null;
+  // A role id, not a role name. `@job` typed literally is inert text in Discord;
+  // only `<@&id>` is a mention. Unset means post silently — never fall back to
+  // a broader ping than was asked for.
+  const roleId = options.mentionRoleId?.trim() || null;
   const budget =
     DISCORD_MAX_CONTENT -
     HEADING_RESERVE -
@@ -119,8 +125,9 @@ export function buildDigest(
     // still one batch of news, and three notifications for it would train people
     // to mute the channel — which defeats the point of pinging at all.
     const first = index === 0;
+    const mention = first && roleId ? `<@&${roleId}> ` : "";
     const heading =
-      (first ? "@everyone " : "") +
+      mention +
       `**${total} new internship${total === 1 ? "" : "s"}**` +
       (groups.length > 1 ? ` · ${index + 1}/${groups.length}` : "");
     const isLast = index === groups.length - 1;
@@ -134,7 +141,7 @@ export function buildDigest(
         .join("\n")
         .trim(),
       deliveryIds: group.ids,
-      mentionsEveryone: first,
+      mentionRoleIds: mention ? [roleId!] : [],
     };
   });
 }

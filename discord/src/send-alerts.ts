@@ -165,10 +165,11 @@ async function drain(
   // so a full digest is often several posts; marking them all 'sent' only after
   // the last one would re-post everything if the third failed, and marking them
   // all 'failed' would lose what already landed.
-  for (const message of buildDigest(listings, { footer })) {
+  const mentionRoleId = process.env.DISCORD_MENTION_ROLE_ID ?? null;
+  for (const message of buildDigest(listings, { footer, mentionRoleId })) {
     try {
       await poster.post(webhookUrl, message.content, {
-        mentionEveryone: message.mentionsEveryone,
+        mentionRoleIds: message.mentionRoleIds,
       });
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
