@@ -4,7 +4,12 @@ import { useState } from "react";
 import { doSignOut } from "@/app/actions";
 import Logo from "@/components/Logo";
 
-export type View = "dashboard" | "postings" | "alerts" | "settings";
+export type View =
+  | "dashboard"
+  | "analytics"
+  | "postings"
+  | "alerts"
+  | "settings";
 
 export default function Sidebar({
   view,
@@ -133,6 +138,13 @@ function Nav({
         icon={<DashboardIcon />}
       />
       <NavItem
+        label="Analytics"
+        active={view === "analytics"}
+        collapsed={collapsed}
+        onClick={() => onNavigate("analytics")}
+        icon={<AnalyticsIcon />}
+      />
+      <NavItem
         label="Postings"
         active={view === "postings"}
         collapsed={collapsed}
@@ -231,6 +243,15 @@ function DashboardIcon() {
       <rect x="14" y="3" width="7" height="5" rx="1" />
       <rect x="14" y="12" width="7" height="9" rx="1" />
       <rect x="3" y="16" width="7" height="5" rx="1" />
+    </svg>
+  );
+}
+
+function AnalyticsIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+      <path d="M3 3v16a2 2 0 0 0 2 2h16" />
+      <path d="M7 16v-5M12 16V8M17 16v-3" />
     </svg>
   );
 }
