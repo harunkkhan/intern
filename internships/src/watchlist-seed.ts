@@ -172,4 +172,24 @@ export const WATCHLIST: SeedCompany[] = [
 
   // Added separately
   { name: "MITRE", tier: "A", aliases: ["The MITRE Corporation"] },
+  // Separate from Microsoft for the same reason ByteDance is separate from
+  // TikTok: it hires on its own board, and what it posts there — "Research
+  // Intern for <group>" — has nothing in common with the SWE internships on
+  // jobs.careers.microsoft.com. Folding it into the Microsoft entry would also
+  // mean it could not be tiered or disabled on its own. Without this entry the
+  // msr source still records postings, but no alert would ever match them:
+  // "Microsoft Research" normalizes to "microsoft research", which is not the
+  // "microsoft" the parent entry is keyed on.
+  {
+    name: "Microsoft Research",
+    tier: "A",
+    aliases: [
+      "MSR",
+      "Microsoft Research Asia",
+      "MSRA",
+      "Microsoft Research India",
+      "Microsoft Research Cambridge",
+      "MSR Cambridge",
+    ],
+  },
 ];
