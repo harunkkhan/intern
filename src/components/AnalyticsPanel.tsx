@@ -1,6 +1,8 @@
 "use client";
 
-import { ASSUMED_TERM } from "@/lib/analytics";
+import { useMemo } from "react";
+import { ASSUMED_TERM, buildFunnel } from "@/lib/analytics";
+import FunnelChart from "@/components/FunnelChart";
 import type { ApplicationDTO } from "@/lib/types";
 
 /**
@@ -13,6 +15,7 @@ export default function AnalyticsPanel({
   applications: ApplicationDTO[];
 }) {
   const assumed = applications.filter((a) => a.term === null).length;
+  const funnel = useMemo(() => buildFunnel(applications), [applications]);
 
   if (applications.length === 0) {
     return (
@@ -40,6 +43,17 @@ export default function AnalyticsPanel({
         )}
         .
       </p>
+
+      <section className="mt-4 border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+        <h2 className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
+          Where they went
+        </h2>
+        <div className="mt-2 overflow-x-auto">
+          <div className="min-w-[680px]">
+            <FunnelChart funnel={funnel} />
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
