@@ -101,8 +101,14 @@ function hasGoneQuiet(app: ApplicationDTO, now: number): boolean {
  * then wherever it came to rest.
  *
  * An offer is its own endpoint and gets no terminal after it. Everything else
- * either ended (rejected, withdrawn) or is still open, and an open application
- * is split on whether it has gone quiet.
+ * either ended (rejected, withdrawn) or is still open.
+ *
+ * Only an application still sitting where it was submitted can go quiet. Once
+ * one has reached an OA or an interview, silence is not evidence of anything —
+ * you did the assessment, you know you are in the process, and the company
+ * closes the loop with a rejection when it closes it. Ageing those out into
+ * "no response" declared them dead on a timer and was simply wrong: it moved
+ * nine of thirteen OAs into the dead column with nothing behind it but a date.
  */
 function pathFor(app: ApplicationDTO, now: number): FunnelNodeId[] {
   const touched = stagesTouched(app);
@@ -114,7 +120,10 @@ function pathFor(app: ApplicationDTO, now: number): FunnelNodeId[] {
   if (app.status === "rejected") path.push("rejected");
   else if (app.status === "withdrawn") path.push("withdrawn");
   else if (path[path.length - 1] !== "offer") {
-    path.push(hasGoneQuiet(app, now) ? "noResponse" : "awaiting");
+    const neverProgressed = path.length === 1;
+    path.push(
+      neverProgressed && hasGoneQuiet(app, now) ? "noResponse" : "awaiting",
+    );
   }
   return path;
 }
