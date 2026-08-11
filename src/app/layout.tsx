@@ -3,7 +3,7 @@ import { GeistSans } from "geist/font/sans";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Harun's Internship Tracker",
+  title: "Internship Tracker",
   description: "Track internship applications parsed from your Gmail inbox.",
 };
 

@@ -245,7 +245,7 @@ export default function Dashboard({
                   <h1
                     className={`${logoFont.className} text-2xl italic tracking-tight text-neutral-900 dark:text-neutral-100`}
                   >
-                    Harun's Internship Tracker
+                    Internship Tracker
                   </h1>
                   <span className="text-neutral-400 dark:text-neutral-500">
                     •

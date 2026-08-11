@@ -68,7 +68,7 @@ export default function ApplicationDetail({
             onClick={onBack}
             className="text-neutral-500 transition hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
           >
-            Harun's Internship Tracker
+            Internship Tracker
           </button>
           <ChevronIcon />
           <span className="font-semibold text-neutral-900 dark:text-neutral-100">

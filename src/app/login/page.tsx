@@ -34,7 +34,7 @@ export default async function LoginPage({
         <div className="w-full max-w-sm text-center">
           <Logo className="text-7xl text-neutral-900" />
           <p className="mt-6 text-base text-neutral-600">
-            Sign in to Harun&apos;s Internship Tracker
+            Sign in to Internship Tracker
           </p>
 
           {errorMessage && (
