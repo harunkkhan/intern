@@ -3,7 +3,11 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow, parseISO } from "date-fns";
-import { STATUS_RANK, type ApplicationDTO } from "@/lib/types";
+import {
+  STATUS_DEFAULT_ORDER,
+  STATUS_RANK,
+  type ApplicationDTO,
+} from "@/lib/types";
 import type { SyncStateDTO } from "@/lib/queries";
 import SearchBar from "@/components/SearchBar";
 import Filters from "@/components/Filters";
@@ -92,12 +96,18 @@ export default function Dashboard({
   }, [applications, status, term, industry, companyType, query]);
 
   const sorted = useMemo(() => {
-    const ordered = sortKey
-      ? sortApplications(filtered, sortKey, sortDir)
-      : filtered;
-    // Rejections always sink to the bottom, regardless of recency or the active
-    // column sort. Array.sort is stable, so order within each group is kept.
-    return [...ordered].sort(
+    // No column sort: group by status in attention order — interview, OA,
+    // applied, offer, rejected. Array.sort is stable, so the query's
+    // lastEventAt ordering survives as the tiebreak inside each group.
+    if (!sortKey) {
+      return [...filtered].sort(
+        (a, b) =>
+          STATUS_DEFAULT_ORDER[a.status] - STATUS_DEFAULT_ORDER[b.status],
+      );
+    }
+    // Rejections always sink to the bottom of a column sort, regardless of
+    // recency. Not needed above, where the status order already places them.
+    return [...sortApplications(filtered, sortKey, sortDir)].sort(
       (a, b) =>
         (a.status === "rejected" ? 1 : 0) - (b.status === "rejected" ? 1 : 0),
     );

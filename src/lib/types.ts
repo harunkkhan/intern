@@ -19,8 +19,9 @@ export const STATUS_LABELS: Record<ApplicationStatus, string> = {
   withdrawn: "Withdrawn",
 };
 
-// Higher rank = further along the funnel. Used only for display ordering;
-// the current status of an application is always the latest event by date.
+// Higher rank = further along the funnel. Drives the Status column sort, so
+// sorting largest-to-smallest puts an offer on top. The current status of an
+// application is always the latest event by date; this is display only.
 export const STATUS_RANK: Record<ApplicationStatus, number> = {
   applied: 0,
   assessment: 1,
@@ -28,6 +29,22 @@ export const STATUS_RANK: Record<ApplicationStatus, number> = {
   offer: 3,
   rejected: -1,
   withdrawn: -2,
+};
+
+// The order the table falls back to when no column sort is active. Deliberately
+// not STATUS_RANK reversed: this ranks by what still needs work from you rather
+// than by how far along it is. An interview is the most urgent thing on the
+// board and an OA is on a clock, so both outrank a plain application — while an
+// offer is already won and a rejection is closed, so neither competes for
+// attention at the top. Applied date is not a factor at any level; recency only
+// breaks ties inside one status group, via the query's lastEventAt ordering.
+export const STATUS_DEFAULT_ORDER: Record<ApplicationStatus, number> = {
+  interview: 0,
+  assessment: 1,
+  applied: 2,
+  offer: 3,
+  rejected: 4,
+  withdrawn: 5,
 };
 
 // Which internship cycle the application is for. Fixed to the upcoming cycles.
