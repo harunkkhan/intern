@@ -238,7 +238,7 @@ drizzle/                         # generated SQL migrations
 internships/                     # iMessage alert poller (Bun + Spectrum)
   src/
     poll.ts                      # entrypoint: fetch → record → reserve → send
-    sources/                     # github, ats (greenhouse/lever/ashby/…), scraped
+    sources/                     # github, ats (greenhouse/lever/ashby/…), scraped, msr
     filter.ts                    # intern/co-op + term-floor rules
     message.ts                   # digest formatting
     send.ts                      # Spectrum iMessage client

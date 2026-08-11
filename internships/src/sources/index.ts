@@ -4,6 +4,7 @@ import type { Adapter } from "../types.ts";
 import { githubJson } from "./githubJson.ts";
 import { githubMarkdown } from "./githubMarkdown.ts";
 import { html } from "./html.ts";
+import { msr } from "./msr.ts";
 import { scraped } from "./scraped.ts";
 import {
   ashby,
@@ -27,6 +28,9 @@ export const ADAPTERS = {
   // own site. See internships/src/sources/scraped.ts.
   scraped,
   html,
+  // Microsoft Research's WordPress board, which the main Microsoft careers site
+  // does not carry. See internships/src/sources/msr.ts.
+  msr,
 } satisfies Record<string, Adapter>;
 
 export type AdapterName = keyof typeof ADAPTERS;
@@ -105,5 +109,24 @@ export const BUILTIN_SOURCES = [
     trustedInternOnly: true,
     pollIntervalMinutes: 360,
     listKey: "summer-reu",
+  },
+  {
+    // Microsoft Research hires separately from Microsoft proper and publishes
+    // nowhere else, so its research internships are missing entirely without
+    // this. Unlike the feeds above it is a company board rather than a list, so
+    // it carries no listKey — the Alerts tab groups it under the "Microsoft
+    // Research" watched_company entry — and trustedInternOnly stays false so the
+    // strict intern-token rule applies like it does to any other employer.
+    //
+    // Hourly rather than at the workflow's full cadence: this is a lab's
+    // WordPress site, not an ATS built to be polled, and a research internship
+    // stays open for weeks. The adapter's compact-view revision check means a
+    // poll that finds nothing new costs ~12KB.
+    label: "Microsoft Research",
+    adapter: "msr",
+    config: { company: "Microsoft Research" },
+    trustedInternOnly: false,
+    pollIntervalMinutes: 60,
+    listKey: null,
   },
 ] as const;
