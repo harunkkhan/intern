@@ -196,3 +196,36 @@ export function buildFunnel(
 
   return { nodes, links: all, total: apps.length };
 }
+
+export interface OutcomeStats {
+  total: number;
+  /** Reached the stage at some point — not "is sitting there now". */
+  reachedAssessment: number;
+  reachedInterview: number;
+  offers: number;
+  /** offers / total. Zero when there is nothing to divide by. */
+  offerRate: number;
+}
+
+export function outcomeStats(apps: ApplicationDTO[]): OutcomeStats {
+  let reachedAssessment = 0;
+  let reachedInterview = 0;
+  let offers = 0;
+
+  for (const app of apps) {
+    const touched = stagesTouched(app);
+    if (touched.has("assessment")) reachedAssessment++;
+    if (touched.has("interview")) reachedInterview++;
+    // An offer later declined or withdrawn was still an offer received, so this
+    // counts the stage being touched rather than the application resting on it.
+    if (touched.has("offer")) offers++;
+  }
+
+  return {
+    total: apps.length,
+    reachedAssessment,
+    reachedInterview,
+    offers,
+    offerRate: apps.length ? offers / apps.length : 0,
+  };
+}
