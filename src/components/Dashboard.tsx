@@ -15,6 +15,8 @@ import Sidebar, { type View } from "@/components/Sidebar";
 import SettingsPanel from "@/components/SettingsPanel";
 import AlertsPanel from "@/components/AlertsPanel";
 import PostingsPanel from "@/components/PostingsPanel";
+import AnalyticsPanel from "@/components/AnalyticsPanel";
+import { effectiveTerm } from "@/lib/analytics";
 import type { AlertsData, PostingsData } from "@/lib/alerts";
 import ApplicationsTable, {
   type SortKey,
@@ -52,11 +54,12 @@ export default function Dashboard({
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
+  // effectiveTerm rather than a.term: an application whose term was never
+  // parsed still belongs to a cycle, so it is counted toward the current one
+  // instead of being invisible to every term filter. Applied here rather than
+  // only in Analytics so the two tabs never disagree about what a term selects.
   const terms = useMemo(
-    () =>
-      Array.from(
-        new Set(applications.map((a) => a.term).filter(Boolean) as string[]),
-      ).sort(),
+    () => Array.from(new Set(applications.map(effectiveTerm))).sort(),
     [applications],
   );
   const industries = useMemo(
@@ -82,7 +85,7 @@ export default function Dashboard({
     const q = query.trim().toLowerCase();
     return applications.filter((a) => {
       if (status !== "all" && a.status !== status) return false;
-      if (term !== "all" && a.term !== term) return false;
+      if (term !== "all" && effectiveTerm(a) !== term) return false;
       if (industry !== "all" && a.industry !== industry) return false;
       if (companyType !== "all" && a.companyType !== companyType) return false;
       if (
@@ -240,6 +243,46 @@ export default function Dashboard({
               </header>
               <PostingsPanel data={postings} />
             </>
+          ) : view === "analytics" ? (
+            <>
+              <header>
+                <h1 className="text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
+                  Analytics
+                </h1>
+                <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                  How your applications moved through the funnel
+                </p>
+              </header>
+
+              {/* The same search and filters the table uses, driving the same
+                  `filtered` list — so a cycle scoped here reads identically to
+                  the cycle scoped on the Dashboard. */}
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="w-full min-w-0 max-w-md">
+                  <SearchBar value={query} onChange={setQuery} />
+                </div>
+                <div className="flex shrink-0 flex-wrap items-center gap-2 sm:flex-nowrap">
+                  <Filters
+                    status={status}
+                    term={term}
+                    industry={industry}
+                    companyType={companyType}
+                    terms={terms}
+                    industries={industries}
+                    companyTypes={companyTypes}
+                    onStatus={setStatus}
+                    onTerm={setTerm}
+                    onIndustry={setIndustry}
+                    onCompanyType={setCompanyType}
+                  />
+                  {filtersActive && (
+                    <ClearFiltersButton onClick={resetFilters} />
+                  )}
+                </div>
+              </div>
+
+              <AnalyticsPanel applications={filtered} />
+            </>
           ) : selected ? (
             <ApplicationDetail
               app={selected}
@@ -286,18 +329,7 @@ export default function Dashboard({
                     onCompanyType={setCompanyType}
                   />
                   {filtersActive ? (
-                    <button
-                      onClick={resetFilters}
-                      title="Clear filters"
-                      aria-label="Clear filters"
-                      className="inline-flex items-center justify-center rounded-none bg-neutral-900 px-2.5 py-2 text-white transition hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M13.013 3H2l8 9.46V19l4 2v-8.54l.9-1.055" />
-                        <path d="m22 3-5 5" />
-                        <path d="m17 3 5 5" />
-                      </svg>
-                    </button>
+                    <ClearFiltersButton onClick={resetFilters} />
                   ) : (
                     <button
                       onClick={() => setAddOpen(true)}
@@ -341,6 +373,23 @@ export default function Dashboard({
         }}
       />
     </div>
+  );
+}
+
+function ClearFiltersButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      title="Clear filters"
+      aria-label="Clear filters"
+      className="inline-flex items-center justify-center rounded-none bg-neutral-900 px-2.5 py-2 text-white transition hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M13.013 3H2l8 9.46V19l4 2v-8.54l.9-1.055" />
+        <path d="m22 3-5 5" />
+        <path d="m17 3 5 5" />
+      </svg>
+    </button>
   );
 }
 
