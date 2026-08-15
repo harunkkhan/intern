@@ -16,6 +16,8 @@ import SettingsPanel from "@/components/SettingsPanel";
 import AlertsPanel from "@/components/AlertsPanel";
 import PostingsPanel from "@/components/PostingsPanel";
 import AnalyticsPanel from "@/components/AnalyticsPanel";
+import BehavioralPanel from "@/components/BehavioralPanel";
+import type { BehavioralSectionDTO } from "@/lib/behavioral";
 import { effectiveTerm } from "@/lib/analytics";
 import type { AlertsData, PostingsData } from "@/lib/alerts";
 import ApplicationsTable, {
@@ -34,11 +36,13 @@ export default function Dashboard({
   sync,
   alerts,
   postings,
+  behavioral,
 }: {
   applications: ApplicationDTO[];
   sync: SyncStateDTO | null;
   alerts: AlertsData;
   postings: PostingsData;
+  behavioral: BehavioralSectionDTO[];
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -321,6 +325,18 @@ export default function Dashboard({
                 </p>
               </header>
               <AlertsPanel data={alerts} />
+            </>
+          ) : view === "behavioral" ? (
+            <>
+              <header>
+                <h1 className="text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
+                  Behavioral
+                </h1>
+                <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                  Your prep questions, grouped into sections
+                </p>
+              </header>
+              <BehavioralPanel sections={behavioral} />
             </>
           ) : view === "postings" ? (
             <>

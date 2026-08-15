@@ -7,6 +7,7 @@ import Logo from "@/components/Logo";
 export type View =
   | "dashboard"
   | "analytics"
+  | "behavioral"
   | "postings"
   | "alerts"
   | "settings";
@@ -145,6 +146,13 @@ function Nav({
         icon={<AnalyticsIcon />}
       />
       <NavItem
+        label="Behavioral"
+        active={view === "behavioral"}
+        collapsed={collapsed}
+        onClick={() => onNavigate("behavioral")}
+        icon={<BehavioralIcon />}
+      />
+      <NavItem
         label="Postings"
         active={view === "postings"}
         collapsed={collapsed}
@@ -252,6 +260,16 @@ function AnalyticsIcon() {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
       <path d="M3 3v16a2 2 0 0 0 2 2h16" />
       <path d="M7 16v-5M12 16V8M17 16v-3" />
+    </svg>
+  );
+}
+
+function BehavioralIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      <path d="M9.1 8.5a2.9 2.9 0 0 1 5.6 1c0 2-2.9 2.9-2.9 2.9" />
+      <path d="M12 15.5h.01" />
     </svg>
   );
 }
