@@ -26,6 +26,7 @@ import AddEntryModal from "@/components/AddEntryModal";
 import ApplicationDetail, {
   type DetailsPatch,
 } from "@/components/ApplicationDetail";
+import type { SplitPlan } from "@/lib/split";
 import { logoFont } from "@/components/Logo";
 
 export default function Dashboard({
@@ -53,6 +54,7 @@ export default function Dashboard({
   const [syncing, setSyncing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [detailError, setDetailError] = useState<string | null>(null);
 
   // effectiveTerm rather than a.term: an application whose term was never
   // parsed still belongs to a cycle, so it is counted toward the current one
@@ -132,6 +134,22 @@ export default function Dashboard({
 
   const selected = applications.find((a) => a.id === selectedId) ?? null;
 
+  // Merge targets: everything else filed under the same company name. Scoped to
+  // one company because that is where duplicate and over-merged entries come
+  // from, and it keeps the menu short enough to scan.
+  const siblings = useMemo(() => {
+    if (!selected) return [];
+    const company = selected.company.trim().toLowerCase();
+    return applications.filter(
+      (a) => a.id !== selected.id && a.company.trim().toLowerCase() === company,
+    );
+  }, [applications, selected]);
+
+  function selectApplication(id: string | null) {
+    setSelectedId(id);
+    setDetailError(null);
+  }
+
   async function handleSync() {
     setSyncing(true);
     setMessage(null);
@@ -156,13 +174,22 @@ export default function Dashboard({
   async function handleSave(patch: DetailsPatch) {
     if (!selected) return;
     setSaving(true);
+    setDetailError(null);
     try {
-      await fetch(`/api/applications/${selected.id}`, {
+      const res = await fetch(`/api/applications/${selected.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(patch),
       });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? "Could not save these changes.");
+      }
       router.refresh();
+    } catch (err) {
+      setDetailError(
+        err instanceof Error ? err.message : "Could not save these changes.",
+      );
     } finally {
       setSaving(false);
     }
@@ -171,9 +198,37 @@ export default function Dashboard({
   async function handleDelete() {
     if (!selected) return;
     const id = selected.id;
-    setSelectedId(null);
+    selectApplication(null);
     await fetch(`/api/applications/${id}`, { method: "DELETE" });
     router.refresh();
+  }
+
+  async function reorganize(path: string, body: unknown, fallback: string) {
+    if (!selected) return;
+    setSaving(true);
+    setDetailError(null);
+    try {
+      const res = await fetch(`/api/applications/${selected.id}/${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? fallback);
+      router.refresh();
+    } catch (err) {
+      setDetailError(err instanceof Error ? err.message : fallback);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleSplit(plan: SplitPlan) {
+    await reorganize("split", plan, "Could not separate this entry.");
+  }
+
+  async function handleMerge(sourceId: string) {
+    await reorganize("merge", { sourceId }, "Could not merge that entry.");
   }
 
   function resetFilters() {
@@ -286,10 +341,14 @@ export default function Dashboard({
           ) : selected ? (
             <ApplicationDetail
               app={selected}
+              siblings={siblings}
               saving={saving}
-              onBack={() => setSelectedId(null)}
+              error={detailError}
+              onBack={() => selectApplication(null)}
               onSave={handleSave}
               onDelete={handleDelete}
+              onSplit={handleSplit}
+              onMerge={handleMerge}
             />
           ) : (
             <>
@@ -351,7 +410,7 @@ export default function Dashboard({
                   <ApplicationsTable
                     applications={sorted}
                     selectedId={selectedId}
-                    onSelect={setSelectedId}
+                    onSelect={selectApplication}
                     sortKey={sortKey}
                     sortDir={sortDir}
                     onSort={handleSort}

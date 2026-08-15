@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { getAllowedUser } from "@/lib/auth";
 import { db } from "@/db";
 import { applications } from "@/db/schema";
+import { dedupeKeyFor, isUniqueViolation } from "@/lib/applications";
 import {
   APPLICATION_STATUSES,
   COMPANY_TYPES,
@@ -44,12 +45,18 @@ export async function PATCH(
   ) {
     patch.status = body.status;
   }
+
+  // "" clears the term. Both a change and a clear move the dedupe key, since the
+  // key encodes the term.
+  let term = existing.term;
   if (
     typeof body.term === "string" &&
-    (TERMS as readonly string[]).includes(body.term)
+    (body.term === "" || (TERMS as readonly string[]).includes(body.term))
   ) {
-    patch.term = body.term;
+    term = body.term || null;
+    patch.term = term;
   }
+
   if (
     typeof body.industry === "string" &&
     (INDUSTRIES as readonly string[]).includes(body.industry)
@@ -73,17 +80,30 @@ export async function PATCH(
     position = body.position.trim();
     patch.position = position;
   }
-  if (patch.company || patch.position) {
-    patch.dedupeKey = `${company.toLowerCase()}::${position.toLowerCase()}`;
+  if (patch.company || patch.position || "term" in patch) {
+    patch.dedupeKey = dedupeKeyFor(company, position, term);
   }
 
-  const [updated] = await db
-    .update(applications)
-    .set(patch)
-    .where(and(eq(applications.id, id), eq(applications.userId, user.id)))
-    .returning();
+  try {
+    const [updated] = await db
+      .update(applications)
+      .set(patch)
+      .where(and(eq(applications.id, id), eq(applications.userId, user.id)))
+      .returning();
 
-  return NextResponse.json({ application: updated });
+    return NextResponse.json({ application: updated });
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      return NextResponse.json(
+        {
+          error:
+            "Another entry already covers this company, role, and term.",
+        },
+        { status: 409 },
+      );
+    }
+    throw err;
+  }
 }
 
 export async function DELETE(

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAllowedUser } from "@/lib/auth";
 import { db } from "@/db";
 import { applications as applicationsTable } from "@/db/schema";
+import { dedupeKeyFor, isUniqueViolation } from "@/lib/applications";
 import {
   APPLICATION_STATUSES,
   COMPANY_TYPES,
@@ -27,11 +28,18 @@ export async function POST(req: Request) {
     );
   }
 
+  const term =
+    typeof body.term === "string" &&
+    (TERMS as readonly string[]).includes(body.term)
+      ? body.term
+      : null;
+
   const values: typeof applicationsTable.$inferInsert = {
     userId: user.id,
     company,
     position,
-    dedupeKey: `${company.toLowerCase()}::${position.toLowerCase()}`,
+    dedupeKey: dedupeKeyFor(company, position, term),
+    term,
     status: "applied",
     source: "manual",
     lastEventAt: new Date(),
@@ -42,12 +50,6 @@ export async function POST(req: Request) {
     (APPLICATION_STATUSES as readonly string[]).includes(body.status)
   ) {
     values.status = body.status;
-  }
-  if (
-    typeof body.term === "string" &&
-    (TERMS as readonly string[]).includes(body.term)
-  ) {
-    values.term = body.term;
   }
   if (
     typeof body.industry === "string" &&
@@ -76,14 +78,12 @@ export async function POST(req: Request) {
       .returning();
     return NextResponse.json({ application: created }, { status: 201 });
   } catch (err) {
-    if (
-      err &&
-      typeof err === "object" &&
-      "code" in err &&
-      (err as { code?: string }).code === "23505"
-    ) {
+    if (isUniqueViolation(err)) {
       return NextResponse.json(
-        { error: "An entry for this company and position already exists." },
+        {
+          error:
+            "An entry for this company, role, and term already exists.",
+        },
         { status: 409 },
       );
     }
