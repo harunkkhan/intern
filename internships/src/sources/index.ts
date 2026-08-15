@@ -49,6 +49,12 @@ export function resolveAdapter(name: string): Adapter {
 // manual SQL. Both are internship-only repos, hence trustedInternOnly. They poll
 // at the workflow's full cadence: a commit-sha check is one cheap request, and
 // the download only happens when the feed actually changed.
+//
+// These intervals must stay at or below the loop period in poll.yml. The gate in
+// loadSources is `elapsed >= interval`, so a source whose interval exceeds the
+// period is not polled on the tick that arrives at the period boundary — it
+// waits for the next one. Leaving these at 10 against a 5-minute loop would have
+// polled the repos every 10-15 minutes, slower than before the change.
 export const BUILTIN_SOURCES = [
   {
     label: "SimplifyJobs",
@@ -58,7 +64,7 @@ export const BUILTIN_SOURCES = [
       path: ".github/scripts/listings.json",
     },
     trustedInternOnly: true,
-    pollIntervalMinutes: 10,
+    pollIntervalMinutes: 5,
     listKey: "general-github",
   },
   {
@@ -69,7 +75,7 @@ export const BUILTIN_SOURCES = [
       path: ".github/scripts/listings.json",
     },
     trustedInternOnly: true,
-    pollIntervalMinutes: 10,
+    pollIntervalMinutes: 5,
     listKey: "general-github",
   },
   {
@@ -82,7 +88,7 @@ export const BUILTIN_SOURCES = [
       path: ".github/scripts/listings.json",
     },
     trustedInternOnly: true,
-    pollIntervalMinutes: 10,
+    pollIntervalMinutes: 5,
     listKey: "underclassmen-github",
   },
   {
@@ -95,7 +101,7 @@ export const BUILTIN_SOURCES = [
       path: "README.md",
     },
     trustedInternOnly: true,
-    pollIntervalMinutes: 10,
+    pollIntervalMinutes: 5,
     listKey: "underclassmen-github",
   },
   {

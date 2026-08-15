@@ -170,11 +170,11 @@ export const jobSources = pgTable(
     // whose titles omit the word. False for ATS boards, which list every role.
     trustedInternOnly: boolean("trusted_intern_only").notNull().default(false),
     enabled: boolean("enabled").notNull().default(true),
-    // How often this source may be polled. The community feeds are cheap and
-    // change constantly, so they run at the workflow's full 10-minute cadence.
-    // Company career pages are a different matter: ~95 of them polled every 10
-    // minutes is ~14,000 requests a day at those sites, which earns rate limits
-    // and IP blocks. They default to hourly.
+    // How often this source may be polled, in minutes. Most sources sit at the
+    // workflow's 5-minute loop cadence; the expensive outliers declare their own
+    // (NSF REU at 360, Microsoft Research at 60). The default here is deliberately
+    // slow rather than fast: a row created outside register-sources.ts has not been
+    // reasoned about, and hourly is the safe thing to do to a stranger's website.
     pollIntervalMinutes: integer("poll_interval_minutes").notNull().default(60),
     // Last content revision seen (a git commit sha, or an ETag). Lets a poll
     // skip the download entirely when nothing changed — the SimplifyJobs feed is

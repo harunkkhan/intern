@@ -44,12 +44,18 @@ try {
   const start = raw.indexOf("[");
   const rows = JSON.parse(raw.slice(start)) as DiscoveryRow[];
 
+  // Both default to the workflow's 5-minute loop cadence, so every source is
+  // eligible on every pass.
+  //
   // Scraped company pages are rendered in Chromium and hit the company's own
-  // site, so ~48 of them on a tight loop earns rate limits and IP blocks. ATS
-  // sources read a vendor API built for polling, so they stay at the workflow's
-  // full cadence.
-  const scrapeInterval = Number(process.env.SCRAPE_INTERVAL_MINUTES ?? 30);
-  const atsInterval = Number(process.env.ATS_INTERVAL_MINUTES ?? 10);
+  // site, so ~46 of them at this rate is a 6x increase over the 30 minutes they
+  // used to sit at — the rate that earns rate limits and IP blocks, if anything
+  // does. The 6am-8pm ET weekday window keeps the weekly total to roughly 2.5x
+  // rather than 6x, and a source that starts failing backs itself off
+  // exponentially (see effectiveIntervalMs in poll.ts). Raise SCRAPE_INTERVAL_MINUTES
+  // and re-run this script if blocks show up.
+  const scrapeInterval = Number(process.env.SCRAPE_INTERVAL_MINUTES ?? 5);
+  const atsInterval = Number(process.env.ATS_INTERVAL_MINUTES ?? 5);
   let scraped = 0;
   let ats = 0;
   const needsAttention: string[] = [];

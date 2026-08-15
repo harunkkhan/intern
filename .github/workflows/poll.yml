@@ -3,11 +3,33 @@ name: Poll job listings
 # Vercel's Hobby plan caps its own cron at once per day, so the poller runs here
 # instead. Minutes are free on a public repo.
 #
+# WHY THIS IS A LONG-RUNNING LOOP RATHER THAN A CRON TICK PER POLL
+#
+# `schedule:` is a request, not a guarantee. This workflow asked for */10 and
+# GitHub delivered a start every 16-32 minutes (~24 min average), silently
+# dropping ~60% of the ticks — the documented behaviour for scheduled workflows
+# on shared runners. Asking for */5 would not have produced a 5-minute cadence;
+# it would have produced the same ~24 minutes with more dropped ticks.
+#
+# So the schedule below is only used to *start* a run, and the 5-minute cadence
+# comes from a sleep loop inside the job, where it is real wall-clock time that
+# no scheduler can throttle. A run polls for up to ~5h45m (under the 6h job cap)
+# and the cron re-arms it. This also means the ~90s of setup — npm ci, pip,
+# Chromium — is paid once per run instead of once per poll.
+#
 # NOTE: GitHub disables scheduled workflows after 60 days with no repository
 # activity. Any commit resets that clock.
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    # Starts are attempted every 30 minutes so that a dropped tick costs nothing:
+    # the concurrency group below keeps exactly one run active and one standby
+    # queued, so the standby takes over the moment the active run ends.
+    #
+    # Hours are a UTC superset of the 6am-8pm ET window (EDT is UTC-4, EST is
+    # UTC-5, and cron has no DST). The loop itself enforces the exact window in
+    # America/New_York, so the extra hours here cost one runner start and exit.
+    - cron: "3,33 10-23 * * 1-5"
+    - cron: "3,33 0-1 * * 2-6"
   workflow_dispatch:
     inputs:
       dry_run:
@@ -22,6 +44,12 @@ on:
 # Runs are idempotent, but overlapping them wastes a runner and doubles the load
 # on every careers page. Queue instead of cancelling so a long run still finishes
 # recording what it fetched.
+#
+# With the loop above this does double duty: GitHub keeps only the most recent
+# pending run per group, so the every-30-minutes schedule maintains a single warm
+# standby that starts the instant the active run exits — whether it exited
+# because the window closed or because it hit the job cap. That is what keeps the
+# gap between consecutive runs near zero without any run-is-alive bookkeeping.
 concurrency:
   group: poll-job-listings
   cancel-in-progress: false
@@ -29,9 +57,9 @@ concurrency:
 jobs:
   poll:
     runs-on: ubuntu-latest
-    # Well above a normal run (~30s). Bounds a hang instead of letting it sit on
-    # the runner for the 6-hour default.
-    timeout-minutes: 10
+    # The loop self-limits to 5h45m; this is the backstop for a hang inside a
+    # single poll. GitHub's hard job cap is 6h.
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
 
@@ -68,8 +96,41 @@ jobs:
       - name: Install Chromium for Playwright
         run: python -m playwright install --with-deps chromium
 
-      - name: Poll
+      # One pass, then exit. A manual dispatch is for debugging a source or
+      # checking a change — waiting out a 5-hour loop to see the output is not
+      # what anyone pressing "Run workflow" wants.
+      - name: Poll once (manual dispatch)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         working-directory: internships
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PROJECT_ID: ${{ secrets.PROJECT_ID }}
+          PROJECT_SECRET: ${{ secrets.PROJECT_SECRET }}
+          ALERT_SITE_URL: ${{ vars.ALERT_SITE_URL }}
+          PYTHON_BIN: python
+          SCRAPERS_DIR: ${{ github.workspace }}/scrapers
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          bun src/poll.ts \
+            ${{ inputs.dry_run && '--dry-run' || '' }} \
+            ${{ inputs.source && format('--source={0}', inputs.source) || '' }}
+
+      - name: Post Discord alerts (manual dispatch)
+        if: ${{ github.event_name == 'workflow_dispatch' && !cancelled() }}
+        working-directory: discord
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DISCORD_MENTION_ROLE_ID: ${{ vars.DISCORD_MENTION_ROLE_ID }}
+          DISCORD_USERNAME: ${{ vars.DISCORD_USERNAME }}
+          DISCORD_AVATAR_URL: ${{ vars.DISCORD_AVATAR_URL }}
+        run: |
+          bun src/send-alerts.ts ${{ inputs.dry_run && '--dry-run' || '' }}
+
+      # The scheduled path: poll every 5 minutes for as long as the window is
+      # open, posting to Discord in the same iteration so a new listing reaches
+      # the channel seconds after it is found rather than on a later run.
+      - name: Poll loop
+        if: ${{ github.event_name == 'schedule' }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           PROJECT_ID: ${{ secrets.PROJECT_ID }}
@@ -82,26 +143,60 @@ jobs:
           # Lifts the GitHub API rate limit from 60/hr to 5,000/hr, which matters
           # when a re-run storm hits the commit-sha checks.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          bun src/poll.ts \
-            ${{ inputs.dry_run && '--dry-run' || '' }} \
-            ${{ inputs.source && format('--source={0}', inputs.source) || '' }}
-
-      # The poller reserves a delivery for every enabled subscriber whatever
-      # their channel, then sends only the iMessage ones. This drains the Discord
-      # rows it left pending. No install step: the sender has no runtime
-      # dependencies and resolves drizzle/postgres from the root node_modules.
-      #
-      # `!cancelled()` rather than the default `success()` on purpose — the two
-      # transports share nothing but the ledger, and a Spectrum outage or a single
-      # broken scraper shouldn't also hold up the Discord digest.
-      - name: Post Discord alerts
-        if: ${{ !cancelled() }}
-        working-directory: discord
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DISCORD_MENTION_ROLE_ID: ${{ vars.DISCORD_MENTION_ROLE_ID }}
           DISCORD_USERNAME: ${{ vars.DISCORD_USERNAME }}
           DISCORD_AVATAR_URL: ${{ vars.DISCORD_AVATAR_URL }}
         run: |
-          bun src/send-alerts.ts ${{ inputs.dry_run && '--dry-run' || '' }}
+          set -uo pipefail
+
+          PERIOD=300
+          # 5h45m. Leaves margin under both timeout-minutes and GitHub's 6h cap
+          # so the run exits on its own terms and the standby starts cleanly.
+          DEADLINE=$(( $(date +%s) + 20700 ))
+
+          # 6am-8pm ET, Mon-Fri, evaluated in America/New_York so the boundaries
+          # hold across DST without touching the cron above. `date -u` is not used
+          # anywhere here on purpose.
+          in_window() {
+            local dow hour
+            dow=$(TZ=America/New_York date +%u)   # 1=Mon .. 7=Sun
+            hour=$(TZ=America/New_York date +%-H) # no leading zero; 08 is not octal here
+            [ "$dow" -le 5 ] && [ "$hour" -ge 6 ] && [ "$hour" -lt 20 ]
+          }
+
+          if ! in_window; then
+            echo "outside 6am-8pm ET weekday window; nothing to do"
+            exit 0
+          fi
+
+          iteration=0
+          while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+            if ! in_window; then
+              echo "window closed; exiting so the next scheduled run takes over"
+              exit 0
+            fi
+
+            iteration=$(( iteration + 1 ))
+            started=$(date +%s)
+            echo "::group::poll #${iteration} — $(TZ=America/New_York date '+%Y-%m-%d %H:%M:%S %Z')"
+
+            # A failing poll must not kill the loop. One broken careers page, a
+            # transient 502, or a Discord outage costs this iteration and nothing
+            # more — the poller's own per-source backoff handles the rest.
+            ( cd internships && bun src/poll.ts ) || echo "poll failed (continuing)"
+            ( cd discord && bun src/send-alerts.ts ) || echo "discord send failed (continuing)"
+
+            echo "::endgroup::"
+
+            # Sleep the remainder of the period, not the whole period, so the
+            # cadence is every 5 minutes rather than every 5 minutes plus however
+            # long the poll took.
+            elapsed=$(( $(date +%s) - started ))
+            if [ "$elapsed" -lt "$PERIOD" ]; then
+              sleep $(( PERIOD - elapsed ))
+            else
+              echo "poll took ${elapsed}s, longer than the ${PERIOD}s period; starting the next one immediately"
+            fi
+          done
+
+          echo "hit the 5h45m job limit after ${iteration} polls; exiting for the standby run"
