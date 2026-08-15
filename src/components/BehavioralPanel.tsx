@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import SearchBar from "@/components/SearchBar";
+import BehavioralAddModal, { type AddMode } from "@/components/BehavioralAddModal";
 import type {
   BehavioralQuestionDTO,
   BehavioralSectionDTO,
@@ -20,7 +21,7 @@ export default function BehavioralPanel({
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [newSection, setNewSection] = useState("");
+  const [addMode, setAddMode] = useState<AddMode | null>(null);
   // Answers being edited, keyed by question id. Kept for every question that
   // has been touched rather than only the open one, so opening a second
   // question — or searching while one is half-written — never drops work.
@@ -82,12 +83,9 @@ export default function BehavioralPanel({
     0,
   );
 
-  async function addSection() {
-    const ok = await mutate("/api/behavioral/sections", {
-      method: "POST",
-      body: JSON.stringify({ name: newSection }),
-    });
-    if (ok) setNewSection("");
+  function openAdd(mode: AddMode) {
+    setError(null);
+    setAddMode(mode);
   }
 
   async function saveAnswer(id: string) {
@@ -109,11 +107,14 @@ export default function BehavioralPanel({
             placeholder="Search sections, questions, answers…"
           />
         </div>
-        {total > 0 && (
-          <p className="shrink-0 text-sm text-neutral-500 dark:text-neutral-400">
-            {answered} of {total} answered
-          </p>
-        )}
+        <div className="flex shrink-0 items-center gap-3">
+          {total > 0 && (
+            <p className="text-sm text-neutral-500 dark:text-neutral-400">
+              {answered} of {total} answered
+            </p>
+          )}
+          <AddMenu canAddQuestion={sections.length > 0} onPick={openAdd} />
+        </div>
       </div>
 
       {error && (
@@ -124,8 +125,8 @@ export default function BehavioralPanel({
 
       {sections.length === 0 ? (
         <p className="rounded-xl border border-dashed border-neutral-300 px-6 py-10 text-center text-sm text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
-          No sections yet. Add one below — “Leadership”, “Conflict”, “Failure” —
-          then put questions under it.
+          No sections yet. Use Add to create one — “Leadership”, “Conflict”,
+          “Failure” — then put questions under it.
         </p>
       ) : visible.length === 0 ? (
         <p className="rounded-xl border border-dashed border-neutral-300 px-6 py-10 text-center text-sm text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
@@ -147,25 +148,89 @@ export default function BehavioralPanel({
         ))
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        <input
-          value={newSection}
-          onChange={(e) => setNewSection(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && newSection.trim() && !busy) addSection();
-          }}
-          placeholder="New section"
-          className="min-w-0 flex-1 rounded-none border border-neutral-300 bg-white px-2.5 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+      {addMode && (
+        <BehavioralAddModal
+          mode={addMode}
+          sections={sections}
+          busy={busy}
+          error={error}
+          mutate={mutate}
+          onClose={() => setAddMode(null)}
         />
-        <button
-          type="button"
-          onClick={addSection}
-          disabled={busy || !newSection.trim()}
-          className="rounded-none bg-neutral-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
+      )}
+    </div>
+  );
+}
+
+function AddMenu({
+  canAddQuestion,
+  onPick,
+}: {
+  canAddQuestion: boolean;
+  onPick: (mode: AddMode) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  function pick(mode: AddMode) {
+    setOpen(false);
+    onPick(mode);
+  }
+
+  return (
+    <div className="relative">
+      {open && (
+        <div
+          className="fixed inset-0 z-10"
+          onClick={() => setOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        className="inline-flex items-center gap-1.5 rounded-none bg-neutral-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+        Add
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 z-20 mt-1 w-44 border border-neutral-200 bg-white py-1 shadow-lg dark:border-neutral-800 dark:bg-neutral-900"
         >
-          Add section
-        </button>
-      </div>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => pick("section")}
+            className="block w-full px-3 py-2 text-left text-sm text-neutral-800 transition hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-neutral-800"
+          >
+            New section
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            disabled={!canAddQuestion}
+            title={canAddQuestion ? undefined : "Add a section first"}
+            onClick={() => pick("question")}
+            className="block w-full px-3 py-2 text-left text-sm text-neutral-800 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent dark:text-neutral-200 dark:hover:bg-neutral-800"
+          >
+            New question
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -189,20 +254,11 @@ function Section({
   setOpenId: (id: string | null) => void;
   onSaveAnswer: (id: string) => void;
 }) {
-  const [prompt, setPrompt] = useState("");
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState(section.name);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const answered = section.questions.filter((q) => q.answer.trim()).length;
-
-  async function addQuestion() {
-    const ok = await mutate("/api/behavioral/questions", {
-      method: "POST",
-      body: JSON.stringify({ sectionId: section.id, prompt }),
-    });
-    if (ok) setPrompt("");
-  }
 
   async function rename() {
     const ok = await mutate(`/api/behavioral/sections/${section.id}`, {
@@ -304,6 +360,11 @@ function Section({
       </div>
 
       <div className="mt-4 space-y-2">
+        {section.questions.length === 0 && (
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            No questions yet.
+          </p>
+        )}
         {section.questions.map((question) => (
           <Question
             key={question.id}
@@ -321,26 +382,6 @@ function Section({
             onSave={() => onSaveAnswer(question.id)}
           />
         ))}
-
-        <div className="flex flex-wrap items-center gap-2 pt-1">
-          <input
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && prompt.trim() && !busy) addQuestion();
-            }}
-            placeholder="New question"
-            className="min-w-0 flex-1 rounded-none border border-neutral-300 bg-white px-2.5 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
-          />
-          <button
-            type="button"
-            onClick={addQuestion}
-            disabled={busy || !prompt.trim()}
-            className="rounded-none bg-neutral-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
-          >
-            Add
-          </button>
-        </div>
       </div>
     </section>
   );
