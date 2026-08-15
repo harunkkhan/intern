@@ -15,6 +15,7 @@ import {
   type ParsedEmail,
 } from "@/lib/gmail";
 import { classifyEmail } from "@/lib/classify";
+import { dedupeKeyFor, pickMatchingApplication } from "@/lib/applications";
 import type { ClassificationResult } from "@/lib/types";
 
 // Bound work per invocation so a single run stays within serverless time limits
@@ -133,7 +134,8 @@ async function applyClassification(
 ): Promise<"created" | "updated"> {
   const company = result.company!.trim();
   const position = result.position?.trim() || "Unknown role";
-  const dedupeKey = `${company.toLowerCase()}::${position.toLowerCase()}`;
+  const term = result.term ?? null;
+  const dedupeKey = dedupeKeyFor(company, position, term);
   const status = result.status ?? "applied";
 
   let [app] = await db
@@ -147,12 +149,12 @@ async function applyClassification(
     )
     .limit(1);
 
-  // No exact (company + position) match — e.g. a follow-up email whose role
-  // title differs from a manually-added entry, or omits it entirely. Fall back
-  // to an existing entry at the SAME company whose role title matches once both
-  // are normalized (filler words / casing / punctuation stripped). This lets an
-  // interview/OA/offer email land on the entry you already created instead of
-  // spawning a duplicate. The most recently active matching entry wins.
+  // No exact (company + position + cycle) match — e.g. a follow-up email whose
+  // role title differs from a manually-added entry, or omits it entirely. Fall
+  // back to an existing entry at the SAME company whose role title matches once
+  // both are normalized (filler words / casing / punctuation stripped). This lets
+  // an interview/OA/offer email land on the entry you already created instead of
+  // spawning a duplicate. See pickMatchingApplication for how ties break.
   if (!app) {
     const sameCompany = await db
       .select()
@@ -163,12 +165,8 @@ async function applyClassification(
           sql`lower(${applications.company}) = ${company.toLowerCase()}`,
         ),
       );
-    app = sameCompany
-      .filter((a) => positionsMatch(a.position, position))
-      .sort(
-        (x, y) =>
-          (y.lastEventAt?.getTime() ?? 0) - (x.lastEventAt?.getTime() ?? 0),
-      )[0];
+    const picked = pickMatchingApplication(sameCompany, position, term);
+    if (picked) app = picked;
   }
 
   let created = false;
@@ -180,7 +178,7 @@ async function applyClassification(
         company,
         position,
         dedupeKey,
-        term: result.term,
+        term,
         industry: result.industry,
         companyType: result.companyType,
         status,
@@ -212,13 +210,40 @@ async function applyClassification(
   const earliestApplied =
     app.appliedAt && app.appliedAt < email.date ? app.appliedAt : email.date;
 
+  // Recording a cycle for the first time moves the row's dedupe key, because the
+  // key encodes it. Another entry can already own the resulting key — a manual
+  // row for the same role and cycle, or one peeled off by a split — and writing
+  // into it would fail the unique index and leave this email to be retried on
+  // every future sync. Leaving the cycle unset keeps the row matchable through
+  // the cycle-agnostic fallback above, which is where it came from.
+  let nextTerm = app.term;
+  let nextDedupeKey = app.dedupeKey;
+  if (!app.term && term) {
+    const rekeyed = dedupeKeyFor(app.company, app.position, term);
+    const [taken] = await db
+      .select({ id: applications.id })
+      .from(applications)
+      .where(
+        and(
+          eq(applications.userId, userId),
+          eq(applications.dedupeKey, rekeyed),
+        ),
+      )
+      .limit(1);
+    if (!taken) {
+      nextTerm = term;
+      nextDedupeKey = rekeyed;
+    }
+  }
+
   await db
     .update(applications)
     .set({
       status: isNewest ? status : app.status,
       lastEventAt: isNewest ? email.date : app.lastEventAt,
       appliedAt: earliestApplied,
-      term: app.term ?? result.term,
+      term: nextTerm,
+      dedupeKey: nextDedupeKey,
       industry: app.industry ?? result.industry,
       companyType: app.companyType ?? result.companyType,
       updatedAt: new Date(),
@@ -226,69 +251,6 @@ async function applyClassification(
     .where(eq(applications.id, app.id));
 
   return created ? "created" : "updated";
-}
-
-// Tokens that describe the cycle/seniority/wrapping of a posting rather than the
-// role itself. Stripped before comparing titles so "Software Engineer Intern"
-// and "Software Engineer, Summer 2027" are recognized as the same role.
-const POSITION_FILLER = new Set([
-  "intern",
-  "interns",
-  "internship",
-  "internships",
-  "co",
-  "op",
-  "coop",
-  "program",
-  "programme",
-  "summer",
-  "fall",
-  "autumn",
-  "winter",
-  "spring",
-  "new",
-  "grad",
-  "graduate",
-  "fulltime",
-  "parttime",
-  "contract",
-  "temporary",
-  "the",
-  "a",
-  "an",
-  "of",
-  "for",
-  "role",
-  "position",
-  "opening",
-  "req",
-  "id",
-  "i",
-  "ii",
-  "iii",
-]);
-
-function positionTokens(position: string): Set<string> {
-  return new Set(
-    position
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, " ")
-      .replace(/\b20\d\d\b/g, " ")
-      .split(/\s+/)
-      .filter((w) => w && !POSITION_FILLER.has(w)),
-  );
-}
-
-// Two titles match when one's distinguishing tokens are a subset of the other's
-// (after filler removal) — tolerant of word order, casing, and extra qualifiers
-// while still keeping genuinely different roles apart.
-function positionsMatch(a: string, b: string): boolean {
-  const ta = positionTokens(a);
-  const tb = positionTokens(b);
-  if (ta.size === 0 || tb.size === 0) return false;
-  const [small, large] = ta.size <= tb.size ? [ta, tb] : [tb, ta];
-  for (const t of small) if (!large.has(t)) return false;
-  return true;
 }
 
 async function setSyncState(

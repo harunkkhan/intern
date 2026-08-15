@@ -17,8 +17,23 @@ table with a per-application progress timeline.
 4. Relevant emails are passed to **Gemini** (`gemini-2.5-flash`) which returns
    structured JSON: `{ company, position, positionType, industry, status,
    summary }` and confirms relevance (filtering out job alerts/newsletters).
-5. Results are upserted into Postgres: one row per `company + role`
+5. Results are upserted into Postgres: one row per `company + role + term`
    application, plus an append-only `application_event` timeline.
+
+The `term` in that key is load-bearing. The same posting reopens every cycle, and
+title matching deliberately ignores season words so a follow-up email still finds
+its entry — which means without the cycle in the key, a Summer 2027 confirmation
+is indistinguishable from the Fall 2026 entry of the same name and lands on
+whichever was touched last. Matching still falls back to a cycle-less entry when
+one exists, and to loose title matching when the email names no cycle at all.
+
+Classification is a guess, so the details panel has a **Separate** menu for
+fixing what it got wrong in either direction: split one entry into several (by a
+cycle named in the timeline, by a role the emails mention, by a joined title like
+"TPM + SWE", or one email at a time), or merge another entry at the same company
+back into this one. Splitting moves the chosen events onto a new row and
+recomputes both rows' status and dates from the events they end up with; merging
+re-parents every event and drops the absorbed row.
 
 ## Stack
 
@@ -220,6 +235,8 @@ src/
       cron/sync/route.ts         # GET  — daily cron (CRON_SECRET-gated)
       applications/route.ts      # GET  — list
       applications/[id]/route.ts # PATCH / DELETE — manual edits
+      applications/[id]/split/   # POST — peel events onto a new entry
+      applications/[id]/merge/   # POST — fold another entry into this one
   db/
     index.ts                     # Drizzle client (postgres-js)
     schema.ts                    # all tables (incl. google_tokens)
@@ -232,6 +249,8 @@ src/
     classify.ts                  # rules-first gate + Gemini orchestration
     sync.ts                      # sync orchestration / upserts
     queries.ts                   # read queries / DTO mapping
+    applications.ts              # dedupe key, event rollup, title matching
+    split.ts                     # split suggestions from titles + timelines
     types.ts                     # taxonomies + shared types
   components/                    # Dashboard, table, filters, details drawer, …
 drizzle/                         # generated SQL migrations

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { format, parseISO } from "date-fns";
 import {
   APPLICATION_STATUSES,
@@ -10,6 +10,7 @@ import {
   STATUS_LABELS,
   type ApplicationDTO,
 } from "@/lib/types";
+import { splitCandidates, type SplitCandidate, type SplitPlan } from "@/lib/split";
 import StatusBadge from "@/components/StatusBadge";
 
 export interface DetailsPatch {
@@ -23,16 +24,25 @@ export interface DetailsPatch {
 
 export default function ApplicationDetail({
   app,
+  siblings,
   saving,
+  error,
   onBack,
   onSave,
   onDelete,
+  onSplit,
+  onMerge,
 }: {
   app: ApplicationDTO;
+  // Other entries at the same company — the candidates this one can absorb.
+  siblings: ApplicationDTO[];
   saving: boolean;
+  error: string | null;
   onBack: () => void;
   onSave: (patch: DetailsPatch) => void;
   onDelete: () => void;
+  onSplit: (plan: SplitPlan) => void;
+  onMerge: (sourceId: string) => void;
 }) {
   const [company, setCompany] = useState(app.company);
   const [position, setPosition] = useState(app.position);
@@ -77,6 +87,13 @@ export default function ApplicationDetail({
           <StatusBadge status={app.status} />
         </nav>
         <div className="flex items-center gap-3">
+          <SeparateMenu
+            app={app}
+            siblings={siblings}
+            disabled={saving}
+            onSplit={onSplit}
+            onMerge={onMerge}
+          />
           {confirmDelete ? (
             <button
               onClick={onDelete}
@@ -110,6 +127,12 @@ export default function ApplicationDetail({
           </button>
         </div>
       </div>
+
+      {error && (
+        <p className="mt-4 border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-300">
+          {error}
+        </p>
+      )}
 
       <div className="mt-6 rounded-none border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
         <section className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
@@ -201,6 +224,209 @@ export default function ApplicationDetail({
         </ol>
       </div>
     </div>
+  );
+}
+
+const GROUP_LABELS: Record<SplitCandidate["group"], string> = {
+  term: "Separate by term",
+  role: "Separate by role",
+  event: "Move one event out",
+};
+
+const GROUP_ORDER: SplitCandidate["group"][] = ["term", "role", "event"];
+
+// One menu for both directions: the top sections pull part of this entry out
+// into its own application, the bottom section folds another entry at the same
+// company back in. Merging drops a row, so it takes a second click.
+function SeparateMenu({
+  app,
+  siblings,
+  disabled,
+  onSplit,
+  onMerge,
+}: {
+  app: ApplicationDTO;
+  siblings: ApplicationDTO[];
+  disabled: boolean;
+  onSplit: (plan: SplitPlan) => void;
+  onMerge: (sourceId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [confirmMergeId, setConfirmMergeId] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const candidates = useMemo(() => splitCandidates(app), [app]);
+
+  useEffect(() => {
+    setOpen(false);
+    setConfirmMergeId(null);
+  }, [app]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(e: MouseEvent) {
+      if (!containerRef.current?.contains(e.target as Node)) setOpen(false);
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  function run(action: () => void) {
+    setOpen(false);
+    setConfirmMergeId(null);
+    action();
+  }
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        disabled={disabled}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        className="inline-flex items-center gap-1.5 border border-neutral-200 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:border-neutral-400 disabled:opacity-60 dark:border-neutral-700 dark:text-neutral-200 dark:hover:border-neutral-500"
+      >
+        Separate
+        <ChevronDownIcon />
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 z-20 mt-1 max-h-96 w-80 overflow-y-auto border border-neutral-200 bg-white py-1 shadow-lg dark:border-neutral-700 dark:bg-neutral-900"
+        >
+          {GROUP_ORDER.map((group) => {
+            const items = candidates.filter((c) => c.group === group);
+            if (items.length === 0) return null;
+            return (
+              <div key={group}>
+                <MenuHeading>{GROUP_LABELS[group]}</MenuHeading>
+                {items.map((c) => (
+                  <MenuItem
+                    key={c.key}
+                    label={c.label}
+                    detail={c.detail}
+                    onClick={() =>
+                      run(() =>
+                        onSplit({
+                          position: c.position,
+                          term: c.term,
+                          eventIds: c.eventIds,
+                          keepPosition: c.keepPosition,
+                        }),
+                      )
+                    }
+                  />
+                ))}
+              </div>
+            );
+          })}
+
+          {siblings.length > 0 && (
+            <div>
+              <MenuHeading>Merge into this entry</MenuHeading>
+              {siblings.map((s) => (
+                <MenuItem
+                  key={s.id}
+                  label={s.position}
+                  detail={
+                    confirmMergeId === s.id
+                      ? "Click again to merge — this deletes that entry"
+                      : [s.term ?? "No term", STATUS_LABELS[s.status]].join(" · ")
+                  }
+                  danger={confirmMergeId === s.id}
+                  onClick={() =>
+                    confirmMergeId === s.id
+                      ? run(() => onMerge(s.id))
+                      : setConfirmMergeId(s.id)
+                  }
+                />
+              ))}
+            </div>
+          )}
+
+          {candidates.length === 0 && siblings.length === 0 && (
+            <p className="px-3 py-2 text-sm text-neutral-400 dark:text-neutral-500">
+              Nothing to separate — one role, one term, one email.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MenuHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="px-3 pb-1 pt-2 text-xs font-medium uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+      {children}
+    </p>
+  );
+}
+
+function MenuItem({
+  label,
+  detail,
+  danger,
+  onClick,
+}: {
+  label: string;
+  detail: string | null;
+  danger?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      role="menuitem"
+      onClick={onClick}
+      className="block w-full px-3 py-1.5 text-left transition hover:bg-neutral-100 dark:hover:bg-neutral-800"
+    >
+      <span
+        className={`block truncate text-sm ${
+          danger
+            ? "text-rose-600 dark:text-rose-400"
+            : "text-neutral-800 dark:text-neutral-100"
+        }`}
+      >
+        {label}
+      </span>
+      {detail && (
+        <span
+          className={`block truncate text-xs ${
+            danger
+              ? "text-rose-500 dark:text-rose-400"
+              : "text-neutral-400 dark:text-neutral-500"
+          }`}
+        >
+          {detail}
+        </span>
+      )}
+    </button>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
   );
 }
 
