@@ -60,10 +60,21 @@ state rather than a durable fact, so sync puts it back down on its own:
 Moving the status off `interview` by hand clears it the same way. Nothing but the
 user ever raises it.
 
-Neither flag reaches the Analytics tab. Marking an OA done or an interview
-pending leaves the Sankey and the offer rate exactly where they were — only a
-real event moves them, which in practice means an offer, a new interview, or a
-rejection. That is enforced by the type the charts take (`FunnelApplication` in
+Either flag, once set, shows the same way: a **Pending** note beside the status
+badge, meaning you have done your part and nothing happens until they reply. The
+status badge still says which stage it is; `Pending` is an annotation on top, not
+a status of its own. In the table's default order those rows group below
+`Applied` and above the closed outcomes — they need nothing from you, but they
+are still live:
+
+```
+Interview · OA · Applied · Pending · Offer · Rejected · Withdrawn
+```
+
+Neither flag reaches the Analytics tab. Marking an OA sat or an interview done
+leaves the Sankey and the offer rate exactly where they were — only a real event
+moves them, which in practice means an offer, a new interview, or a rejection.
+That is enforced by the type the charts take (`FunnelApplication` in
 `src/lib/analytics.ts`), which simply does not carry the flags, so nothing in
 that file can read one even by accident.
 

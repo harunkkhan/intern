@@ -2,6 +2,8 @@
 // split/merge UI. No database or Node imports, so a client component can pull
 // from here too.
 
+import { DEFAULT_ROW_ORDER } from "@/lib/types";
+
 // Applications are keyed on company + role + cycle rather than company + role:
 // the same posting reopens every term, and a Fall 2026 application is a
 // different thing from the Summer 2027 one even when the title is identical. An
@@ -143,6 +145,36 @@ export function pickMatchingApplication<
   if (!term) return matches[0];
   return (
     matches.find((a) => a.term === term) ?? matches.find((a) => a.term === null)
+  );
+}
+
+// You have done your part at the stage the application is sitting on — the OA is
+// sat, or the interview is had — and are waiting on them. Both stage flags mean
+// the same thing here, so the board shows one note for either.
+//
+// Read against the *current* status on purpose: a completed OA on an application
+// that has since reached an interview is history, not a live wait.
+export function isPending(app: {
+  status: string;
+  oaCompleted: boolean;
+  interviewPending: boolean;
+}): boolean {
+  return (
+    (app.status === "assessment" && app.oaCompleted) ||
+    (app.status === "interview" && app.interviewPending)
+  );
+}
+
+// Where a row sits in the table's default (unsorted) grouping.
+export function defaultRowRank(app: {
+  status: string;
+  oaCompleted: boolean;
+  interviewPending: boolean;
+}): number {
+  if (isPending(app)) return DEFAULT_ROW_ORDER.pending;
+  return (
+    DEFAULT_ROW_ORDER[app.status as keyof typeof DEFAULT_ROW_ORDER] ??
+    DEFAULT_ROW_ORDER.withdrawn
   );
 }
 

@@ -196,9 +196,6 @@ export default function ApplicationDetail({
             <Field label="Online assessment">
               <StageToggle
                 set={app.oaCompleted}
-                doneLabel="Completed"
-                tone="emerald"
-                icon={<CheckIcon />}
                 disabled={saving}
                 onChange={onOaCompleted}
               />
@@ -211,9 +208,6 @@ export default function ApplicationDetail({
             <Field label="Interview">
               <StageToggle
                 set={app.interviewPending}
-                doneLabel="Pending"
-                tone="amber"
-                icon={<ClockIcon />}
                 disabled={saving}
                 onChange={onInterviewPending}
               />
@@ -279,39 +273,26 @@ function hasAssessment(app: ApplicationDTO): boolean {
   );
 }
 
-const TOGGLE_TONES = {
-  emerald:
-    "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300",
-  amber:
-    "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300",
-};
-
-// "I've done my part" for one stage: a button until it is set, then a badge with
-// an undo beside it. The assessment and the interview differ only in wording,
-// colour, and who is allowed to put the flag back down again.
+// "I've done my part, now I'm waiting" for one stage. Both the assessment and
+// the interview mean exactly that once marked, so both read the same: a button
+// until it is set, then a Pending note with an undo beside it. What differs is
+// only who may put the flag back down — the OA flag is durable and only the user
+// clears it, while sync clears the interview one as soon as a reply lands.
 function StageToggle({
   set,
-  doneLabel,
-  tone,
-  icon,
   disabled,
   onChange,
 }: {
   set: boolean;
-  doneLabel: string;
-  tone: keyof typeof TOGGLE_TONES;
-  icon: React.ReactNode;
   disabled: boolean;
   onChange: (set: boolean) => void;
 }) {
   if (set) {
     return (
       <p className="flex items-center gap-2 py-1.5 text-sm">
-        <span
-          className={`inline-flex items-center gap-1.5 border px-2 py-0.5 text-xs font-medium ${TOGGLE_TONES[tone]}`}
-        >
-          {icon}
-          {doneLabel}
+        <span className="inline-flex items-center gap-1.5 border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
+          <ClockIcon />
+          Pending
         </span>
         <button
           onClick={() => onChange(false)}
@@ -536,23 +517,6 @@ function ClockIcon() {
   );
 }
 
-function CheckIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="3"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
-  );
-}
 
 function MenuHeading({ children }: { children: React.ReactNode }) {
   return (

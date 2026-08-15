@@ -38,14 +38,23 @@ export const STATUS_RANK: Record<ApplicationStatus, number> = {
 // offer is already won and a rejection is closed, so neither competes for
 // attention at the top. Applied date is not a factor at any level; recency only
 // breaks ties inside one status group, via the query's lastEventAt ordering.
-export const STATUS_DEFAULT_ORDER: Record<ApplicationStatus, number> = {
+//
+// An OA or interview you have finished drops out of the urgent band entirely: it
+// needs nothing from you until they reply, so it sits in `pending` below.
+// "pending" is not a status — it is an assessment you have sat or an interview
+// you have had, where the ball is now in their court. It groups below `applied`,
+// because nothing about it is waiting on you, and above the closed outcomes,
+// because it is still live. It is a temporary note that disappears the moment a
+// real answer arrives, and it never reaches the Analytics tab.
+export const DEFAULT_ROW_ORDER = {
   interview: 0,
   assessment: 1,
   applied: 2,
-  offer: 3,
-  rejected: 4,
-  withdrawn: 5,
-};
+  pending: 3,
+  offer: 4,
+  rejected: 5,
+  withdrawn: 6,
+} as const satisfies Record<ApplicationStatus | "pending", number>;
 
 // Which internship cycle the application is for. Fixed to the upcoming cycles.
 // "Any" means the cycle is unknown or the role could apply to several.

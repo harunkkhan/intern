@@ -2,6 +2,7 @@
 
 import { format, parseISO } from "date-fns";
 import type { ApplicationDTO } from "@/lib/types";
+import { isPending } from "@/lib/applications";
 import StatusBadge from "@/components/StatusBadge";
 
 export type SortKey =
@@ -90,7 +91,7 @@ export default function ApplicationsTable({
                       </div>
                       <div className="flex shrink-0 items-center gap-1.5">
                         <StatusBadge status={app.status} />
-                        <StageMarks app={app} />
+                        <PendingNote app={app} />
                       </div>
                     </div>
                     <MetaRow app={app} />
@@ -168,7 +169,7 @@ export default function ApplicationsTable({
                   <Td>
                     <div className="flex items-center gap-1.5">
                       <StatusBadge status={app.status} />
-                      <StageMarks app={app} />
+                      <PendingNote app={app} />
                     </div>
                   </Td>
                 </tr>
@@ -181,35 +182,24 @@ export default function ApplicationsTable({
   );
 }
 
-// Which stages you have already done your part on, so a glance at the board
-// separates what is still on your plate from what is waiting on the company.
-function StageMarks({ app }: { app: ApplicationDTO }) {
+// A temporary note beside the status: you have sat the OA or had the interview,
+// and nothing more happens until they reply. It is not a status of its own — the
+// badge still says which stage this is — and it disappears the moment a real
+// answer lands.
+function PendingNote({ app }: { app: ApplicationDTO }) {
+  if (!isPending(app)) return null;
+  const what = app.status === "interview" ? "Interviewed" : "OA sat";
   return (
-    <>
-      {app.oaCompleted && (
-        <span
-          title="OA completed"
-          aria-label="OA completed"
-          className="inline-flex shrink-0 items-center text-emerald-600 dark:text-emerald-400"
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M20 6 9 17l-5-5" />
-          </svg>
-        </span>
-      )}
-      {app.interviewPending && (
-        <span
-          title="Interviewed — pending decision"
-          aria-label="Interviewed, pending decision"
-          className="inline-flex shrink-0 items-center text-amber-600 dark:text-amber-400"
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="9" />
-            <path d="M12 7v5l3 2" />
-          </svg>
-        </span>
-      )}
-    </>
+    <span
+      title={`${what} — waiting on a response`}
+      className="inline-flex shrink-0 items-center gap-1 border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
+    >
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 2" />
+      </svg>
+      Pending
+    </span>
   );
 }
 
