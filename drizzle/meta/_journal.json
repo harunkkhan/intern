@@ -84,6 +84,8 @@
       "version": "7",
       "when": 1786863000000,
       "tag": "0011_add_behavioral",
+      "when": 1786949400000,
+      "tag": "0011_faster_poll_intervals",
       "breakpoints": true
     }
   ]

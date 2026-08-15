@@ -402,10 +402,24 @@ bun src/send-alerts.ts --dry-run # print the messages; no posts, no writes
 bun src/test-send.ts https://discord.com/api/webhooks/<id>/<token>
 ```
 
-`.github/workflows/poll.yml` runs both every 10 minutes — Vercel's Hobby plan caps
-its own cron at once per day, and Actions minutes are free on a public repo. The
-Discord step runs on `!cancelled()` rather than on success, so a Spectrum outage
-or one broken scraper doesn't also hold up the Discord digest.
+`.github/workflows/poll.yml` runs both every 5 minutes, from 6am to 8pm ET on
+weekdays — Vercel's Hobby plan caps its own cron at once per day, and Actions
+minutes are free on a public repo. The Discord send happens in the same iteration
+as the poll that found the listing, so a new posting reaches the channel seconds
+after it is discovered.
+
+The 5 minutes come from a `sleep` loop inside a long-running job, not from the
+cron expression. `schedule:` is best-effort: this workflow asked for `*/10` and
+GitHub delivered a start every 16–32 minutes, dropping roughly 60% of the ticks.
+The cron now only *starts* a run, which then polls on real wall-clock time for up
+to 5h45m under the 6h job cap. Starts are attempted every 30 minutes and the
+`concurrency` group keeps one run active plus one standby, so the standby takes
+over the moment the active run exits and a dropped tick costs nothing. The exact
+6am–8pm ET window is enforced inside the loop in `America/New_York`, so it holds
+across DST while the cron hours stay a fixed UTC superset.
+
+A manual `workflow_dispatch` runs a single pass instead of the loop, so debugging
+a source doesn't mean waiting out a 5-hour job.
 
 ### Adding recipients
 
