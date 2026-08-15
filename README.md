@@ -60,6 +60,13 @@ state rather than a durable fact, so sync puts it back down on its own:
 Moving the status off `interview` by hand clears it the same way. Nothing but the
 user ever raises it.
 
+Neither flag reaches the Analytics tab. Marking an OA done or an interview
+pending leaves the Sankey and the offer rate exactly where they were — only a
+real event moves them, which in practice means an offer, a new interview, or a
+rejection. That is enforced by the type the charts take (`FunnelApplication` in
+`src/lib/analytics.ts`), which simply does not carry the flags, so nothing in
+that file can read one even by accident.
+
 ## Stack
 
 - **Next.js 16** (App Router, TypeScript) · **Tailwind CSS v4**

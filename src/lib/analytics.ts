@@ -8,6 +8,21 @@
 
 import type { ApplicationDTO, ApplicationStatus } from "./types";
 
+// Everything the charts are allowed to see. The stage flags — `oaCompleted` and
+// `interviewPending` — are deliberately absent: they record that you have done
+// your part at a stage, not that the application moved, so a finished OA or a
+// finished interview must leave every chart exactly where it was. Only a real
+// event moves anything, which in practice means an offer, a new interview, or a
+// rejection.
+//
+// This is a type, not a convention, precisely so it cannot rot: the flags are
+// not on it, so nothing in this file can read one by accident. Widening it back
+// to ApplicationDTO would silently give the charts access again.
+export type FunnelApplication = Pick<
+  ApplicationDTO,
+  "status" | "events" | "appliedAt" | "lastEventAt"
+>;
+
 // Applications whose term was never parsed out of the email still belong to a
 // cycle — they just didn't say which. Counting them toward the current cycle
 // keeps them from vanishing out of every term-scoped view, which for the
@@ -81,13 +96,13 @@ const PROGRESS: { status: ApplicationStatus; id: FunnelNodeId }[] = [
 ];
 
 /** Every stage an application has touched, from its events and its status. */
-export function stagesTouched(app: ApplicationDTO): Set<ApplicationStatus> {
+export function stagesTouched(app: FunnelApplication): Set<ApplicationStatus> {
   const touched = new Set<ApplicationStatus>(app.events.map((e) => e.status));
   touched.add(app.status);
   return touched;
 }
 
-function hasGoneQuiet(app: ApplicationDTO, now: number): boolean {
+function hasGoneQuiet(app: FunnelApplication, now: number): boolean {
   const last = app.lastEventAt ?? app.appliedAt;
   // With no date at all we cannot show it has gone quiet, so we don't claim it.
   if (!last) return false;
@@ -110,7 +125,7 @@ function hasGoneQuiet(app: ApplicationDTO, now: number): boolean {
  * "no response" declared them dead on a timer and was simply wrong: it moved
  * nine of thirteen OAs into the dead column with nothing behind it but a date.
  */
-function pathFor(app: ApplicationDTO, now: number): FunnelNodeId[] {
+function pathFor(app: FunnelApplication, now: number): FunnelNodeId[] {
   const touched = stagesTouched(app);
   const path: FunnelNodeId[] = ["applications"];
   for (const stage of PROGRESS) {
@@ -134,7 +149,7 @@ function pathFor(app: ApplicationDTO, now: number): FunnelNodeId[] {
  * terminal.
  */
 export function buildFunnel(
-  apps: ApplicationDTO[],
+  apps: FunnelApplication[],
   now: number = Date.now(),
 ): Funnel {
   const links = new Map<string, FunnelLink>();
@@ -216,7 +231,7 @@ export interface OutcomeStats {
   offerRate: number;
 }
 
-export function outcomeStats(apps: ApplicationDTO[]): OutcomeStats {
+export function outcomeStats(apps: FunnelApplication[]): OutcomeStats {
   let reachedAssessment = 0;
   let reachedInterview = 0;
   let offers = 0;
