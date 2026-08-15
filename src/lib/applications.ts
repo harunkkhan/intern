@@ -146,6 +146,21 @@ export function pickMatchingApplication<
   );
 }
 
+// Whether "I've interviewed, now I'm waiting" survives a newly recorded email.
+// The wait is a claim about the future, so anything that answers it puts the
+// flag back down: a newly scheduled interview (`incoming` is an interview), or
+// the application moving off the interview stage at all (`next` is a rejection,
+// an offer, a withdrawal). An email that says nothing either way — a duplicate
+// confirmation, say — leaves it standing. Nothing here ever raises the flag;
+// only the user does that.
+export function interviewStillPending(
+  wasPending: boolean,
+  next: string,
+  incoming: string,
+): boolean {
+  return wasPending && next === "interview" && incoming !== "interview";
+}
+
 // Stricter than positionsMatch: the token sets have to be identical, not merely
 // nested. Splitting needs this because subset matching is what collapsed two
 // distinct roles into one entry in the first place — "AI Engineer" is a subset

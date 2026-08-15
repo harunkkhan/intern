@@ -35,14 +35,30 @@ recomputing both rows' status and dates from the events they end up with.
 **Merge** lists the other entries at the same company and folds the one you pick
 into this one, re-parenting every event and dropping the absorbed row.
 
-An entry that has reached an assessment also gets an **online assessment** field
-in the details panel, marking whether you have actually sat the OA. It is a plain
-flag rather than a status, because finishing an assessment does not advance an
-application — it just moves the ball into the company's court — so the funnel and
-the status filters are unaffected. Sync sets it too: an email confirming an
-assessment was completed (as opposed to requested) marks it automatically, via
-both a rules pass and a Gemini field. The flag is only ever set by sync and only
-ever cleared by hand.
+Two stage flags record where the ball is. Both are plain flags rather than
+statuses, because doing your part does not advance an application — it just moves
+the ball into the company's court — so the funnel and the status filters are
+unaffected by either.
+
+**Online assessment**, on any entry that has reached one, marks whether you have
+actually sat the OA. Sync sets it too: an email confirming an assessment was
+completed (as opposed to requested) marks it automatically, via both a rules pass
+and a Gemini field. Only ever set by sync, only ever cleared by hand — a later
+email that says nothing about the assessment is not evidence you un-took it.
+
+**Interview**, on any entry sitting at the interview stage, marks it `Pending`
+once you have interviewed and are waiting on the decision. This one is a live
+state rather than a durable fact, so sync puts it back down on its own:
+
+| What arrives | What happens |
+| --- | --- |
+| A follow-up or new interview is scheduled | Back to plain `Interview` |
+| A rejection | Status becomes `Rejected`, flag cleared |
+| An offer, or a withdrawal | Status moves on, flag cleared |
+| Anything else (a duplicate confirmation) | Stays `Pending` |
+
+Moving the status off `interview` by hand clears it the same way. Nothing but the
+user ever raises it.
 
 ## Stack
 

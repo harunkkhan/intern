@@ -40,11 +40,18 @@ export async function PATCH(
   if (typeof body.notes === "string") patch.notes = body.notes;
   if (typeof body.location === "string") patch.location = body.location;
   if (typeof body.oaCompleted === "boolean") patch.oaCompleted = body.oaCompleted;
+  if (typeof body.interviewPending === "boolean") {
+    patch.interviewPending = body.interviewPending;
+  }
   if (
     typeof body.status === "string" &&
     (APPLICATION_STATUSES as readonly string[]).includes(body.status)
   ) {
     patch.status = body.status;
+    // Waiting on an interview decision is only meaningful while the application
+    // is at the interview stage. Moving it anywhere else by hand answers the
+    // wait the same way an email would.
+    if (body.status !== "interview") patch.interviewPending = false;
   }
 
   // "" clears the term. Both a change and a clear move the dedupe key, since the

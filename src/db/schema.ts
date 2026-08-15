@@ -62,6 +62,11 @@ export const applications = pgTable(
     // a sync that sees a "thanks for completing your assessment" email, and only
     // ever cleared by hand.
     oaCompleted: boolean("oa_completed").notNull().default(false),
+    // You have interviewed and are waiting on the decision. Unlike oaCompleted
+    // this is a live state, not a durable fact, so it is put back down
+    // automatically: a newly scheduled interview answers the wait, and so does
+    // any move off the interview stage. Only ever raised by hand.
+    interviewPending: boolean("interview_pending").notNull().default(false),
     location: text("location"),
     notes: text("notes"),
     source: text("source"),

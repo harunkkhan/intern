@@ -15,7 +15,11 @@ import {
   type ParsedEmail,
 } from "@/lib/gmail";
 import { classifyEmail } from "@/lib/classify";
-import { dedupeKeyFor, pickMatchingApplication } from "@/lib/applications";
+import {
+  dedupeKeyFor,
+  interviewStillPending,
+  pickMatchingApplication,
+} from "@/lib/applications";
 import type { ClassificationResult } from "@/lib/types";
 
 // Bound work per invocation so a single run stays within serverless time limits
@@ -208,6 +212,7 @@ async function applyClassification(
 
   // Current status is the latest event by date; fill any missing metadata.
   const isNewest = !app.lastEventAt || email.date >= app.lastEventAt;
+  const nextStatus = isNewest ? status : app.status;
   const earliestApplied =
     app.appliedAt && app.appliedAt < email.date ? app.appliedAt : email.date;
 
@@ -240,11 +245,16 @@ async function applyClassification(
   await db
     .update(applications)
     .set({
-      status: isNewest ? status : app.status,
+      status: nextStatus,
       // Only ever set, never cleared: a later email that says nothing about the
       // assessment is not evidence you un-took it, and clearing would fight the
       // manual toggle on every sync.
       oaCompleted: app.oaCompleted || result.assessmentCompleted,
+      interviewPending: interviewStillPending(
+        app.interviewPending,
+        nextStatus,
+        status,
+      ),
       lastEventAt: isNewest ? email.date : app.lastEventAt,
       appliedAt: earliestApplied,
       term: nextTerm,

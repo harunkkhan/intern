@@ -223,10 +223,10 @@ export default function Dashboard({
     }
   }
 
-  // Applied on click rather than on Save: it is a single fact being recorded,
-  // not part of the form being edited, and the details panel's own fields would
-  // otherwise have to be flushed along with it.
-  async function handleOaCompleted(completed: boolean) {
+  // Applied on click rather than on Save: these are single facts being
+  // recorded, not part of the form being edited, and the details panel's own
+  // fields would otherwise have to be flushed along with them.
+  async function patchSelected(body: unknown, fallback: string) {
     if (!selected) return;
     setSaving(true);
     setDetailError(null);
@@ -234,20 +234,32 @@ export default function Dashboard({
       const res = await fetch(`/api/applications/${selected.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ oaCompleted: completed }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error ?? "Could not update the assessment.");
+        throw new Error(data.error ?? fallback);
       }
       router.refresh();
     } catch (err) {
-      setDetailError(
-        err instanceof Error ? err.message : "Could not update the assessment.",
-      );
+      setDetailError(err instanceof Error ? err.message : fallback);
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleOaCompleted(completed: boolean) {
+    await patchSelected(
+      { oaCompleted: completed },
+      "Could not update the assessment.",
+    );
+  }
+
+  async function handleInterviewPending(pending: boolean) {
+    await patchSelected(
+      { interviewPending: pending },
+      "Could not update the interview.",
+    );
   }
 
   async function handleSplit(plan: SplitPlan) {
@@ -377,6 +389,7 @@ export default function Dashboard({
               onSplit={handleSplit}
               onMerge={handleMerge}
               onOaCompleted={handleOaCompleted}
+              onInterviewPending={handleInterviewPending}
             />
           ) : (
             <>

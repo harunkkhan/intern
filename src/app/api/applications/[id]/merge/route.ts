@@ -61,6 +61,8 @@ export async function POST(
     .where(inArray(applicationEvents.applicationId, [target.id, source.id]));
   const rollup = rollupEvents(combined);
 
+  const mergedStatus = rollup?.status ?? target.status;
+
   await db.transaction(async (tx) => {
     await tx
       .update(applicationEvents)
@@ -83,9 +85,14 @@ export async function POST(
     await tx
       .update(applications)
       .set({
-        status: rollup?.status ?? target.status,
+        status: mergedStatus,
         // If either row's assessment was sat, the combined one's was.
         oaCompleted: target.oaCompleted || source.oaCompleted,
+        // Same, but the wait only survives if the merged row is still at the
+        // interview stage — the combined timeline may have moved past it.
+        interviewPending:
+          (target.interviewPending || source.interviewPending) &&
+          mergedStatus === "interview",
         appliedAt,
         lastEventAt,
         notes: joinNotes(target.notes, source.notes),

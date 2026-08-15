@@ -90,7 +90,7 @@ export default function ApplicationsTable({
                       </div>
                       <div className="flex shrink-0 items-center gap-1.5">
                         <StatusBadge status={app.status} />
-                        {app.oaCompleted && <OaDoneMark />}
+                        <StageMarks app={app} />
                       </div>
                     </div>
                     <MetaRow app={app} />
@@ -168,7 +168,7 @@ export default function ApplicationsTable({
                   <Td>
                     <div className="flex items-center gap-1.5">
                       <StatusBadge status={app.status} />
-                      {app.oaCompleted && <OaDoneMark />}
+                      <StageMarks app={app} />
                     </div>
                   </Td>
                 </tr>
@@ -181,19 +181,35 @@ export default function ApplicationsTable({
   );
 }
 
-// Marks an assessment you have already sat, so a glance at the board separates
-// the OAs still on your plate from the ones waiting on the company.
-function OaDoneMark() {
+// Which stages you have already done your part on, so a glance at the board
+// separates what is still on your plate from what is waiting on the company.
+function StageMarks({ app }: { app: ApplicationDTO }) {
   return (
-    <span
-      title="OA completed"
-      aria-label="OA completed"
-      className="inline-flex shrink-0 items-center text-emerald-600 dark:text-emerald-400"
-    >
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M20 6 9 17l-5-5" />
-      </svg>
-    </span>
+    <>
+      {app.oaCompleted && (
+        <span
+          title="OA completed"
+          aria-label="OA completed"
+          className="inline-flex shrink-0 items-center text-emerald-600 dark:text-emerald-400"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
+        </span>
+      )}
+      {app.interviewPending && (
+        <span
+          title="Interviewed — pending decision"
+          aria-label="Interviewed, pending decision"
+          className="inline-flex shrink-0 items-center text-amber-600 dark:text-amber-400"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7v5l3 2" />
+          </svg>
+        </span>
+      )}
+    </>
   );
 }
 

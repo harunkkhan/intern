@@ -129,6 +129,7 @@ export interface ApplicationDTO {
   companyType: CompanyType | null;
   status: ApplicationStatus;
   oaCompleted: boolean;
+  interviewPending: boolean;
   appliedAt: string | null; // ISO
   lastEventAt: string | null; // ISO
   location: string | null;

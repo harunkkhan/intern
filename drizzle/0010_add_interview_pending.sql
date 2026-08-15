@@ -1,0 +1,1 @@
+ALTER TABLE "application" ADD COLUMN "interview_pending" boolean DEFAULT false NOT NULL;

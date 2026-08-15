@@ -116,6 +116,8 @@ export async function POST(
           // takes events with it is a different application (another cycle, a
           // different role), and its assessment is its own to record.
           oaCompleted: moving.length === 0 ? existing.oaCompleted : false,
+          interviewPending:
+            moving.length === 0 ? existing.interviewPending : false,
           appliedAt: moved?.appliedAt ?? existing.appliedAt,
           lastEventAt: moved?.lastEventAt ?? existing.lastEventAt,
         })

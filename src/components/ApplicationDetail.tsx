@@ -33,6 +33,7 @@ export default function ApplicationDetail({
   onSplit,
   onMerge,
   onOaCompleted,
+  onInterviewPending,
 }: {
   app: ApplicationDTO;
   // Other entries at the same company — the candidates this one can absorb.
@@ -45,6 +46,7 @@ export default function ApplicationDetail({
   onSplit: (plan: SplitPlan) => void;
   onMerge: (sourceId: string) => void;
   onOaCompleted: (completed: boolean) => void;
+  onInterviewPending: (pending: boolean) => void;
 }) {
   const [company, setCompany] = useState(app.company);
   const [position, setPosition] = useState(app.position);
@@ -188,15 +190,32 @@ export default function ApplicationDetail({
               options={COMPANY_TYPES.map((c) => ({ value: c, label: c }))}
             />
           </Field>
-          {/* Only where there is an assessment to have finished. Applies
-              immediately rather than waiting on Save — it is a one-click fact,
-              not a form field being drafted. */}
+          {/* Both apply immediately rather than waiting on Save — they are
+              one-click facts, not form fields being drafted. */}
           {hasAssessment(app) && (
             <Field label="Online assessment">
-              <OaToggle
-                completed={app.oaCompleted}
+              <StageToggle
+                set={app.oaCompleted}
+                doneLabel="Completed"
+                tone="emerald"
+                icon={<CheckIcon />}
                 disabled={saving}
                 onChange={onOaCompleted}
+              />
+            </Field>
+          )}
+          {/* Only while the application is actually sitting at the interview
+              stage. A rejection or an offer answers the wait, and sync clears
+              the flag as it moves the status, so this disappears on its own. */}
+          {app.status === "interview" && (
+            <Field label="Interview">
+              <StageToggle
+                set={app.interviewPending}
+                doneLabel="Pending"
+                tone="amber"
+                icon={<ClockIcon />}
+                disabled={saving}
+                onChange={onInterviewPending}
               />
             </Field>
           )}
@@ -260,21 +279,39 @@ function hasAssessment(app: ApplicationDTO): boolean {
   );
 }
 
-function OaToggle({
-  completed,
+const TOGGLE_TONES = {
+  emerald:
+    "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300",
+  amber:
+    "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300",
+};
+
+// "I've done my part" for one stage: a button until it is set, then a badge with
+// an undo beside it. The assessment and the interview differ only in wording,
+// colour, and who is allowed to put the flag back down again.
+function StageToggle({
+  set,
+  doneLabel,
+  tone,
+  icon,
   disabled,
   onChange,
 }: {
-  completed: boolean;
+  set: boolean;
+  doneLabel: string;
+  tone: keyof typeof TOGGLE_TONES;
+  icon: React.ReactNode;
   disabled: boolean;
-  onChange: (completed: boolean) => void;
+  onChange: (set: boolean) => void;
 }) {
-  if (completed) {
+  if (set) {
     return (
       <p className="flex items-center gap-2 py-1.5 text-sm">
-        <span className="inline-flex items-center gap-1.5 border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300">
-          <CheckIcon />
-          Completed
+        <span
+          className={`inline-flex items-center gap-1.5 border px-2 py-0.5 text-xs font-medium ${TOGGLE_TONES[tone]}`}
+        >
+          {icon}
+          {doneLabel}
         </span>
         <button
           onClick={() => onChange(false)}
@@ -477,6 +514,25 @@ function MenuEmpty({ children }: { children: React.ReactNode }) {
     <p className="px-3 py-2 text-sm text-neutral-400 dark:text-neutral-500">
       {children}
     </p>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
   );
 }
 
