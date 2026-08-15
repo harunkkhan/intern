@@ -111,6 +111,11 @@ export async function POST(
           location: existing.location,
           source: existing.source,
           status: moved?.status ?? existing.status,
+          // Carried only on a pure copy — one half of a joined title is the same
+          // application, so the assessment you sat is still sat. A split that
+          // takes events with it is a different application (another cycle, a
+          // different role), and its assessment is its own to record.
+          oaCompleted: moving.length === 0 ? existing.oaCompleted : false,
           appliedAt: moved?.appliedAt ?? existing.appliedAt,
           lastEventAt: moved?.lastEventAt ?? existing.lastEventAt,
         })

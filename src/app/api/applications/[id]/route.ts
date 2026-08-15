@@ -39,6 +39,7 @@ export async function PATCH(
 
   if (typeof body.notes === "string") patch.notes = body.notes;
   if (typeof body.location === "string") patch.location = body.location;
+  if (typeof body.oaCompleted === "boolean") patch.oaCompleted = body.oaCompleted;
   if (
     typeof body.status === "string" &&
     (APPLICATION_STATUSES as readonly string[]).includes(body.status)

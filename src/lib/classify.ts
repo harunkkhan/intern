@@ -50,9 +50,44 @@ const STATUS_PATTERNS: Array<{ re: RegExp; status: ApplicationStatus }> = [
   },
 ];
 
+// An assessment that has been SAT, not one that has been sent. The distinction
+// is entirely in the verb, so these look for a completion word bound to an
+// assessment word rather than for assessment words on their own — "complete your
+// online assessment by Friday" is an invitation and must not match.
+const ASSESSMENT_WORDS =
+  "online assessment|coding (?:challenge|assessment|test)|technical assessment|skills assessment|take-?home|hackerrank|codesignal|codility|karat|hirevue|video interview";
+
+const ASSESSMENT_DONE_PATTERNS: RegExp[] = [
+  // "thank you for completing the online assessment"
+  new RegExp(
+    `\\b(?:thanks?|thank you)\\b[^.!?]{0,40}\\b(?:for )?(?:completing|finishing|submitting|taking)\\b[^.!?]{0,60}\\b(?:${ASSESSMENT_WORDS})\\b`,
+    "i",
+  ),
+  // "we have received your assessment" / "your submission has been received"
+  new RegExp(
+    `\\b(?:we(?:'ve| have)? received|received)\\b[^.!?]{0,40}\\b(?:${ASSESSMENT_WORDS}|submission)\\b`,
+    "i",
+  ),
+  // "your HackerRank test has been submitted" / "assessment was completed"
+  new RegExp(
+    `\\b(?:${ASSESSMENT_WORDS})\\b[^.!?]{0,40}\\b(?:has been|have been|was|were)\\s+(?:successfully\\s+)?(?:completed|submitted|received)\\b`,
+    "i",
+  ),
+  // "you have completed the coding challenge"
+  new RegExp(
+    `\\byou(?:'ve| have)?\\s+(?:successfully\\s+)?(?:completed|submitted|finished)\\b[^.!?]{0,60}\\b(?:${ASSESSMENT_WORDS})\\b`,
+    "i",
+  ),
+];
+
+export function detectAssessmentCompleted(text: string): boolean {
+  return ASSESSMENT_DONE_PATTERNS.some((re) => re.test(text));
+}
+
 interface RuleSignal {
   likelyRelated: boolean;
   status: ApplicationStatus | null;
+  assessmentCompleted: boolean;
   fromAts: boolean;
 }
 
@@ -69,7 +104,12 @@ function analyzeRules(email: ParsedEmail): RuleSignal {
     }
   }
 
-  return { likelyRelated: fromAts || status !== null, status, fromAts };
+  return {
+    likelyRelated: fromAts || status !== null,
+    status,
+    assessmentCompleted: detectAssessmentCompleted(haystack),
+    fromAts,
+  };
 }
 
 // Rules decide cheaply whether an email is worth a Gemini call; Gemini does the
@@ -89,6 +129,12 @@ export async function classifyEmail(
   if (result.isApplicationRelated && !result.status && signal.status) {
     result.status = signal.status;
   }
+  // Either signal is enough to mark the OA done. The flag only ever turns on —
+  // nothing downstream clears it — so a miss costs a manual click while a false
+  // positive costs an unclick, and the two detectors miss different things.
+  if (result.isApplicationRelated && signal.assessmentCompleted) {
+    result.assessmentCompleted = true;
+  }
   return result;
 }
 
@@ -101,6 +147,7 @@ function notRelated(): ClassificationResult {
     industry: null,
     companyType: null,
     status: null,
+    assessmentCompleted: false,
     summary: null,
     source: "rules",
   };

@@ -27,13 +27,22 @@ is indistinguishable from the Fall 2026 entry of the same name and lands on
 whichever was touched last. Matching still falls back to a cycle-less entry when
 one exists, and to loose title matching when the email names no cycle at all.
 
-Classification is a guess, so the details panel has a **Separate** menu for
-fixing what it got wrong in either direction: split one entry into several (by a
+Classification is a guess, so the details panel has two menus for fixing what it
+got wrong in either direction. **Separate** splits one entry into several — by a
 cycle named in the timeline, by a role the emails mention, by a joined title like
-"TPM + SWE", or one email at a time), or merge another entry at the same company
-back into this one. Splitting moves the chosen events onto a new row and
-recomputes both rows' status and dates from the events they end up with; merging
-re-parents every event and drops the absorbed row.
+"TPM + SWE", or one email at a time — moving the chosen events onto a new row and
+recomputing both rows' status and dates from the events they end up with.
+**Merge** lists the other entries at the same company and folds the one you pick
+into this one, re-parenting every event and dropping the absorbed row.
+
+An entry that has reached an assessment also gets an **online assessment** field
+in the details panel, marking whether you have actually sat the OA. It is a plain
+flag rather than a status, because finishing an assessment does not advance an
+application — it just moves the ball into the company's court — so the funnel and
+the status filters are unaffected. Sync sets it too: an email confirming an
+assessment was completed (as opposed to requested) marks it automatically, via
+both a rules pass and a Gemini field. The flag is only ever set by sync and only
+ever cleared by hand.
 
 ## Stack
 

@@ -182,6 +182,7 @@ async function applyClassification(
         industry: result.industry,
         companyType: result.companyType,
         status,
+        oaCompleted: result.assessmentCompleted,
         appliedAt: email.date,
         lastEventAt: email.date,
         source: result.source,
@@ -240,6 +241,10 @@ async function applyClassification(
     .update(applications)
     .set({
       status: isNewest ? status : app.status,
+      // Only ever set, never cleared: a later email that says nothing about the
+      // assessment is not evidence you un-took it, and clearing would fight the
+      // manual toggle on every sync.
+      oaCompleted: app.oaCompleted || result.assessmentCompleted,
       lastEventAt: isNewest ? email.date : app.lastEventAt,
       appliedAt: earliestApplied,
       term: nextTerm,

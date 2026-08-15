@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { format, parseISO } from "date-fns";
 import {
   APPLICATION_STATUSES,
@@ -32,6 +32,7 @@ export default function ApplicationDetail({
   onDelete,
   onSplit,
   onMerge,
+  onOaCompleted,
 }: {
   app: ApplicationDTO;
   // Other entries at the same company — the candidates this one can absorb.
@@ -43,6 +44,7 @@ export default function ApplicationDetail({
   onDelete: () => void;
   onSplit: (plan: SplitPlan) => void;
   onMerge: (sourceId: string) => void;
+  onOaCompleted: (completed: boolean) => void;
 }) {
   const [company, setCompany] = useState(app.company);
   const [position, setPosition] = useState(app.position);
@@ -87,11 +89,10 @@ export default function ApplicationDetail({
           <StatusBadge status={app.status} />
         </nav>
         <div className="flex items-center gap-3">
-          <SeparateMenu
-            app={app}
+          <SeparateMenu app={app} disabled={saving} onSplit={onSplit} />
+          <MergeMenu
             siblings={siblings}
             disabled={saving}
-            onSplit={onSplit}
             onMerge={onMerge}
           />
           {confirmDelete ? (
@@ -187,6 +188,18 @@ export default function ApplicationDetail({
               options={COMPANY_TYPES.map((c) => ({ value: c, label: c }))}
             />
           </Field>
+          {/* Only where there is an assessment to have finished. Applies
+              immediately rather than waiting on Save — it is a one-click fact,
+              not a form field being drafted. */}
+          {hasAssessment(app) && (
+            <Field label="Online assessment">
+              <OaToggle
+                completed={app.oaCompleted}
+                disabled={saving}
+                onChange={onOaCompleted}
+              />
+            </Field>
+          )}
         </section>
       </div>
 
@@ -235,74 +248,76 @@ const GROUP_LABELS: Record<SplitCandidate["group"], string> = {
 
 const GROUP_ORDER: SplitCandidate["group"][] = ["term", "role", "event"];
 
-// One menu for both directions: the top sections pull part of this entry out
-// into its own application, the bottom section folds another entry at the same
-// company back in. Merging drops a row, so it takes a second click.
+// True when there is an assessment to have finished: one sat now, one somewhere
+// in the history, or one already marked done. Reading the timeline as well as
+// the current status keeps the control visible on an application that has since
+// moved to interview, where the fact that you did the OA is still part of it.
+function hasAssessment(app: ApplicationDTO): boolean {
+  return (
+    app.oaCompleted ||
+    app.status === "assessment" ||
+    app.events.some((e) => e.status === "assessment")
+  );
+}
+
+function OaToggle({
+  completed,
+  disabled,
+  onChange,
+}: {
+  completed: boolean;
+  disabled: boolean;
+  onChange: (completed: boolean) => void;
+}) {
+  if (completed) {
+    return (
+      <p className="flex items-center gap-2 py-1.5 text-sm">
+        <span className="inline-flex items-center gap-1.5 border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300">
+          <CheckIcon />
+          Completed
+        </span>
+        <button
+          onClick={() => onChange(false)}
+          disabled={disabled}
+          className="text-xs text-neutral-400 underline-offset-2 transition hover:text-neutral-700 hover:underline disabled:opacity-60 dark:text-neutral-500 dark:hover:text-neutral-200"
+        >
+          Undo
+        </button>
+      </p>
+    );
+  }
+  return (
+    <button
+      onClick={() => onChange(true)}
+      disabled={disabled}
+      className="inline-flex items-center gap-1.5 border border-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-700 transition hover:border-neutral-400 disabled:opacity-60 dark:border-neutral-700 dark:text-neutral-200 dark:hover:border-neutral-500"
+    >
+      Mark as completed
+    </button>
+  );
+}
+
+// Pulls part of this entry out into its own application.
 function SeparateMenu({
   app,
-  siblings,
   disabled,
   onSplit,
-  onMerge,
 }: {
   app: ApplicationDTO;
-  siblings: ApplicationDTO[];
   disabled: boolean;
   onSplit: (plan: SplitPlan) => void;
-  onMerge: (sourceId: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const [confirmMergeId, setConfirmMergeId] = useState<string | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
   const candidates = useMemo(() => splitCandidates(app), [app]);
 
-  useEffect(() => {
-    setOpen(false);
-    setConfirmMergeId(null);
-  }, [app]);
-
-  useEffect(() => {
-    if (!open) return;
-    function onPointerDown(e: MouseEvent) {
-      if (!containerRef.current?.contains(e.target as Node)) setOpen(false);
-    }
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("mousedown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
-
-  function run(action: () => void) {
-    setOpen(false);
-    setConfirmMergeId(null);
-    action();
-  }
-
   return (
-    <div className="relative" ref={containerRef}>
-      <button
-        onClick={() => setOpen((o) => !o)}
-        disabled={disabled}
-        aria-expanded={open}
-        aria-haspopup="menu"
-        className="inline-flex items-center gap-1.5 border border-neutral-200 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:border-neutral-400 disabled:opacity-60 dark:border-neutral-700 dark:text-neutral-200 dark:hover:border-neutral-500"
-      >
-        Separate
-        <ChevronDownIcon />
-      </button>
-
-      {open && (
-        <div
-          role="menu"
-          className="absolute right-0 z-20 mt-1 max-h-96 w-80 overflow-y-auto border border-neutral-200 bg-white py-1 shadow-lg dark:border-neutral-700 dark:bg-neutral-900"
-        >
-          {GROUP_ORDER.map((group) => {
+    <Dropdown label="Separate" disabled={disabled} resetKey={app.id}>
+      {(close) =>
+        candidates.length === 0 ? (
+          <MenuEmpty>
+            Nothing to separate — one role, one term, one email.
+          </MenuEmpty>
+        ) : (
+          GROUP_ORDER.map((group) => {
             const items = candidates.filter((c) => c.group === group);
             if (items.length === 0) return null;
             return (
@@ -313,53 +328,173 @@ function SeparateMenu({
                     key={c.key}
                     label={c.label}
                     detail={c.detail}
-                    onClick={() =>
-                      run(() =>
-                        onSplit({
-                          position: c.position,
-                          term: c.term,
-                          eventIds: c.eventIds,
-                          keepPosition: c.keepPosition,
-                        }),
-                      )
-                    }
+                    onClick={() => {
+                      close();
+                      onSplit({
+                        position: c.position,
+                        term: c.term,
+                        eventIds: c.eventIds,
+                        keepPosition: c.keepPosition,
+                      });
+                    }}
                   />
                 ))}
               </div>
             );
-          })}
+          })
+        )
+      }
+    </Dropdown>
+  );
+}
 
-          {siblings.length > 0 && (
-            <div>
-              <MenuHeading>Merge into this entry</MenuHeading>
-              {siblings.map((s) => (
-                <MenuItem
-                  key={s.id}
-                  label={s.position}
-                  detail={
-                    confirmMergeId === s.id
-                      ? "Click again to merge — this deletes that entry"
-                      : [s.term ?? "No term", STATUS_LABELS[s.status]].join(" · ")
-                  }
-                  danger={confirmMergeId === s.id}
-                  onClick={() =>
-                    confirmMergeId === s.id
-                      ? run(() => onMerge(s.id))
-                      : setConfirmMergeId(s.id)
-                  }
-                />
-              ))}
-            </div>
-          )}
+// Folds another entry at the same company into this one. Merging deletes the
+// entry it absorbs, so it takes a second click on the same row.
+function MergeMenu({
+  siblings,
+  disabled,
+  onMerge,
+}: {
+  siblings: ApplicationDTO[];
+  disabled: boolean;
+  onMerge: (sourceId: string) => void;
+}) {
+  const [confirmId, setConfirmId] = useState<string | null>(null);
 
-          {candidates.length === 0 && siblings.length === 0 && (
-            <p className="px-3 py-2 text-sm text-neutral-400 dark:text-neutral-500">
-              Nothing to separate — one role, one term, one email.
-            </p>
-          )}
+  return (
+    <Dropdown
+      label="Merge"
+      disabled={disabled}
+      resetKey={siblings.map((s) => s.id).join()}
+      onClose={() => setConfirmId(null)}
+    >
+      {(close) =>
+        siblings.length === 0 ? (
+          <MenuEmpty>No other entries at this company.</MenuEmpty>
+        ) : (
+          <>
+            <MenuHeading>Merge into this entry</MenuHeading>
+            {siblings.map((s) => (
+              <MenuItem
+                key={s.id}
+                label={s.position}
+                detail={
+                  confirmId === s.id
+                    ? "Click again to merge — this deletes that entry"
+                    : [s.term ?? "No term", STATUS_LABELS[s.status]].join(" · ")
+                }
+                danger={confirmId === s.id}
+                onClick={() => {
+                  if (confirmId !== s.id) {
+                    setConfirmId(s.id);
+                    return;
+                  }
+                  close();
+                  onMerge(s.id);
+                }}
+              />
+            ))}
+          </>
+        )
+      }
+    </Dropdown>
+  );
+}
+
+// Button + anchored panel, closing on outside click, Escape, or a change of
+// `resetKey` (which is what shuts a stale menu when the entry behind it moves).
+function Dropdown({
+  label,
+  disabled,
+  resetKey,
+  onClose,
+  children,
+}: {
+  label: string;
+  disabled: boolean;
+  resetKey: string;
+  onClose?: () => void;
+  children: (close: () => void) => React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
+  const close = useCallback(() => {
+    setOpen(false);
+    closeRef.current?.();
+  }, []);
+
+  useEffect(() => {
+    setOpen(false);
+    closeRef.current?.();
+  }, [resetKey]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(e: MouseEvent) {
+      if (!containerRef.current?.contains(e.target as Node)) close();
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") close();
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open, close]);
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        onClick={() => (open ? close() : setOpen(true))}
+        disabled={disabled}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        className="inline-flex items-center gap-1.5 border border-neutral-200 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:border-neutral-400 disabled:opacity-60 dark:border-neutral-700 dark:text-neutral-200 dark:hover:border-neutral-500"
+      >
+        {label}
+        <ChevronDownIcon />
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 z-20 mt-1 max-h-96 w-80 overflow-y-auto border border-neutral-200 bg-white py-1 shadow-lg dark:border-neutral-700 dark:bg-neutral-900"
+        >
+          {children(close)}
         </div>
       )}
     </div>
+  );
+}
+
+function MenuEmpty({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="px-3 py-2 text-sm text-neutral-400 dark:text-neutral-500">
+      {children}
+    </p>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
   );
 }
 

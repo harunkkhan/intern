@@ -88,8 +88,9 @@ export default function ApplicationsTable({
                           {app.position}
                         </p>
                       </div>
-                      <div className="shrink-0">
+                      <div className="flex shrink-0 items-center gap-1.5">
                         <StatusBadge status={app.status} />
+                        {app.oaCompleted && <OaDoneMark />}
                       </div>
                     </div>
                     <MetaRow app={app} />
@@ -165,7 +166,10 @@ export default function ApplicationsTable({
                       : "—"}
                   </Td>
                   <Td>
-                    <StatusBadge status={app.status} />
+                    <div className="flex items-center gap-1.5">
+                      <StatusBadge status={app.status} />
+                      {app.oaCompleted && <OaDoneMark />}
+                    </div>
                   </Td>
                 </tr>
               ))
@@ -174,6 +178,22 @@ export default function ApplicationsTable({
         </table>
       </div>
     </>
+  );
+}
+
+// Marks an assessment you have already sat, so a glance at the board separates
+// the OAs still on your plate from the ones waiting on the company.
+function OaDoneMark() {
+  return (
+    <span
+      title="OA completed"
+      aria-label="OA completed"
+      className="inline-flex shrink-0 items-center text-emerald-600 dark:text-emerald-400"
+    >
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M20 6 9 17l-5-5" />
+      </svg>
+    </span>
   );
 }
 

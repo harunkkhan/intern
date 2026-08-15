@@ -100,6 +100,11 @@ export interface ClassificationResult {
   industry: Industry | null;
   companyType: CompanyType | null;
   status: ApplicationStatus | null;
+  // The email says the assessment has been sat, not merely sent — "thanks for
+  // completing your online assessment". Separate from `status`, which stays
+  // `assessment` either way: finishing an OA doesn't move you down the funnel,
+  // it just means the ball is no longer in your court.
+  assessmentCompleted: boolean;
   summary: string | null;
   // How this classification was produced — useful for debugging / the UI.
   source: "rules" | "gemini";
@@ -123,6 +128,7 @@ export interface ApplicationDTO {
   industry: Industry | null;
   companyType: CompanyType | null;
   status: ApplicationStatus;
+  oaCompleted: boolean;
   appliedAt: string | null; // ISO
   lastEventAt: string | null; // ISO
   location: string | null;

@@ -55,6 +55,13 @@ export const applications = pgTable(
     industry: text("industry"),
     companyType: text("company_type"),
     status: text("status").notNull().default("applied"),
+    // Whether the online assessment has been sat, as opposed to merely sent.
+    // Deliberately not a status: an OA you have finished still leaves you at the
+    // assessment stage waiting on the company, so folding it into `status` would
+    // invent a funnel stage that nothing flows out of. Set either by hand or by
+    // a sync that sees a "thanks for completing your assessment" email, and only
+    // ever cleared by hand.
+    oaCompleted: boolean("oa_completed").notNull().default(false),
     location: text("location"),
     notes: text("notes"),
     source: text("source"),

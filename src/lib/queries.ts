@@ -89,6 +89,7 @@ export async function getApplicationsForUser(
     industry: (a.industry as Industry | null) ?? null,
     companyType: (a.companyType as CompanyType | null) ?? null,
     status: a.status as ApplicationStatus,
+    oaCompleted: a.oaCompleted,
     appliedAt: a.appliedAt ? a.appliedAt.toISOString() : null,
     lastEventAt: a.lastEventAt ? a.lastEventAt.toISOString() : null,
     location: a.location,

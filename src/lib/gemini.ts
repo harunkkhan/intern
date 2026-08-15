@@ -41,6 +41,7 @@ Return:
     offer = offer extended
     rejected = not moving forward / declined
     withdrawn = candidate withdrew
+- assessmentCompleted: true only when the email confirms the candidate has ALREADY finished/submitted an online assessment, coding challenge, take-home, or recorded video interview — "thank you for completing your assessment", "we have received your submission", "your HackerRank test has been submitted". False when the assessment is merely being requested, invited, scheduled, or reminded about, and false when the email is about anything else. Leave status as "assessment" in either case; completing an assessment does not advance the application.
 - summary: one concise sentence describing what this email says about the application.
 
 Base every field only on the email content. Prefer "Other" over guessing for industry/companyType, and null for term, when genuinely unclear.`;
@@ -55,6 +56,7 @@ const responseSchema = {
     industry: { type: Type.STRING, enum: [...INDUSTRIES] },
     companyType: { type: Type.STRING, enum: [...COMPANY_TYPES] },
     status: { type: Type.STRING, enum: [...APPLICATION_STATUSES] },
+    assessmentCompleted: { type: Type.BOOLEAN },
     summary: { type: Type.STRING, nullable: true },
   },
   required: ["isApplicationRelated"],
@@ -66,6 +68,7 @@ const responseSchema = {
     "industry",
     "companyType",
     "status",
+    "assessmentCompleted",
     "summary",
   ],
 };
@@ -104,6 +107,7 @@ ${email.body || email.snippet}`;
     industry: asEnum(raw.industry, INDUSTRIES) as Industry | null,
     companyType: asEnum(raw.companyType, COMPANY_TYPES) as CompanyType | null,
     status: asEnum(raw.status, APPLICATION_STATUSES) as ApplicationStatus | null,
+    assessmentCompleted: raw.assessmentCompleted === true,
     summary: cleanString(raw.summary),
     source: "gemini",
   };

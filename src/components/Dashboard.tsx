@@ -223,6 +223,33 @@ export default function Dashboard({
     }
   }
 
+  // Applied on click rather than on Save: it is a single fact being recorded,
+  // not part of the form being edited, and the details panel's own fields would
+  // otherwise have to be flushed along with it.
+  async function handleOaCompleted(completed: boolean) {
+    if (!selected) return;
+    setSaving(true);
+    setDetailError(null);
+    try {
+      const res = await fetch(`/api/applications/${selected.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ oaCompleted: completed }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? "Could not update the assessment.");
+      }
+      router.refresh();
+    } catch (err) {
+      setDetailError(
+        err instanceof Error ? err.message : "Could not update the assessment.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleSplit(plan: SplitPlan) {
     await reorganize("split", plan, "Could not separate this entry.");
   }
@@ -349,6 +376,7 @@ export default function Dashboard({
               onDelete={handleDelete}
               onSplit={handleSplit}
               onMerge={handleMerge}
+              onOaCompleted={handleOaCompleted}
             />
           ) : (
             <>

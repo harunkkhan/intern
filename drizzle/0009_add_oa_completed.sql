@@ -1,0 +1,1 @@
+ALTER TABLE "application" ADD COLUMN "oa_completed" boolean DEFAULT false NOT NULL;

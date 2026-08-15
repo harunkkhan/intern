@@ -84,6 +84,8 @@ export async function POST(
       .update(applications)
       .set({
         status: rollup?.status ?? target.status,
+        // If either row's assessment was sat, the combined one's was.
+        oaCompleted: target.oaCompleted || source.oaCompleted,
         appliedAt,
         lastEventAt,
         notes: joinNotes(target.notes, source.notes),
