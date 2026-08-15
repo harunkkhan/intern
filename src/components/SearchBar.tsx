@@ -3,9 +3,11 @@
 export default function SearchBar({
   value,
   onChange,
+  placeholder = "Search company or role…",
 }: {
   value: string;
   onChange: (value: string) => void;
+  placeholder?: string;
 }) {
   return (
     <div className="relative w-full max-w-md">
@@ -28,7 +30,7 @@ export default function SearchBar({
         type="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Search company or role…"
+        placeholder={placeholder}
         className="w-full rounded-none border border-neutral-200 bg-white py-1.5 pl-9 pr-3 text-sm text-neutral-800 placeholder:text-neutral-400 focus:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-500 dark:focus:ring-neutral-700"
       />
     </div>

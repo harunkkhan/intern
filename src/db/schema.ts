@@ -416,6 +416,70 @@ export const pollRuns = pgTable(
   (t) => [index("poll_run_source_idx").on(t.sourceId, t.startedAt)],
 );
 
+// ---------------------------------------------------------------------------
+// Behavioral prep
+//
+// Interview questions the user writes answers to, grouped into named sections
+// ("Leadership", "Failure", "Conflict"). Per-user like applications: every row
+// carries the Supabase user id and every read and write is scoped to it, so an
+// answer is only ever visible to the account that wrote it.
+// ---------------------------------------------------------------------------
+
+export const behavioralSections = pgTable(
+  "behavioral_section",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id").notNull(),
+    name: text("name").notNull(),
+    createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    // One section per name, so a double-submitted "Add section" can't leave two
+    // identically named headings the user then has to tell apart.
+    uniqueIndex("behavioral_section_user_name_idx").on(t.userId, t.name),
+    index("behavioral_section_user_idx").on(t.userId),
+  ],
+);
+
+export const behavioralQuestions = pgTable(
+  "behavioral_question",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    // Denormalized from the parent section so authorizing a write is one query
+    // rather than a join, the same way application_event carries it.
+    userId: text("user_id").notNull(),
+    sectionId: text("section_id")
+      .notNull()
+      .references(() => behavioralSections.id, { onDelete: "cascade" }),
+    prompt: text("prompt").notNull(),
+    // Empty until answered. Not nullable, so the editor never has to distinguish
+    // "no answer yet" from "answer cleared".
+    answer: text("answer").notNull().default(""),
+    createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("behavioral_question_section_prompt_idx").on(
+      t.sectionId,
+      t.prompt,
+    ),
+    index("behavioral_question_section_idx").on(t.sectionId),
+  ],
+);
+
 export const syncState = pgTable("sync_state", {
   userId: text("user_id").primaryKey(),
   status: text("status").notNull().default("idle"), // idle | running | error

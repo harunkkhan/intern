@@ -6,6 +6,7 @@ import {
   isEmailAllowed,
 } from "@/lib/queries";
 import { getAlertsData, getPostingsData } from "@/lib/alerts";
+import { getBehavioralData } from "@/lib/behavioral";
 import Dashboard from "@/components/Dashboard";
 
 export const dynamic = "force-dynamic";
@@ -23,11 +24,12 @@ export default async function Home() {
     redirect("/login?error=not_allowed");
   }
 
-  const [applications, sync, alerts, postings] = await Promise.all([
+  const [applications, sync, alerts, postings, behavioral] = await Promise.all([
     getApplicationsForUser(user.id),
     getSyncStateForUser(user.id),
     getAlertsData(user.id),
     getPostingsData(),
+    getBehavioralData(user.id),
   ]);
 
   return (
@@ -36,6 +38,7 @@ export default async function Home() {
       sync={sync}
       alerts={alerts}
       postings={postings}
+      behavioral={behavioral}
     />
   );
 }
