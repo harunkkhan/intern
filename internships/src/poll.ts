@@ -1,4 +1,5 @@
-// Poll entrypoint. Run from GitHub Actions every 10 minutes:
+// Poll entrypoint. Run from GitHub Actions every 5 minutes, by a loop inside a
+// long-running job rather than by one scheduled run per poll — see poll.yml:
 //
 //   bun src/poll.ts               # fetch, record, alert
 //   bun src/poll.ts --dry-run     # fetch and report only; no writes, no sends
@@ -148,8 +149,8 @@ async function loadSources(
   const filtered = only ? rows.filter((r) => r.label === only) : rows;
   if (ignoreInterval || only) return filtered;
 
-  // The workflow fires every 10 minutes, but each source declares how often it
-  // actually wants to be hit, and a failing source backs off on top of that.
+  // The workflow's loop fires every 5 minutes, but each source declares how often
+  // it actually wants to be hit, and a failing source backs off on top of that.
   const now = Date.now();
   return filtered.filter(
     (r) =>
