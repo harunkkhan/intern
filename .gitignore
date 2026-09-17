@@ -37,6 +37,9 @@ yarn-error.log*
 # worktrees
 .worktrees/
 
+# analysis notes
+.analysis/
+
 # python (scrapers/)
 .venv/
 venv/
