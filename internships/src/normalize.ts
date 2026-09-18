@@ -42,10 +42,149 @@ function canonicalUrl(raw: string): string | null {
   return `${host}${path}${query ? `?${query}` : ""}`;
 }
 
+const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+const UUID_SEGMENT = new RegExp(`^${UUID}$`, "i");
+const UUID_ANYWHERE = new RegExp(UUID, "i");
+
+/**
+ * The requisition id an applicant tracking system puts in its apply URL. One job
+ * is one requisition, so keying on it collapses copies that differ only in host,
+ * path suffix or embed params: `boards.` vs `job-boards.greenhouse.io`, Lever's
+ * `/apply`, Ashby's `/application?embed=true`, and Workday's per-site aliases
+ * (`medtroniccareers` vs `redeploymentmedtroniccareers`) and `-1` copy suffixes.
+ *
+ * `drizzle/0012_job_id_dedupe_keys.sql` reproduces this in SQL to rekey the rows
+ * written before it existed. The two must produce identical strings or the
+ * database ends up holding two generations of key, so keep them in step.
+ */
+function jobIdKey(raw: string): string | null {
+  let url: URL;
+  try {
+    url = new URL(raw.trim());
+  } catch {
+    return null;
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+  const host = url.hostname.replace(/^www\./, "");
+  const subdomain = host.split(".")[0] ?? "";
+  const path = url.pathname;
+  const second = path.split("/").filter(Boolean)[1] ?? "";
+  const jobsPathId = path.match(/\/jobs\/(\d+)(?:\/|$)/)?.[1];
+  const jobPathId = path.match(/\/job\/(\d+)(?:\/|$)/)?.[1];
+
+  // Params first: a company careers page that embeds someone else's board names
+  // the requisition in the query string, so it keys with the board's own copy.
+  const ghParam = url.searchParams.get("gh_jid");
+  if (ghParam && /^\d+$/.test(ghParam)) return `greenhouse:${ghParam}`;
+  const ashbyParam = url.searchParams.get("ashby_jid");
+  if (ashbyParam && UUID_SEGMENT.test(ashbyParam)) {
+    return `ashby:${ashbyParam.toLowerCase()}`;
+  }
+
+  if (host === "greenhouse.io" || host.endsWith(".greenhouse.io")) {
+    const token = url.searchParams.get("token");
+    if (jobsPathId) return `greenhouse:${jobsPathId}`;
+    if (token && /^\d+$/.test(token)) return `greenhouse:${token}`;
+  }
+  if (host === "jobs.ashbyhq.com" && UUID_SEGMENT.test(second)) {
+    return `ashby:${second.toLowerCase()}`;
+  }
+  if (
+    (host === "jobs.lever.co" || host === "jobs.eu.lever.co") &&
+    UUID_SEGMENT.test(second)
+  ) {
+    return `lever:${second.toLowerCase()}`;
+  }
+  // Workday's tenant is stable; the site name in the path is what differs
+  // between two career sites publishing one requisition, so it stays out.
+  const workdayTenant = host.endsWith(".myworkdayjobs.com")
+    ? subdomain
+    : host.endsWith(".myworkdaysite.com")
+      ? path.match(/(?:^|\/)recruiting\/+([^/]+)/)?.[1]
+      : undefined;
+  if (workdayTenant) {
+    // A repost keeps the requisition number and gains a `-1`. Guarded on three
+    // leading digits so a requisition genuinely named `…-1` survives intact.
+    const token = (path.match(/_([^_/]*)\/*$/)?.[1] ?? "").replace(
+      /(\d{3,})-\d$/,
+      "$1",
+    );
+    if (/\d/.test(token)) {
+      return `workday:${workdayTenant.toLowerCase()}:${token.toLowerCase()}`;
+    }
+  }
+  if (
+    host === "jobs.smartrecruiters.com" ||
+    host === "careers.smartrecruiters.com"
+  ) {
+    const id = path.match(/\/(\d{9,})(?:\/|$)/)?.[1];
+    if (id) return `smartrecruiters:${id}`;
+  }
+  if (host.endsWith(".icims.com") && jobsPathId) {
+    return `icims:${subdomain}:${jobsPathId}`;
+  }
+  if (host.endsWith(".oraclecloud.com") && jobPathId) {
+    return `oracle:${subdomain}:${jobPathId}`;
+  }
+  if (host === "apply.workable.com") {
+    const id = path.match(/\/j\/([0-9a-z]+)(?:\/|$)/i)?.[1];
+    if (id) return `workable:${id.toUpperCase()}`;
+  }
+  if (host === "ats.rippling.com") {
+    const id = path.match(UUID_ANYWHERE)?.[0];
+    if (id) return `rippling:${id.toLowerCase()}`;
+  }
+  if (host.endsWith(".eightfold.ai") || host === "explore.jobs.netflix.net") {
+    const id = url.searchParams.get("pid") ?? jobPathId;
+    if (id && /^\d+$/.test(id)) return `eightfold:${subdomain}:${id}`;
+  }
+  if (host.endsWith(".taleo.net")) {
+    const id = url.searchParams.get("job");
+    if (id) return `taleo:${subdomain}:${id}`;
+  }
+  if (host.endsWith(".jobvite.com")) {
+    const id = path.match(/\/job\/([0-9a-z_-]+)(?:\/|$)/i)?.[1];
+    if (id) return `jobvite:${subdomain}:${id}`;
+  }
+  if (host.endsWith(".paylocity.com")) {
+    const id = path.match(/\/details\/(\d+)/i)?.[1];
+    if (id) return `paylocity:${id}`;
+  }
+  if (host.endsWith(".bamboohr.com")) {
+    const id = path.match(/\/(\d+)(?:\/|$)/)?.[1];
+    if (id) return `bamboohr:${subdomain}:${id}`;
+  }
+  // ByteDance publishes one requisition across its own careers hosts.
+  if (
+    host === "lifeattiktok.com" ||
+    host === "jobs.bytedance.com" ||
+    host === "joinbytedance.com" ||
+    host === "careers.tiktok.com"
+  ) {
+    const id = path.match(/\/(\d{15,})(?:\/|$)/)?.[1];
+    if (id) return `bytedance:${id}`;
+  }
+  // Jane Street links the same Greenhouse requisition two ways: `/apply/<id>`
+  // carries `gh_jid` and is keyed above, `/position/<id>` carries nothing.
+  if (host === "janestreet.com") {
+    const id = path.match(/\/(?:position|apply)\/(\d{6,})(?:\/|$)/)?.[1];
+    if (id) return `greenhouse:${id}`;
+  }
+  // A vanity careers domain numbering jobs at `/jobs/<id>`, which is an iCIMS
+  // tenant behind its own hostname. The host stays in the key because the rule
+  // can't prove which system is answering, only that the id is the company's.
+  const vanityId = path.match(/^\/(?:careers-home\/)?jobs\/(\d+)(?:\/|$)/)?.[1];
+  if (vanityId) return `hostjob:${host}:${vanityId}`;
+
+  return null;
+}
+
 /**
  * Identifies the same posting across sources. Both GitHub feeds carry many of
  * the same jobs under different ids, and a company's own ATS board carries them
- * a third time — deliveries dedupe on this so one job is one message.
+ * a third time — deliveries dedupe on this so one job is one message. The
+ * requisition id is tried first because the three copies rarely share a URL;
+ * the canonical URL still covers scraped pages that carry no id at all.
  */
 export function dedupeKeyFor(
   company: string,
@@ -53,7 +192,9 @@ export function dedupeKeyFor(
   url: string,
 ): string {
   return (
-    canonicalUrl(url) ?? `${normalizeCompany(company)}::${normalizeTitle(title)}`
+    jobIdKey(url) ??
+    canonicalUrl(url) ??
+    `${normalizeCompany(company)}::${normalizeTitle(title)}`
   );
 }
 
