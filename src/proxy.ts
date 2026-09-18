@@ -9,7 +9,9 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Run on all paths except static assets and image files.
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Run on all paths except static assets, image files, and the Discord
+    // interactions endpoint — that one verifies its own signature and has three
+    // seconds to answer, which a Supabase round-trip it can't use eats into.
+    "/((?!_next/static|_next/image|favicon.ico|api/discord/interactions|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

@@ -19,8 +19,23 @@ poll.ts ──fetch──> job_listing ──reserve──> alert_delivery ─�
 An incoming webhook is the whole transport: no bot user, no gateway connection,
 no always-on host. That's what lets this run as one more step in the 10-minute
 GitHub Action instead of needing somewhere to live. The cost is that it's
-send-only — a webhook has no inbound side, so there are no slash commands and
-no `STOP` reply. Turning alerts off is done in the dashboard.
+send-only — a webhook has no inbound side, so nothing typed in the channel
+reaches this sender and there is no `STOP` reply. Turning alerts off is done in
+the dashboard.
+
+The one inbound thing that exists is the **`/load` slash command**, and it lives
+somewhere else entirely: `src/app/api/discord/interactions/route.ts` in the web
+app, which is on Vercel and can therefore receive an HTTP request. It doesn't
+post anything itself — it starts a one-shot `poll.yml` run, and that run's
+`Post Discord alerts` step is this same sender. Anyone in the server can run it,
+the reply is public, and a manual run posts up to 200 postings per channel
+instead of the usual 40.
+
+`/load` refuses to dispatch while a `poll.yml` run is alive and links that run
+instead. During the weekday window a 5h45m loop holds `concurrency:
+poll-job-listings`, and a run queued against it replaces the pending standby
+that the loop's handoff depends on — so the command would cost more than it
+gives. It is meant for evenings and weekends, when nothing is polling.
 
 ## Setup
 
@@ -35,6 +50,43 @@ no `STOP` reply. Turning alerts off is done in the dashboard.
 cd discord
 bun src/test-send.ts https://discord.com/api/webhooks/<id>/<token>
 ```
+
+4. Only for `/load`: create a Discord **application** (Developer Portal → New
+   Application), put its **Public Key** and **Application ID** into Vercel as
+   `DISCORD_PUBLIC_KEY` and `DISCORD_APP_ID`, deploy, and then set
+   **Interactions Endpoint URL** to
+   `https://intern.harunkhan.org/api/discord/interactions`. Discord verifies the
+   URL by signing a PING — and by sending deliberately bad signatures it expects
+   a 401 for — so the route has to be deployed before the URL will save.
+5. Register the command once. It is a bulk overwrite of the guild's commands, so
+   running it again is how you edit the command, not how you duplicate it. The
+   bot token is used **only here** — the web app never holds one:
+
+```bash
+curl -X PUT \
+  "https://discord.com/api/v10/applications/$DISCORD_APP_ID/guilds/$DISCORD_GUILD_ID/commands" \
+  -H "Authorization: Bot $DISCORD_BOT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "name": "load",
+      "type": 1,
+      "description": "Poll for new internships now and post whatever turns up",
+      "options": [
+        {
+          "name": "source",
+          "type": 3,
+          "description": "Poll only this source (leave empty for every source due)",
+          "required": false,
+          "autocomplete": true
+        }
+      ]
+    }
+  ]'
+```
+
+Guild commands appear immediately; a global registration (the same call without
+`/guilds/$DISCORD_GUILD_ID`) takes up to an hour to propagate.
 
 The URL is stored in `alert_subscriber.webhook_url`, not in the environment, so
 one deployment can post to several channels. Its token half is a bearer
@@ -135,6 +187,18 @@ are packed, so adding it can cost an extra message but can never overflow one.
 | --- | --- |
 | `DATABASE_URL` | Supabase pooler URL — same value the web app and poller use |
 | `DISCORD_MENTION_ROLE_ID` | _Optional._ Numeric role id a digest pings. Unset = post silently |
-| `DISCORD_MAX_PER_RUN` | _Optional._ Postings drained per run. Default 40; raise for a one-off backlog |
+| `DISCORD_MAX_PER_RUN` | _Optional._ Postings drained per run. Default 40; `poll.yml` sets 200 on the manual-dispatch step, which is what `/load` starts |
 | `DISCORD_USERNAME` | _Optional._ Overrides the name the webhook posts under |
 | `DISCORD_AVATAR_URL` | _Optional._ Overrides the webhook's avatar |
+
+The `/load` command runs in the web app, so its variables are set in **Vercel**,
+not here:
+
+| Variable | Purpose |
+| --- | --- |
+| `DISCORD_PUBLIC_KEY` | Application's Public Key. Every interaction request is Ed25519-checked against it — unset rejects everything |
+| `DISCORD_APP_ID` | Application ID, used to edit the command's own deferred reply |
+| `GITHUB_DISPATCH_TOKEN` | Fine-grained token with Actions: Read and write on `harunkkhan/intern`. Lists live runs and dispatches `poll.yml` |
+
+`DISCORD_APP_ID`, `DISCORD_GUILD_ID` and `DISCORD_BOT_TOKEN` are exported by hand
+for the one-off registration curl in Setup and are needed nowhere at runtime.
