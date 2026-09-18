@@ -1,7 +1,9 @@
 import "server-only";
 import {
   and,
+  asc,
   count,
+  countDistinct,
   desc,
   eq,
   gte,
@@ -288,26 +290,45 @@ export async function getPostingsData(
   }
   const where = and(...filters);
 
+  // One row per job, not per source: the GitHub feeds and the company's own board
+  // carry the same posting under different ids, and dedupe_key is what says they
+  // are the same. The copy kept is the earliest sighting, so the date shown is
+  // also the date the outer sort uses — a later copy's date would claim the job
+  // appeared after it did. The search predicate deliberately runs before the
+  // collapse: the winning copy is chosen among matching rows, so a job whose only
+  // matching copy is worded differently still turns up instead of vanishing.
+  const deduped = db
+    .selectDistinctOn([jobListings.dedupeKey], {
+      id: jobListings.id,
+      company: jobListings.company,
+      title: jobListings.title,
+      url: jobListings.url,
+      locations: jobListings.locations,
+      term: jobListings.term,
+      firstSeenAt: jobListings.firstSeenAt,
+      sourceLabel: jobSources.label,
+    })
+    .from(jobListings)
+    .innerJoin(jobSources, eq(jobListings.sourceId, jobSources.id))
+    .where(where)
+    .orderBy(
+      jobListings.dedupeKey,
+      asc(jobListings.firstSeenAt),
+      asc(jobListings.id),
+    )
+    .as("deduped");
+
   const [rows, [totals]] = await Promise.all([
     db
-      .select({
-        id: jobListings.id,
-        company: jobListings.company,
-        title: jobListings.title,
-        url: jobListings.url,
-        locations: jobListings.locations,
-        term: jobListings.term,
-        firstSeenAt: jobListings.firstSeenAt,
-        sourceLabel: jobSources.label,
-      })
-      .from(jobListings)
-      .innerJoin(jobSources, eq(jobListings.sourceId, jobSources.id))
-      .where(where)
-      .orderBy(desc(jobListings.firstSeenAt))
+      .select()
+      .from(deduped)
+      // `id` breaks the tie: a poll stamps every row it inserts with the same
+      // first_seen_at, so without it LIMIT/OFFSET can repeat or skip rows.
+      .orderBy(desc(deduped.firstSeenAt), desc(deduped.id))
       .limit(pageSize)
       .offset(page * pageSize),
     db
-      .select({ total: count(jobListings.id) })
+      .select({ total: countDistinct(jobListings.dedupeKey) })
       .from(jobListings)
       .where(where),
   ]);
