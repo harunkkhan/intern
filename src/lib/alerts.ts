@@ -246,6 +246,59 @@ export async function getAlertsData(userId: string): Promise<AlertsData> {
   };
 }
 
+/** Discord returns at most 25 autocomplete choices, each at most 100 chars. */
+const DISCORD_CHOICE_LIMIT = 25;
+const DISCORD_CHOICE_MAX_LENGTH = 100;
+
+/**
+ * Suggestions for the `source` option of the Discord /load command.
+ *
+ * Distinct labels, because what is unique is (label, adapter): the same company
+ * can hold an enabled row under two adapters, and `--source` polls every enabled
+ * row with that label anyway, so offering it twice would just be noise.
+ *
+ * Labels longer than Discord's choice limit are dropped rather than truncated —
+ * a truncated value would no longer exact-match a label, so picking it would
+ * poll nothing.
+ */
+export async function getEnabledSourceLabels(term: string): Promise<string[]> {
+  const filters = [
+    eq(jobSources.enabled, true),
+    sql`char_length(${jobSources.label}) <= ${DISCORD_CHOICE_MAX_LENGTH}`,
+  ];
+  const trimmed = term.trim();
+  if (trimmed) {
+    const like = `%${trimmed.replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
+    filters.push(ilike(jobSources.label, like));
+  }
+
+  const rows = await db
+    .selectDistinct({ label: jobSources.label })
+    .from(jobSources)
+    .where(and(...filters))
+    .orderBy(jobSources.label)
+    .limit(DISCORD_CHOICE_LIMIT);
+  return rows.map((r) => r.label);
+}
+
+/**
+ * Whether a label names an enabled source, exactly as the poller matches it.
+ *
+ * This is a security boundary, not a nicety. Autocomplete only suggests —
+ * Discord submits whatever the user typed into the option — and the value
+ * reaches poll.yml, where it becomes a shell argument in a step holding the
+ * database URL and the iMessage credentials. Nothing is dispatched until a
+ * value has been found here.
+ */
+export async function isEnabledSourceLabel(label: string): Promise<boolean> {
+  const rows = await db
+    .select({ id: jobSources.id })
+    .from(jobSources)
+    .where(and(eq(jobSources.enabled, true), eq(jobSources.label, label)))
+    .limit(1);
+  return rows.length > 0;
+}
+
 // Page-size options live in src/lib/postings.ts so client components can import
 // them without dragging the database client into the browser bundle.
 

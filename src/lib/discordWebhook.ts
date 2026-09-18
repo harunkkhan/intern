@@ -1,7 +1,10 @@
 // Webhook URL parsing, shared by the web app (which accepts the URL from a form)
-// and discord/ (which posts to it). Deliberately dependency-free and free of
+// and discord/ (which posts to it), plus the pieces the /load slash command
+// needs on the inbound side. Deliberately dependency-free and free of
 // "server-only" so the Bun sender can import it the same way it imports the
-// Drizzle schema.
+// Drizzle schema — node:crypto is a builtin both Node and Bun provide.
+
+import { createPublicKey, verify } from "node:crypto";
 
 /** Discord's hard cap on `content` for one message. */
 export const DISCORD_MAX_CONTENT = 2000;
@@ -62,4 +65,81 @@ export function parseDiscordWebhook(raw: string): ParsedWebhook | null {
 export function redactDiscordWebhook(url: string): string {
   const parsed = parseDiscordWebhook(url);
   return parsed ? `Discord webhook · ${parsed.id}` : "Discord webhook";
+}
+
+/**
+ * Verifies the Ed25519 signature Discord puts on every interaction request.
+ * This is the only thing standing between the interactions endpoint and the
+ * open internet, so it is the whole authentication story: a request that fails
+ * it did not come from Discord.
+ *
+ * `publicKeyHex` is the Public Key from the application's portal page, raw
+ * 32-byte Ed25519 in hex. Node has no loader for that form, so it goes in as a
+ * JWK, which takes the same bytes base64url-encoded.
+ *
+ * Returns false rather than throwing for every kind of bad input, including a
+ * malformed key in the environment. Discord validates a newly entered endpoint
+ * URL by sending deliberately invalid signatures and requires a 401 — an
+ * exception escaping here would be a 500 and the URL would be rejected.
+ */
+export function verifyDiscordSignature(
+  publicKeyHex: string | undefined,
+  signature: string | null,
+  timestamp: string | null,
+  body: string,
+): boolean {
+  if (!publicKeyHex || !signature || !timestamp) return false;
+  // Buffer.from(…, "hex") truncates at the first bad pair instead of failing,
+  // so the lengths are checked here rather than left to decode into a short key.
+  if (!/^[0-9a-f]{64}$/i.test(publicKeyHex)) return false;
+  if (!/^[0-9a-f]{128}$/i.test(signature)) return false;
+
+  try {
+    const key = createPublicKey({
+      key: {
+        kty: "OKP",
+        crv: "Ed25519",
+        x: Buffer.from(publicKeyHex, "hex").toString("base64url"),
+      },
+      format: "jwk",
+    });
+    return verify(
+      null,
+      Buffer.from(timestamp + body),
+      key,
+      Buffer.from(signature, "hex"),
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Replaces the "thinking…" placeholder left by a deferred interaction response.
+ * The interaction token authenticates the call by itself — no bot token is
+ * involved — and stays valid for 15 minutes.
+ */
+export async function editDiscordInteractionReply(
+  applicationId: string,
+  interactionToken: string,
+  content: string,
+): Promise<void> {
+  const res = await fetch(
+    `https://discord.com/api/v10/webhooks/${applicationId}/${interactionToken}/messages/@original`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        content: content.slice(0, DISCORD_MAX_CONTENT),
+        // A run URL would otherwise unfurl into a card taller than the reply.
+        flags: DISCORD_SUPPRESS_EMBEDS,
+        allowed_mentions: { parse: [] },
+      }),
+    },
+  );
+  if (!res.ok) {
+    throw new Error(
+      `Discord reply edit failed: HTTP ${res.status} ${(await res.text()).slice(0, 300)}`,
+    );
+  }
 }

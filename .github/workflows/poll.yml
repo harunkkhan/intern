@@ -134,6 +134,12 @@ jobs:
           DISCORD_MENTION_ROLE_ID: ${{ vars.DISCORD_MENTION_ROLE_ID }}
           DISCORD_USERNAME: ${{ vars.DISCORD_USERNAME }}
           DISCORD_AVATAR_URL: ${{ vars.DISCORD_AVATAR_URL }}
+          # A manual run is somebody asking for the backlog — usually the /load
+          # command, out of hours, against rows the loop never got to. 200 is
+          # about 17-20 messages per channel at 2.5/s, inside Discord's limits.
+          # The loop keeps the default 40: it runs every 5 minutes, so a digest
+          # that big would mean something else is wrong.
+          DISCORD_MAX_PER_RUN: 200
         run: |
           bun src/send-alerts.ts ${{ inputs.dry_run && '--dry-run' || '' }}
 
