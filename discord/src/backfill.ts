@@ -17,10 +17,13 @@
 // rule can be sitting in the table having passed a filter that no longer holds.
 //
 // Reserving is idempotent: alert_delivery is unique on (subscriber, dedupe_key),
-// so anything already sent is skipped and re-running adds nothing.
+// so anything already sent is skipped and re-running adds nothing. The ledger is
+// read through listing_id as well, so a row whose stored key has gone stale still
+// counts as covered — see internships/src/deliveries.ts.
 
 import { and, eq } from "drizzle-orm";
 import { closeDb, db, hasDatabase, schema } from "./db.ts";
+import { dropAlreadyDelivered } from "../../internships/src/deliveries.ts";
 import {
   filterListing,
   termFloor,
@@ -122,11 +125,14 @@ try {
     if (!apply) continue;
 
     let reserved = 0;
-    const values = [...unique.values()].map((r) => ({
-      subscriberId: subscriber.id,
-      listingId: r.id,
-      dedupeKey: r.dedupeKey,
-    }));
+    const values = await dropAlreadyDelivered(
+      db,
+      [...unique.values()].map((r) => ({
+        subscriberId: subscriber.id,
+        listingId: r.id,
+        dedupeKey: r.dedupeKey,
+      })),
+    );
     for (let i = 0; i < values.length; i += 500) {
       const inserted = await db
         .insert(alertDeliveries)
