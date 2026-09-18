@@ -13,6 +13,7 @@
 
 import { and, asc, desc, eq, gte, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import { closeDb, db, hasDatabase, schema } from "./db.ts";
+import { dropAlreadyDelivered } from "./deliveries.ts";
 import { filterListing, termFloor, type FilterVerdict } from "./filter.ts";
 import { formatDigest, formatIntro, type DigestListing } from "./message.ts";
 import { dedupeKeyFor, normalizeCompany } from "./normalize.ts";
@@ -387,7 +388,8 @@ async function recordRun(
  * Creates 'pending' delivery rows for every (subscriber, new listing) pair the
  * subscriber's scope allows. `onConflictDoNothing` against the unique
  * (subscriber, dedupe_key) index is what collapses the same job arriving from
- * two different feeds into a single alert.
+ * two different feeds into a single alert, backed by `dropAlreadyDelivered` for
+ * the case where a delivery row's key has gone stale.
  */
 async function reserveDeliveries(listingIds: string[]): Promise<number> {
   if (listingIds.length === 0) return 0;
@@ -473,8 +475,12 @@ async function reserveDeliveries(listingIds: string[]): Promise<number> {
     }
   }
 
+  // `onConflictDoNothing` compares against the key each delivery row was written
+  // with, which the upsert above can leave stale — see deliveries.ts.
+  const fresh = await dropAlreadyDelivered(db, rows);
+
   let reserved = 0;
-  for (const chunk of chunks(rows, CHUNK)) {
+  for (const chunk of chunks(fresh, CHUNK)) {
     const inserted = await db
       .insert(alertDeliveries)
       .values(chunk)
