@@ -3,6 +3,14 @@
     {
       "path": "/api/cron/sync",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/poll",
+      "schedule": "0 10 * * 1-5"
+    },
+    {
+      "path": "/api/cron/poll",
+      "schedule": "0 14 * * 1-5"
     }
   ]
 }

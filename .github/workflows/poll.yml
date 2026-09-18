@@ -40,6 +40,10 @@ on:
         description: "Poll only this source label (e.g. SimplifyJobs)"
         type: string
         required: false
+      loop:
+        description: "Run the 5-minute loop exactly as a scheduled run does"
+        type: boolean
+        default: false
 
 # Runs are idempotent, but overlapping them wastes a runner and doubles the load
 # on every careers page. Queue instead of cancelling so a long run still finishes
@@ -50,6 +54,11 @@ on:
 # standby that starts the instant the active run exits — whether it exited
 # because the window closed or because it hit the job cap. That is what keeps the
 # gap between consecutive runs near zero without any run-is-alive bookkeeping.
+#
+# GitHub has been creating the scheduled runs hours late, so the first run of a
+# weekday is started by the Vercel cron instead (/api/cron/poll), which
+# dispatches with `loop=true`. A late-morning second dispatch queues here as the
+# standby like any scheduled tick; the schedule stays as the fallback.
 concurrency:
   group: poll-job-listings
   cancel-in-progress: false
@@ -100,7 +109,7 @@ jobs:
       # checking a change — waiting out a 5-hour loop to see the output is not
       # what anyone pressing "Run workflow" wants.
       - name: Poll once (manual dispatch)
-        if: ${{ github.event_name == 'workflow_dispatch' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && !inputs.loop }}
         working-directory: internships
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -110,13 +119,15 @@ jobs:
           PYTHON_BIN: python
           SCRAPERS_DIR: ${{ github.workspace }}/scrapers
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Via env, not interpolated into the script: labels are free text.
+          SOURCE: ${{ inputs.source }}
         run: |
           bun src/poll.ts \
             ${{ inputs.dry_run && '--dry-run' || '' }} \
-            ${{ inputs.source && format('--source={0}', inputs.source) || '' }}
+            ${SOURCE:+"--source=$SOURCE"}
 
       - name: Post Discord alerts (manual dispatch)
-        if: ${{ github.event_name == 'workflow_dispatch' && !cancelled() }}
+        if: ${{ github.event_name == 'workflow_dispatch' && !inputs.loop && !cancelled() }}
         working-directory: discord
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -126,11 +137,12 @@ jobs:
         run: |
           bun src/send-alerts.ts ${{ inputs.dry_run && '--dry-run' || '' }}
 
-      # The scheduled path: poll every 5 minutes for as long as the window is
-      # open, posting to Discord in the same iteration so a new listing reaches
-      # the channel seconds after it is found rather than on a later run.
+      # The scheduled path (and a `loop` dispatch): poll every 5 minutes for as
+      # long as the window is open, posting to Discord in the same iteration so a
+      # new listing reaches the channel seconds after it is found rather than on
+      # a later run.
       - name: Poll loop
-        if: ${{ github.event_name == 'schedule' }}
+        if: ${{ github.event_name == 'schedule' || inputs.loop }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           PROJECT_ID: ${{ secrets.PROJECT_ID }}
@@ -163,6 +175,19 @@ jobs:
             hour=$(TZ=America/New_York date +%-H) # no leading zero; 08 is not octal here
             [ "$dow" -le 5 ] && [ "$hour" -ge 6 ] && [ "$hour" -lt 20 ]
           }
+
+          # A weekday start in the hour before 6am ET waits for the window rather
+          # than exiting: under EST the Vercel cron dispatch lands at 5-6am. The
+          # wait comes out of DEADLINE, which is also pulled back to a whole number
+          # of periods after 6am so the last sleep can't overshoot it and push the
+          # job into timeout-minutes. One `date` call so the fields agree.
+          read -r now dow hour minute second <<< "$(TZ=America/New_York date '+%s %u %-H %-M %-S')"
+          if [ "$dow" -le 5 ] && [ "$hour" -eq 5 ]; then
+            opens=$(( now + 3600 - minute * 60 - second ))
+            DEADLINE=$(( DEADLINE - (DEADLINE - opens) % PERIOD ))
+            echo "window opens at 6am ET; waiting $(( opens - now ))s"
+            sleep $(( opens - now ))
+          fi
 
           if ! in_window; then
             echo "outside 6am-8pm ET weekday window; nothing to do"

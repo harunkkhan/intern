@@ -31,7 +31,7 @@ application tracker, with a second pipeline that alerts you to new postings.
 - **Supabase Auth** (Google OAuth via `@supabase/ssr`)
 - **Supabase Postgres** via **Drizzle ORM**
 - **googleapis** (Gmail) · **@google/genai** (Gemini)
-- **Vercel Cron** (daily sync) · **GitHub Actions** (job-alert poller)
+- **Vercel Cron** (daily sync, weekday poller start) · **GitHub Actions** (job-alert poller)
 - **Bun** (alert senders) · **Python** + Playwright/BeautifulSoup (scrapers)
 
 ## Repo structure
