@@ -9,6 +9,8 @@
     "listen": "bun src/listen.ts",
     "subscribers": "bun src/subscribers.ts",
     "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "cancel-non-us": "bun src/cancel-non-us-deliveries.ts",
     "start": "bun src/index.ts",
     "dev": "bun --watch src/index.ts"
   },
@@ -19,6 +21,7 @@
   },
   "devDependencies": {
     "typescript": "^5",
+    "@types/bun": "^1.4.2",
     "@types/node": "^22",
     "tsx": "^4"
   }
