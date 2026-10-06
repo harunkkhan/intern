@@ -32,6 +32,8 @@ describe("filterListing location rule", () => {
     expect(verdict("Software Intern", [])).toEqual(KEEP);
     expect(verdict("Software Intern", ["Remote"])).toEqual(KEEP);
     expect(verdict("Software Intern", ["4 Locations"])).toEqual(KEEP);
+    expect(verdict("Software Intern", ["Vienna, VA"])).toEqual(KEEP);
+    expect(verdict("Software Intern", ["Rome, NY"])).toEqual(KEEP);
   });
 
   test("keeps mixed lists with a US or unknown part", () => {

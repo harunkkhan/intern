@@ -19,11 +19,13 @@ export type Region = "us" | "canada" | "foreign" | "unknown";
 const FOREIGN_LANGUAGE =
   /\b(duales\s+studium|werkstudent\w*|praktikum|praktikant\w*|ausbildung|stage\s+(?:de|en)\b|alternance|stagiaire|becario|becaria|pr[áa]cticas|est[áa]gio|estagi[áa]rio|tirocinio|stagista|praktyka|praktykant|st[aá][zž]|\(m\/w\/d\)|\(w\/m\/d\)|\(f\/m\/d\)|\(f,m,x\)|\(m\/f\/d\)|h\/f\b)/i;
 
-// Checked first, so anything overlapping resolves to foreign. Countries and
-// unambiguously non-North-American metros only — never a city that also exists in
-// the US or Canada.
-const FOREIGN =
-  /\b(united\s+kingdom|uk|england|scotland|wales|northern\s+ireland|ireland|eire|france|germany|deutschland|netherlands|holland|belgium|luxembourg|switzerland|austria|spain|portugal|italy|greece|turkey|poland|czechia|czech\s+republic|slovakia|hungary|romania|bulgaria|serbia|croatia|slovenia|denmark|sweden|norway|finland|iceland|estonia|latvia|lithuania|ukraine|russia|israel|palestine|jordan|lebanon|saudi\s+arabia|uae|united\s+arab\s+emirates|qatar|kuwait|bahrain|oman|egypt|morocco|tunisia|nigeria|kenya|ghana|south\s+africa|india|pakistan|bangladesh|sri\s+lanka|nepal|china|prc|hong\s+kong|macau|taiwan|japan|nippon|south\s+korea|korea|singapore|malaysia|indonesia|thailand|vietnam|philippines|australia|new\s+zealand|brazil|brasil|argentina|chile|colombia|peru|uruguay|ecuador|venezuela|bolivia|paraguay|costa\s+rica|panama|guatemala|honduras|nicaragua|el\s+salvador|dominican\s+republic|puerto\s+rico|jamaica|trinidad|emea|apac|latam|europe|asia|africa|middle\s+east|oceania|international)\b|\b(london(?!\s*,?\s*(on|ont|ontario))|dublin|edinburgh|manchester|glasgow|bristol|leeds|cambridge\s*,?\s*uk|oxford\s*,?\s*uk|paris|lyon|toulouse|berlin|munich|münchen|frankfurt|hamburg|cologne|stuttgart|düsseldorf|dusseldorf|amsterdam|rotterdam|utrecht|eindhoven|brussels|antwerp|zurich|zürich|geneva|basel|lausanne|vienna|wien|madrid|barcelona|valencia|lisbon|porto|milan|milano|rome|roma|turin|athens|istanbul|ankara|warsaw|krakow|kraków|wroclaw|wrocław|gdansk|prague|praha|brno|bratislava|budapest|bucharest|sofia|belgrade|zagreb|ljubljana|copenhagen|københavn|stockholm|gothenburg|oslo|helsinki|reykjavik|tallinn|riga|vilnius|kyiv|kiev|moscow|st\.?\s*petersburg|tel\s*aviv|jerusalem|haifa|herzliya|ra'?anana|dubai|abu\s*dhabi|doha|riyadh|jeddah|cairo|casablanca|nairobi|lagos|johannesburg|cape\s*town|pretoria|bangalore|bengaluru|hyderabad|mumbai|bombay|delhi|new\s*delhi|gurgaon|gurugram|noida|pune|chennai|kolkata|ahmedabad|karachi|lahore|islamabad|dhaka|colombo|kathmandu|shanghai|beijing|peking|shenzhen|guangzhou|hangzhou|chengdu|wuhan|xian|taipei|hsinchu|seoul|busan|incheon|tokyo|osaka|kyoto|yokohama|nagoya|fukuoka|kuala\s*lumpur|penang|jakarta|bandung|bangkok|hanoi|ho\s*chi\s*minh|saigon|manila|cebu|sydney|melbourne|brisbane|perth|adelaide|canberra|auckland|wellington|christchurch|são\s*paulo|sao\s*paulo|rio\s*de\s*janeiro|brasilia|belo\s*horizonte|buenos\s*aires|córdoba|cordoba|santiago|bogota|bogotá|medellin|medellín|lima|montevideo|quito|caracas|guadalajara|monterrey|mexico\s*city|ciudad\s*de\s*méxico|san\s*jos[eé]\s*,?\s*(cr|costa)|heredia|cartago)\b/i;
+// Countries win every tie: "London, UK" must not be rescued by a stray token.
+// Cities lose to a US state, since many have US namesakes: "Vienna, VA",
+// "Rome, NY", "Melbourne, FL".
+const FOREIGN_COUNTRY =
+  /\b(united\s+kingdom|uk|england|scotland|wales|northern\s+ireland|ireland|eire|france|germany|deutschland|netherlands|holland|belgium|luxembourg|switzerland|austria|spain|portugal|italy|greece|turkey|poland|czechia|czech\s+republic|slovakia|hungary|romania|bulgaria|serbia|croatia|slovenia|denmark|sweden|norway|finland|iceland|estonia|latvia|lithuania|ukraine|russia|israel|palestine|jordan|lebanon|saudi\s+arabia|uae|united\s+arab\s+emirates|qatar|kuwait|bahrain|oman|egypt|morocco|tunisia|nigeria|kenya|ghana|south\s+africa|india|pakistan|bangladesh|sri\s+lanka|nepal|china|prc|hong\s+kong|macau|taiwan|japan|nippon|south\s+korea|korea|singapore|malaysia|indonesia|thailand|vietnam|philippines|australia|new\s+zealand|brazil|brasil|argentina|chile|colombia|peru|uruguay|ecuador|venezuela|bolivia|paraguay|costa\s+rica|panama|guatemala|honduras|nicaragua|el\s+salvador|dominican\s+republic|puerto\s+rico|jamaica|trinidad|emea|apac|latam|europe|asia|africa|middle\s+east|oceania|international)\b/i;
+const FOREIGN_CITY =
+  /\b(london(?!\s*,?\s*(on|ont|ontario))|dublin|edinburgh|manchester|glasgow|bristol|leeds|cambridge\s*,?\s*uk|oxford\s*,?\s*uk|paris|lyon|toulouse|berlin|munich|münchen|frankfurt|hamburg|cologne|stuttgart|düsseldorf|dusseldorf|amsterdam|rotterdam|utrecht|eindhoven|brussels|antwerp|zurich|zürich|geneva|basel|lausanne|vienna|wien|madrid|barcelona|valencia|lisbon|porto|milan|milano|rome|roma|turin|athens|istanbul|ankara|warsaw|krakow|kraków|wroclaw|wrocław|gdansk|prague|praha|brno|bratislava|budapest|bucharest|sofia|belgrade|zagreb|ljubljana|copenhagen|københavn|stockholm|gothenburg|oslo|helsinki|reykjavik|tallinn|riga|vilnius|kyiv|kiev|moscow|st\.?\s*petersburg|tel\s*aviv|jerusalem|haifa|herzliya|ra'?anana|dubai|abu\s*dhabi|doha|riyadh|jeddah|cairo|casablanca|nairobi|lagos|johannesburg|cape\s*town|pretoria|bangalore|bengaluru|hyderabad|mumbai|bombay|delhi|new\s*delhi|gurgaon|gurugram|noida|pune|chennai|kolkata|ahmedabad|karachi|lahore|islamabad|dhaka|colombo|kathmandu|shanghai|beijing|peking|shenzhen|guangzhou|hangzhou|chengdu|wuhan|xian|taipei|hsinchu|seoul|busan|incheon|tokyo|osaka|kyoto|yokohama|nagoya|fukuoka|kuala\s*lumpur|penang|jakarta|bandung|bangkok|hanoi|ho\s*chi\s*minh|saigon|manila|cebu|sydney|melbourne|brisbane|perth|adelaide|canberra|auckland|wellington|christchurch|são\s*paulo|sao\s*paulo|rio\s*de\s*janeiro|brasilia|belo\s*horizonte|buenos\s*aires|córdoba|cordoba|santiago|bogota|bogotá|medellin|medellín|lima|montevideo|quito|caracas|guadalajara|monterrey|mexico\s*city|ciudad\s*de\s*méxico|san\s*jos[eé]\s*,?\s*(cr|costa)|heredia|cartago)\b/i;
 
 // Whole-footprint phrases that name the US outright, including region-wide ones
 // that also cover Canada: "Remote - North America", "US/Canada", "Remote in US or
@@ -60,6 +62,37 @@ const US_STATE_CODE =
 // Canadian reading has been ruled out.
 const CALIFORNIA_CODE = /(?:^|[,\s(\-–/])CA(?=$|[,\s)\-–/;])/;
 
+const US_STATE_CODES = new RegExp(US_STATE_CODE.source, "g");
+
+// State codes that are also ISO country codes, with the listed cities in that
+// country: "Bangalore, IN" is India and "Tel Aviv, IL" is Israel, while
+// "Warsaw, IN" is still Indiana.
+const ISO_CLASH: Record<string, RegExp> = {
+  IN: /\b(bangalore|bengaluru|hyderabad|mumbai|bombay|delhi|gurgaon|gurugram|noida|pune|chennai|kolkata|ahmedabad)\b/i,
+  IL: /\b(tel\s*aviv|jerusalem|haifa|herzliya|ra'?anana)\b/i,
+  DE: /\b(berlin|munich|münchen|frankfurt|hamburg|cologne|stuttgart|düsseldorf|dusseldorf)\b/i,
+  CO: /\b(bogota|bogotá|medellin|medellín)\b/i,
+  AR: /\b(buenos\s*aires|córdoba|cordoba)\b/i,
+  ID: /\b(jakarta|bandung)\b/i,
+  MA: /\b(casablanca)\b/i,
+};
+
+/** Whether a string names a US state or the US itself, as a foreign city's qualifier. */
+function namesUs(value: string): boolean {
+  if (
+    US_COUNTRY.test(value) ||
+    US_COUNTRY_CODE.test(value) ||
+    US_STATE_NAME.test(value) ||
+    CALIFORNIA_CODE.test(value)
+  ) {
+    return true;
+  }
+  for (const [, code] of value.matchAll(US_STATE_CODES)) {
+    if (code && !ISO_CLASH[code]?.test(value)) return true;
+  }
+  return false;
+}
+
 // Common US shorthand, e.g. "NYC", "SF Bay Area", "Silicon Valley".
 const US_SHORTHAND =
   /\b(nyc|new\s*york\s*city|sf\s*bay\s*area|bay\s*area|silicon\s*valley|dmv|socal|norcal)\b/i;
@@ -74,8 +107,8 @@ const FOREIGN_REGION =
 export function classifyLocation(raw: string): Region {
   const value = raw.trim();
   if (!value) return "unknown";
-  // Foreign wins ties: "London, UK" must not be rescued by a stray token.
-  if (FOREIGN.test(value) || FOREIGN_LANGUAGE.test(value)) return "foreign";
+  if (FOREIGN_COUNTRY.test(value) || FOREIGN_LANGUAGE.test(value)) return "foreign";
+  if (FOREIGN_CITY.test(value) && !namesUs(value)) return "foreign";
   if (
     US_COUNTRY.test(value) ||
     US_COUNTRY_CODE.test(value) ||
@@ -110,7 +143,11 @@ export function classifyLocation(raw: string): Region {
  */
 export function titleLooksForeign(title: string): boolean {
   const stripped = title.replace(FOREIGN_REGION, " ");
-  return FOREIGN.test(stripped) || FOREIGN_LANGUAGE.test(title);
+  return (
+    FOREIGN_COUNTRY.test(stripped) ||
+    FOREIGN_CITY.test(stripped) ||
+    FOREIGN_LANGUAGE.test(title)
+  );
 }
 
 /**
