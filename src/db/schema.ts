@@ -371,7 +371,7 @@ export const alertDeliveries = pgTable(
       .notNull()
       .references(() => jobListings.id, { onDelete: "cascade" }),
     dedupeKey: text("dedupe_key").notNull(),
-    // pending | sent | failed
+    // pending | sent | failed | skipped (never to be sent)
     status: text("status").notNull().default("pending"),
     attempts: integer("attempts").notNull().default(0),
     error: text("error"),
