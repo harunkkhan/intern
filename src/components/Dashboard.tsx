@@ -105,17 +105,17 @@ export default function Dashboard({
   }, [applications, status, term, industry, companyType, query]);
 
   const sorted = useMemo(() => {
-    // No column sort: group by attention order — interview, OA, applied,
-    // pending, offer, rejected. Array.sort is stable, so the query's
-    // lastEventAt ordering survives as the tiebreak inside each group.
+    // No column sort: group by attention order — offer, interview, OA, applied,
+    // pending, rejected. Array.sort is stable, so the query's lastEventAt
+    // ordering survives as the tiebreak inside each group.
     if (!sortKey) {
       return [...filtered].sort((a, b) => defaultRowRank(a) - defaultRowRank(b));
     }
-    // Rejections always sink to the bottom of a column sort, regardless of
-    // recency. Not needed above, where the status order already places them.
+    // Column sort: offers pin to the top and rejections to the bottom; the
+    // stable sort keeps the column order within each band.
+    const pin = (s: string) => (s === "offer" ? -1 : s === "rejected" ? 1 : 0);
     return [...sortApplications(filtered, sortKey, sortDir)].sort(
-      (a, b) =>
-        (a.status === "rejected" ? 1 : 0) - (b.status === "rejected" ? 1 : 0),
+      (a, b) => pin(a.status) - pin(b.status),
     );
   }, [filtered, sortKey, sortDir]);
 

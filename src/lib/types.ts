@@ -31,13 +31,13 @@ export const STATUS_RANK: Record<ApplicationStatus, number> = {
   withdrawn: -2,
 };
 
-// The order the table falls back to when no column sort is active. Deliberately
-// not STATUS_RANK reversed: this ranks by what still needs work from you rather
-// than by how far along it is. An interview is the most urgent thing on the
-// board and an OA is on a clock, so both outrank a plain application — while an
-// offer is already won and a rejection is closed, so neither competes for
-// attention at the top. Applied date is not a factor at any level; recency only
-// breaks ties inside one status group, via the query's lastEventAt ordering.
+// The order the table falls back to when no column sort is active. Offers come
+// first so a win is never buried. After that it ranks by what still needs work
+// from you rather than by how far along it is: an interview is the most urgent
+// thing on the board and an OA is on a clock, so both outrank a plain
+// application, while a rejection is closed and sits near the bottom. Applied
+// date is not a factor at any level; recency only breaks ties inside one status
+// group, via the query's lastEventAt ordering.
 //
 // An OA or interview you have finished drops out of the urgent band entirely: it
 // needs nothing from you until they reply, so it sits in `pending` below.
@@ -47,11 +47,11 @@ export const STATUS_RANK: Record<ApplicationStatus, number> = {
 // because it is still live. It is a temporary note that disappears the moment a
 // real answer arrives, and it never reaches the Analytics tab.
 export const DEFAULT_ROW_ORDER = {
-  interview: 0,
-  assessment: 1,
-  applied: 2,
-  pending: 3,
-  offer: 4,
+  offer: 0,
+  interview: 1,
+  assessment: 2,
+  applied: 3,
+  pending: 4,
   rejected: 5,
   withdrawn: 6,
 } as const satisfies Record<ApplicationStatus | "pending", number>;
