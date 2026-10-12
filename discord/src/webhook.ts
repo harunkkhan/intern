@@ -24,6 +24,11 @@ export interface PostOptions {
    * contain — only the ids listed here can ring.
    */
   mentionRoleIds?: string[];
+  /**
+   * Lets `@everyone` in the content notify. Set only on the one message that
+   * deliberately carries it; Discord's `everyone` parse also covers `@here`.
+   */
+  mentionEveryone?: boolean;
 }
 
 export interface Poster {
@@ -43,9 +48,13 @@ export function createDryRunPoster(): Poster {
     async post(webhookUrl, content, options) {
       const parsed = parseDiscordWebhook(webhookUrl);
       const roles = options?.mentionRoleIds ?? [];
+      const pings = [
+        ...(options?.mentionEveryone ? ["@everyone"] : []),
+        ...(roles.length ? [`role ${roles.join(", ")}`] : []),
+      ];
       console.log(
         `\n--- would post to webhook ${parsed?.id ?? "?"} (${content.length} chars` +
-          `${roles.length ? `, pings role ${roles.join(", ")}` : ""}) ---\n${content}\n---`,
+          `${pings.length ? `, pings ${pings.join(" and ")}` : ""}) ---\n${content}\n---`,
       );
     },
   };
@@ -85,9 +94,10 @@ export function createPoster(): Poster {
               avatar_url: process.env.DISCORD_AVATAR_URL || undefined,
               // Nothing pings unless it was asked for explicitly, and even then
               // only the named roles — `parse: []` keeps @everyone and @here
-              // inert however they turn up in the content.
+              // inert however they turn up in the content, except on the one
+              // message a subscriber opted into an @everyone ping for.
               allowed_mentions: {
-                parse: [],
+                parse: options?.mentionEveryone ? ["everyone"] : [],
                 roles: options?.mentionRoleIds ?? [],
               },
               flags: DISCORD_SUPPRESS_EMBEDS,

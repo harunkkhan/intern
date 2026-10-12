@@ -42,6 +42,8 @@ export interface SubscriberDTO {
   scope: AlertScope;
   enabled: boolean;
   confirmedAt: string | null;
+  mentionRoleId: string | null;
+  mentionEveryone: boolean;
 }
 
 export interface WatchedCompanyDTO {
@@ -214,6 +216,8 @@ export async function getAlertsData(userId: string): Promise<AlertsData> {
       scope: s.scope as AlertScope,
       enabled: s.enabled,
       confirmedAt: s.confirmedAt ? s.confirmedAt.toISOString() : null,
+      mentionRoleId: s.mentionRoleId,
+      mentionEveryone: s.mentionEveryone,
     })),
     companies: companyRows.map((c) => ({
       id: c.id,
@@ -402,6 +406,25 @@ export async function getPostingsData(
     pageSize,
     query,
   };
+}
+
+/**
+ * Reads an optional Discord role id from a request body. Blank clears it; the
+ * pattern matches alert_subscriber_mention_role_ck.
+ */
+export function parseMentionRoleId(
+  raw: unknown,
+): { mentionRoleId: string | null } | { error: string } {
+  if (raw === null || raw === undefined) return { mentionRoleId: null };
+  const value = typeof raw === "string" ? raw.trim() : "";
+  if (typeof raw === "string" && !value) return { mentionRoleId: null };
+  if (!/^\d{17,20}$/.test(value)) {
+    return {
+      error:
+        "Mention role ID must be the role's numeric ID (Server Settings → Roles → Copy Role ID).",
+    };
+  }
+  return { mentionRoleId: value };
 }
 
 /**

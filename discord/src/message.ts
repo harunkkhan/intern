@@ -31,6 +31,8 @@ export interface DigestMessage {
    * renders as a highlighted but silent ping, which looks like it worked.
    */
   mentionRoleIds: string[];
+  /** Whether this message leads with `@everyone` and may ping it. */
+  mentionEveryone: boolean;
 }
 
 /**
@@ -98,6 +100,21 @@ function groupByCompany(listings: DigestListing[]): DigestListing[] {
 }
 
 /**
+ * The role a channel's digest pings. A channel's own role id always wins. The
+ * env role belongs to the original server, so a channel that opted into
+ * @everyone (a different server) never inherits it.
+ */
+export function resolveMentionRoleId(
+  subscriber: { mentionRoleId: string | null; mentionEveryone: boolean },
+  envRoleId: string | null | undefined,
+): string | null {
+  return (
+    subscriber.mentionRoleId ??
+    (subscriber.mentionEveryone ? null : (envRoleId ?? null))
+  );
+}
+
+/**
  * Splits a digest into messages that each fit Discord's 2,000-character cap.
  *
  * Messages are the unit of settlement, not the run: each one carries the ids it
@@ -108,7 +125,11 @@ function groupByCompany(listings: DigestListing[]): DigestListing[] {
  */
 export function buildDigest(
   listings: DigestListing[],
-  options: { footer?: string | null; mentionRoleId?: string | null } = {},
+  options: {
+    footer?: string | null;
+    mentionRoleId?: string | null;
+    mentionEveryone?: boolean;
+  } = {},
 ): DigestMessage[] {
   if (listings.length === 0) return [];
 
@@ -173,8 +194,10 @@ export function buildDigest(
     // still one batch of news, and three notifications for it would train people
     // to mute the channel — which defeats the point of pinging at all.
     const first = index === 0;
+    const everyone = first && options.mentionEveryone === true;
     const mention = first && roleId ? `<@&${roleId}> ` : "";
     const heading =
+      (everyone ? "@everyone " : "") +
       mention +
       `**${total} new internship${total === 1 ? "" : "s"}**` +
       (groups.length > 1 ? ` · ${index + 1}/${groups.length}` : "");
@@ -190,6 +213,7 @@ export function buildDigest(
         .trim(),
       deliveryIds: group.ids,
       mentionRoleIds: mention ? [roleId!] : [],
+      mentionEveryone: everyone,
     };
   });
 }
