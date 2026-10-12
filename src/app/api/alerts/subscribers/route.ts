@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { getAllowedUser } from "@/lib/auth";
 import { db } from "@/db";
 import { alertSubscribers } from "@/db/schema";
-import { ALERT_CHANNELS, ALERT_SCOPES, normalizePhone } from "@/lib/alerts";
+import {
+  ALERT_CHANNELS,
+  ALERT_SCOPES,
+  normalizePhone,
+  parseMentionRoleId,
+} from "@/lib/alerts";
 import { parseDiscordWebhook } from "@/lib/discordWebhook";
 
 export const dynamic = "force-dynamic";
@@ -79,7 +84,9 @@ function imessageValues(
 
 function discordValues(
   body: Record<string, unknown>,
-): { webhookUrl: string } | { error: string } {
+):
+  | { webhookUrl: string; mentionRoleId: string | null; mentionEveryone: boolean }
+  | { error: string } {
   const raw = typeof body.webhookUrl === "string" ? body.webhookUrl : "";
   const parsed = parseDiscordWebhook(raw);
   if (!parsed) {
@@ -88,8 +95,14 @@ function discordValues(
         "Paste a Discord webhook URL from the channel's Settings → Integrations → Webhooks.",
     };
   }
+  const role = parseMentionRoleId(body.mentionRoleId);
+  if ("error" in role) return role;
   // The normalized form is stored, so the same channel added twice — once via
   // discordapp.com, once via discord.com — collides on the unique index instead
   // of quietly doubling every digest.
-  return { webhookUrl: parsed.url };
+  return {
+    webhookUrl: parsed.url,
+    mentionRoleId: role.mentionRoleId,
+    mentionEveryone: body.mentionEveryone === true,
+  };
 }

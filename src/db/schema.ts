@@ -326,6 +326,11 @@ export const alertSubscribers = pgTable(
     // all       — every posting that passes the intern/co-op + term filter
     // watchlist — only postings from this user's `watched_company` rows
     scope: text("scope").notNull().default("watchlist"),
+    // Discord only. Role pinged on the first message of each digest; null falls
+    // back to DISCORD_MENTION_ROLE_ID.
+    mentionRoleId: text("mention_role_id"),
+    // Discord only. Prepends @everyone to the first digest message of each run.
+    mentionEveryone: boolean("mention_everyone").notNull().default(false),
     enabled: boolean("enabled").notNull().default(true),
     // Set when the intro/opt-out message has been delivered.
     confirmedAt: timestamp("confirmed_at", {
@@ -349,6 +354,10 @@ export const alertSubscribers = pgTable(
       "alert_subscriber_address_ck",
       sql`(${t.channel} = 'imessage' AND ${t.phone} IS NOT NULL)
        OR (${t.channel} = 'discord' AND ${t.webhookUrl} IS NOT NULL)`,
+    ),
+    check(
+      "alert_subscriber_mention_role_ck",
+      sql`${t.mentionRoleId} IS NULL OR ${t.mentionRoleId} ~ '^[0-9]{17,20}$'`,
     ),
   ],
 );

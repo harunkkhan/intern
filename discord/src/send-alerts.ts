@@ -15,6 +15,7 @@ import {
   buildDigest,
   formatFailingNotice,
   formatIntro,
+  resolveMentionRoleId,
   type DigestListing,
   type FailingRecipient,
 } from "./message.ts";
@@ -201,11 +202,19 @@ async function drain(
   // so a full digest is often several posts; marking them all 'sent' only after
   // the last one would re-post everything if the third failed, and marking them
   // all 'failed' would lose what already landed.
-  const mentionRoleId = process.env.DISCORD_MENTION_ROLE_ID ?? null;
-  for (const message of buildDigest(listings, { footer, mentionRoleId })) {
+  const digest = buildDigest(listings, {
+    footer,
+    mentionRoleId: resolveMentionRoleId(
+      subscriber,
+      process.env.DISCORD_MENTION_ROLE_ID,
+    ),
+    mentionEveryone: subscriber.mentionEveryone,
+  });
+  for (const message of digest) {
     try {
       await poster.post(webhookUrl, message.content, {
         mentionRoleIds: message.mentionRoleIds,
+        mentionEveryone: message.mentionEveryone,
       });
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);

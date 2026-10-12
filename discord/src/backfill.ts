@@ -5,6 +5,11 @@
 //   bun src/backfill.ts              # report what would be reserved
 //   bun src/backfill.ts --apply      # reserve it
 //
+// Narrowing either flag combines with the other and with --apply:
+//
+//   --subscriber <label-or-id>   only that Discord channel (errors on no match)
+//   --since <N>h | <N>d          only listings first seen within the window
+//
 // Then drain it in one burst rather than 40 at a time:
 //
 //   DISCORD_MAX_PER_RUN=1000 bun src/send-alerts.ts
@@ -21,7 +26,7 @@
 // read through listing_id as well, so a row whose stored key has gone stale still
 // counts as covered — see internships/src/deliveries.ts.
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, gte, or } from "drizzle-orm";
 import { closeDb, db, hasDatabase, schema } from "./db.ts";
 import { dropAlreadyDelivered } from "../../internships/src/deliveries.ts";
 import {
@@ -32,9 +37,29 @@ import {
 const { alertSubscribers, alertDeliveries, jobListings, jobSources, watchedCompanies } =
   schema;
 
-const apply = process.argv.includes("--apply");
+const argv = process.argv.slice(2);
+const apply = argv.includes("--apply");
+
+function flag(name: string): string | null {
+  const i = argv.indexOf(name);
+  if (i === -1) return null;
+  const value = argv[i + 1];
+  if (!value || value.startsWith("--")) throw new Error(`${name} needs a value`);
+  return value;
+}
+
+function parseSince(raw: string): Date {
+  const match = /^(\d+)([hd])$/.exec(raw);
+  if (!match) throw new Error(`--since takes <N>h or <N>d, got "${raw}"`);
+  const hours = Number(match[1]) * (match[2] === "d" ? 24 : 1);
+  return new Date(Date.now() - hours * 60 * 60 * 1000);
+}
 
 try {
+  const subscriberArg = flag("--subscriber");
+  const sinceArg = flag("--since");
+  const since = sinceArg ? parseSince(sinceArg) : null;
+
   if (!hasDatabase) throw new Error("DATABASE_URL is required");
 
   const subscribers = await db
@@ -44,8 +69,22 @@ try {
       and(
         eq(alertSubscribers.channel, "discord"),
         eq(alertSubscribers.enabled, true),
+        subscriberArg
+          ? or(
+              eq(alertSubscribers.id, subscriberArg),
+              eq(alertSubscribers.label, subscriberArg),
+            )
+          : undefined,
       ),
     );
+  if (subscriberArg && subscribers.length === 0) {
+    throw new Error(`no enabled Discord channel with label or id "${subscriberArg}"`);
+  }
+  if (subscriberArg && subscribers.length > 1) {
+    throw new Error(
+      `"${subscriberArg}" matches ${subscribers.length} channels — pass the id instead`,
+    );
+  }
   if (subscribers.length === 0) {
     console.log("no enabled Discord channels");
   }
@@ -66,7 +105,12 @@ try {
     })
     .from(jobListings)
     .innerJoin(jobSources, eq(jobListings.sourceId, jobSources.id))
-    .where(eq(jobListings.active, true));
+    .where(
+      and(
+        eq(jobListings.active, true),
+        since ? gte(jobListings.firstSeenAt, since) : undefined,
+      ),
+    );
 
   const floor = termFloor();
   const eligible = rows.filter(
@@ -87,7 +131,8 @@ try {
       ).keep,
   );
   console.log(
-    `${rows.length} active listings · ${eligible.length} pass the intern/term/location filter`,
+    `${rows.length} active listings${since ? ` first seen since ${since.toISOString()}` : ""}` +
+      ` · ${eligible.length} pass the intern/term/location filter`,
   );
 
   for (const subscriber of subscribers) {

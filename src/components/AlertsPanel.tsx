@@ -97,6 +97,8 @@ function Subscribers({
   const [address, setAddress] = useState("");
   const [channel, setChannel] = useState<AlertChannel>("imessage");
   const [scope, setScope] = useState<AlertScope>("watchlist");
+  const [mentionRoleId, setMentionRoleId] = useState("");
+  const [mentionEveryone, setMentionEveryone] = useState(false);
 
   const isDiscord = channel === "discord";
 
@@ -107,12 +109,16 @@ function Subscribers({
         label,
         scope,
         channel,
-        ...(isDiscord ? { webhookUrl: address } : { phone: address }),
+        ...(isDiscord
+          ? { webhookUrl: address, mentionRoleId, mentionEveryone }
+          : { phone: address }),
       }),
     });
     if (ok) {
       setLabel("");
       setAddress("");
+      setMentionRoleId("");
+      setMentionEveryone(false);
     }
   }
 
@@ -144,7 +150,51 @@ function Subscribers({
                 {s.destination}
                 {!s.confirmedAt && " · intro message pending"}
               </p>
+              {s.channel === "discord" && (
+                <p className="truncate text-xs text-neutral-500 dark:text-neutral-400">
+                  {[
+                    s.mentionEveryone && "@everyone",
+                    s.mentionRoleId
+                      ? `role ${s.mentionRoleId}`
+                      : !s.mentionEveryone && "default role (env)",
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              )}
             </div>
+
+            {s.channel === "discord" && (
+              <>
+                <RoleIdInput
+                  key={s.mentionRoleId ?? ""}
+                  initial={s.mentionRoleId ?? ""}
+                  busy={busy}
+                  onSave={(value) =>
+                    mutate(`/api/alerts/subscribers/${s.id}`, {
+                      method: "PATCH",
+                      body: JSON.stringify({ mentionRoleId: value }),
+                    })
+                  }
+                />
+                <label className="flex items-center gap-1.5 text-xs text-neutral-600 dark:text-neutral-400">
+                  <input
+                    type="checkbox"
+                    checked={s.mentionEveryone}
+                    disabled={busy}
+                    onChange={(e) =>
+                      mutate(`/api/alerts/subscribers/${s.id}`, {
+                        method: "PATCH",
+                        body: JSON.stringify({
+                          mentionEveryone: e.target.checked,
+                        }),
+                      })
+                    }
+                  />
+                  @everyone
+                </label>
+              </>
+            )}
 
             <select
               value={s.scope}
@@ -240,14 +290,68 @@ function Subscribers({
         </div>
 
         {isDiscord && (
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              value={mentionRoleId}
+              onChange={(e) => setMentionRoleId(e.target.value)}
+              placeholder="Mention role ID (optional)"
+              inputMode="numeric"
+              className="min-w-0 flex-1 rounded-none border border-neutral-300 bg-white px-2.5 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+            />
+            <label className="flex items-center gap-1.5 text-xs text-neutral-600 dark:text-neutral-400">
+              <input
+                type="checkbox"
+                checked={mentionEveryone}
+                onChange={(e) => setMentionEveryone(e.target.checked)}
+              />
+              Mention @everyone
+            </label>
+          </div>
+        )}
+
+        {isDiscord && (
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
             In Discord: channel <span className="font-medium">Settings →
             Integrations → Webhooks → New Webhook</span>, then Copy Webhook URL.
             Only the webhook id is stored in a form the dashboard will show back.
+            Leave the role ID blank to use the default role (not applied when
+            @everyone is on).
           </p>
         )}
       </div>
     </Card>
+  );
+}
+
+function RoleIdInput({
+  initial,
+  busy,
+  onSave,
+}: {
+  initial: string;
+  busy: boolean;
+  onSave: (value: string) => Promise<boolean>;
+}) {
+  const [value, setValue] = useState(initial);
+
+  async function save() {
+    if (value.trim() === initial) return;
+    if (!(await onSave(value.trim()))) setValue(initial);
+  }
+
+  return (
+    <input
+      value={value}
+      disabled={busy}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={save}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") e.currentTarget.blur();
+      }}
+      placeholder="Role ID"
+      inputMode="numeric"
+      className="w-40 rounded-none border border-neutral-300 bg-white px-2 py-1.5 text-xs text-neutral-800 placeholder:text-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200"
+    />
   );
 }
 

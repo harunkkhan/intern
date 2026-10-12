@@ -134,14 +134,19 @@ unassignable, and the schema is imported from `../src/db/schema.ts`).
   three posts is still one batch of news; three notifications for it would train
   people to mute the channel, which defeats the point. The intro never pings.
   `allowed_mentions.parse` is empty on every message, so `@everyone` and `@here`
-  are inert however they turn up in a job title — only the role id in
-  `DISCORD_MENTION_ROLE_ID` can ring, and only on that first message.
+  are inert however they turn up in a job title — only the channel's role id
+  can ring, and only on that first message. A channel with **Mention
+  @everyone** checked is the one exception: its first digest message of each run
+  leads with `@everyone` and is the only message sent with `parse: ["everyone"]`.
 
 The mention is configured as a **numeric role id**, not a name: `@job` typed
 literally is text Discord ignores, and only `<@&123…>` is a real mention. With
 Developer Mode on, get it from **Server Settings → Roles → right-click → Copy
-Role ID**. Leave `DISCORD_MENTION_ROLE_ID` unset and digests post silently —
-it never falls back to a broader ping than was configured.
+Role ID**. Each channel can set its own **Mention role ID** in the Alerts tab;
+a channel without one uses `DISCORD_MENTION_ROLE_ID`, unless it has **Mention
+@everyone** on — that role belongs to the original server, so an @everyone
+channel only pings a role it names itself. With no role resolved, digests
+post silently — it never falls back to a broader ping than was configured.
 
 The role must be **mentionable**, or the webhook needs **Mention @everyone,
 @here, and All Roles** on the channel. Without either, the message still posts
@@ -150,6 +155,21 @@ and the mention renders highlighted but silent, which looks like it worked.
 Rate limits are handled by pacing posts per webhook and honouring `retry_after`
 on a 429. A 401/403/404 is treated as permanent — the webhook was deleted or its
 token rotated, and the error says to re-add it in the Alerts tab.
+
+## Backfilling a new channel
+
+`src/backfill.ts` reserves deliveries for postings already in the database, so a
+newly added channel gets the backlog. It only reports unless given `--apply`:
+
+```sh
+bun src/backfill.ts --subscriber "#internships" --since 7d          # report
+bun src/backfill.ts --subscriber "#internships" --since 7d --apply  # reserve
+DISCORD_MAX_PER_RUN=1000 bun src/send-alerts.ts                     # drain
+```
+
+`--subscriber` takes a channel's label or id; `--since` takes `<N>h` or `<N>d`
+and filters on `job_listing.first_seen_at`. Without them every enabled channel
+gets every active listing.
 
 ## The "not getting these by text" footer
 
@@ -186,7 +206,7 @@ are packed, so adding it can cost an extra message but can never overflow one.
 | Variable | Purpose |
 | --- | --- |
 | `DATABASE_URL` | Supabase pooler URL — same value the web app and poller use |
-| `DISCORD_MENTION_ROLE_ID` | _Optional._ Numeric role id a digest pings. Unset = post silently |
+| `DISCORD_MENTION_ROLE_ID` | _Optional._ Numeric role id a digest pings, for channels without their own role id. Unset = post silently |
 | `DISCORD_MAX_PER_RUN` | _Optional._ Postings drained per run. Default 40; `poll.yml` sets 200 on the manual-dispatch step, which is what `/load` starts |
 | `DISCORD_USERNAME` | _Optional._ Overrides the name the webhook posts under |
 | `DISCORD_AVATAR_URL` | _Optional._ Overrides the webhook's avatar |

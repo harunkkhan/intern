@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { getAllowedUser } from "@/lib/auth";
 import { db } from "@/db";
 import { alertSubscribers } from "@/db/schema";
-import { ALERT_SCOPES } from "@/lib/alerts";
+import { ALERT_SCOPES, parseMentionRoleId } from "@/lib/alerts";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +29,16 @@ export async function PATCH(
   if (typeof body.enabled === "boolean") patch.enabled = body.enabled;
   if (typeof body.label === "string" && body.label.trim()) {
     patch.label = body.label.trim();
+  }
+  if ("mentionRoleId" in body) {
+    const role = parseMentionRoleId(body.mentionRoleId);
+    if ("error" in role) {
+      return NextResponse.json({ error: role.error }, { status: 400 });
+    }
+    patch.mentionRoleId = role.mentionRoleId;
+  }
+  if (typeof body.mentionEveryone === "boolean") {
+    patch.mentionEveryone = body.mentionEveryone;
   }
 
   if (Object.keys(patch).length === 0) {
