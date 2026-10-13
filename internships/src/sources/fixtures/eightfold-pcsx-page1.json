@@ -1,0 +1,37 @@
+{
+ "status": 200,
+ "error": null,
+ "data": {
+  "positions": [
+   {
+    "id": 996477136451,
+    "atsJobId": "16450",
+    "name": "Technical Co-op I: Software Development Intern",
+    "locations": [
+     "Calgary, CAN"
+    ],
+    "standardizedLocations": [
+     "Calgary, AB, CA"
+    ],
+    "department": "CDL Systems, Inc Canada (Aero)",
+    "postedTs": 1791400724,
+    "positionUrl": "/careers/job/996477136451"
+   },
+   {
+    "id": 996476748597,
+    "atsJobId": "10040",
+    "name": "Commercial Student - 12 Month Placement",
+    "locations": [
+     "Gloucester, GBR"
+    ],
+    "standardizedLocations": [
+     "Gloucester, England, GB"
+    ],
+    "department": "LM UK LTD (RMS-Owego)",
+    "postedTs": 1788348422,
+    "positionUrl": "/careers/job/996476748597"
+   }
+  ],
+  "count": 12
+ }
+}

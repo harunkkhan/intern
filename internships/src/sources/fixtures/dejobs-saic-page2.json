@@ -1,0 +1,27 @@
+{
+ "jobs": [
+  {
+   "guid": "7A97B4D79C334F10AC57EE77E94963EF",
+   "reqid": "2617051",
+   "title_exact": "Senior Systems Engineer",
+   "title_slug": "senior-systems-engineer",
+   "location_exact": "Crane, IN",
+   "date_new": "2026-09-23T03:05:58Z"
+  },
+  {
+   "guid": "C52C75D36B1D47C4815D4F90E274586E",
+   "reqid": "2617051",
+   "title_exact": "Senior Systems Engineer",
+   "title_slug": "senior-systems-engineer",
+   "location_exact": "Huntsville, AL",
+   "date_new": "2026-09-23T03:05:58Z"
+  }
+ ],
+ "pagination": {
+  "has_more_pages": false,
+  "page": 2,
+  "page_size": 10,
+  "total": 17,
+  "total_pages": 2
+ }
+}

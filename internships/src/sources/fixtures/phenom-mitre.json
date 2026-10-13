@@ -1,0 +1,79 @@
+{
+ "refineSearch": {
+  "status": 200,
+  "hits": 3,
+  "totalHits": 3,
+  "data": {
+   "jobs": [
+    {
+     "jobId": "R117376",
+     "title": "TECH Futures Intern",
+     "multi_location": [
+      "McLean, Virginia, United States of America",
+      "Bedford, Massachusetts, United States of America"
+     ],
+     "location": "McLean, Virginia, United States of America",
+     "postedDate": "2026-09-08T00:00:00.000+0000"
+    },
+    {
+     "jobId": "R117315",
+     "title": "Internships in Computer Science or Software Engineering",
+     "multi_location": [
+      "McLean, Virginia, United States of America",
+      "Aberdeen, Maryland, United States of America",
+      "Ann Arbor, Michigan, United States of America",
+      "Ann Arbor, Michigan, United States of America",
+      "Bedford, Massachusetts, United States of America",
+      "Bellevue, Nebraska, United States of America",
+      "Bethesda, Maryland, United States of America",
+      "Charlottesville, Virginia, United States of America",
+      "Charlottesville, Virginia, United States of America",
+      "Bridgeport, West Virginia, United States of America",
+      "Bridgeport, West Virginia, United States of America",
+      "Colorado Springs, Colorado, United States of America",
+      "Colorado Springs, Colorado, United States of America",
+      "Domestic Teleworker, Massachusetts, United States of America",
+      "El Segundo, California, United States of America",
+      "Fort Meade - Annapolis Junction, Maryland, United States of America",
+      "Fort Walton Beach, Florida, United States of America",
+      "Gaithersburg, Maryland, United States of America",
+      "Honolulu, Hawaii, United States of America",
+      "Honolulu, Hawaii, United States of America",
+      "Huntsville, Alabama, United States of America",
+      "Huntsville, Alabama, United States of America",
+      "Lexington Park, Maryland, United States of America",
+      "Lexington Park, Maryland, United States of America",
+      "Offutt AFB, Nebraska, United States of America",
+      "Offutt AFB, Nebraska, United States of America",
+      "Quantico, Virginia, United States of America",
+      "Stafford, Virginia, United States of America",
+      "San Antonio, Texas, United States of America",
+      "San Antonio, Texas, United States of America",
+      "San Diego, California, United States of America",
+      "San Diego, California, United States of America",
+      "Shaw AFB, South Carolina, United States of America",
+      "Shaw AFB, South Carolina, United States of America",
+      "Shrewsbury, New Jersey, United States of America",
+      "Shrewsbury, New Jersey, United States of America",
+      "Tampa, Florida, United States of America",
+      "Tampa, Florida, United States of America",
+      "Windsor, Maryland, United States of America",
+      "Wright-Patterson AFB - Fairborn, Ohio, United States of America"
+     ],
+     "location": "McLean, Virginia, United States of America",
+     "postedDate": "2026-09-14T00:00:00.000+0000"
+    },
+    {
+     "jobId": "R117614",
+     "title": "Software Engineer",
+     "multi_location": [
+      "McLean, Virginia, United States of America",
+      "Bedford, Massachusetts, United States of America"
+     ],
+     "location": "McLean, Virginia, United States of America",
+     "postedDate": "2026-09-24T00:00:00.000+0000"
+    }
+   ]
+  }
+ }
+}

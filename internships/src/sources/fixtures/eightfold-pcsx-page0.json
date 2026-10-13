@@ -1,0 +1,151 @@
+{
+ "status": 200,
+ "error": null,
+ "data": {
+  "positions": [
+   {
+    "id": 996476585037,
+    "atsJobId": "7886",
+    "name": "College Student - Technical(Software)",
+    "locations": [
+     "Manassas, VA"
+    ],
+    "standardizedLocations": [
+     "Manassas, VA, US"
+    ],
+    "department": "RMS Core",
+    "postedTs": 1791894386,
+    "positionUrl": "/careers/job/996476585037"
+   },
+   {
+    "id": 996477211532,
+    "atsJobId": "17537",
+    "name": "College Student - Technical - N3",
+    "locations": [
+     "Englewood, CO"
+    ],
+    "standardizedLocations": [
+     "Englewood, CO, US"
+    ],
+    "department": "Space",
+    "postedTs": 1791868290,
+    "positionUrl": "/careers/job/996477211532"
+   },
+   {
+    "id": 996477211443,
+    "atsJobId": "17536",
+    "name": "College Student - Technical - N3",
+    "locations": [
+     "Englewood, CO"
+    ],
+    "standardizedLocations": [
+     "Englewood, CO, US"
+    ],
+    "department": "Space",
+    "postedTs": 1791868162,
+    "positionUrl": "/careers/job/996477211443"
+   },
+   {
+    "id": 996477335927,
+    "atsJobId": "19316",
+    "name": "Systems Engineer (Cyber) - Intern",
+    "locations": [
+     "Orlando, FL"
+    ],
+    "standardizedLocations": [
+     "Orlando, FL, US"
+    ],
+    "department": "RMS-Svcs-LMOS",
+    "postedTs": 1791832126,
+    "positionUrl": "/careers/job/996477335927"
+   },
+   {
+    "id": 996477280779,
+    "atsJobId": "18770",
+    "name": "Predictive Analytics & Cost Engineering Intern",
+    "locations": [
+     "Littleton, CO"
+    ],
+    "standardizedLocations": [
+     "Littleton, CO, US"
+    ],
+    "department": "Space",
+    "postedTs": 1791583384,
+    "positionUrl": "/careers/job/996477280779"
+   },
+   {
+    "id": 996477288551,
+    "atsJobId": "18906",
+    "name": "College Student - Technical - N3",
+    "locations": [
+     "Sunnyvale, CA"
+    ],
+    "standardizedLocations": [
+     "Sunnyvale, CA, US"
+    ],
+    "department": "Space",
+    "postedTs": 1791548123,
+    "positionUrl": "/careers/job/996477288551"
+   },
+   {
+    "id": 996477278559,
+    "atsJobId": "18662",
+    "name": "AI/ML Engineering Intern - Summer 2027",
+    "locations": [
+     "King of Prussia, PA",
+     "Littleton, CO"
+    ],
+    "standardizedLocations": [
+     "King of Prussia, PA, US",
+     "Littleton, CO, US"
+    ],
+    "department": "Space",
+    "postedTs": 1791494878,
+    "positionUrl": "/careers/job/996477278559"
+   },
+   {
+    "id": 996477258969,
+    "atsJobId": "18335",
+    "name": "Radar Systems Engineer - Intern",
+    "locations": [
+     "Liverpool, NY"
+    ],
+    "standardizedLocations": [
+     "Liverpool, NY, US"
+    ],
+    "department": "RMS Core",
+    "postedTs": 1791492754,
+    "positionUrl": "/careers/job/996477258969"
+   },
+   {
+    "id": 996477220790,
+    "atsJobId": "17718",
+    "name": "College Student -Software Engineer",
+    "locations": [
+     "Sunnyvale, CA"
+    ],
+    "standardizedLocations": [
+     "Sunnyvale, CA, US"
+    ],
+    "department": "Space",
+    "postedTs": 1791492036,
+    "positionUrl": "/careers/job/996477220790"
+   },
+   {
+    "id": 996477278669,
+    "atsJobId": "18669",
+    "name": "Systems Engineer-Intern",
+    "locations": [
+     "Littleton, CO"
+    ],
+    "standardizedLocations": [
+     "Littleton, CO, US"
+    ],
+    "department": "RMS Core",
+    "postedTs": 1791491735,
+    "positionUrl": "/careers/job/996477278669"
+   }
+  ],
+  "count": 12
+ }
+}
