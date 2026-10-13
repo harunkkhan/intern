@@ -374,9 +374,20 @@ export const FORTUNE_500: SeedCompany[] = [
     aliases: [
       "General Dynamics Mission Systems",
       "General Dynamics Information Technology",
+      "GDIT",
+      "GDMS",
+      "General Dynamics Electric Boat",
+      "Electric Boat",
     ],
   },
-  { name: "L3Harris Technologies", tier: "F500", aliases: ["L3Harris"] },
+  { name: "L3Harris Technologies", tier: "F500", aliases: ["L3Harris", "L3 Harris"] },
+  // Not Fortune 500, but defense primes that belong alongside the ones above.
+  { name: "Peraton", tier: "F500" },
+  // "BAE Systems" and "BAE Systems, Inc." both normalize to "bae".
+  { name: "BAE Systems", tier: "F500" },
+  { name: "CGI", tier: "F500", aliases: ["CGI Federal"] },
+  { name: "ICF International", tier: "F500", aliases: ["ICF"] },
+  { name: "Parsons", tier: "F500" },
   { name: "HII", tier: "F500", aliases: ["Huntington Ingalls Industries", "Huntington Ingalls"] },
   { name: "Textron", tier: "F500" },
   { name: "TransDigm Group", tier: "F500", aliases: ["TransDigm"] },
