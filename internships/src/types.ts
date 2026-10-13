@@ -14,6 +14,8 @@ export interface RawListing {
   sponsorship: string | null;
   category: string | null;
   postedAt: Date | null;
+  /** Structured degree eligibility (SimplifyJobs only), e.g. ["Bachelor's", "Master's"]. */
+  degrees?: string[] | null;
 }
 
 export interface FetchContext {

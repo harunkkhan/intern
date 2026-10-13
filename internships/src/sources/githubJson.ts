@@ -21,6 +21,7 @@ interface Record_ {
   season?: string;
   sponsorship?: string;
   category?: string;
+  degrees?: string[];
 }
 
 interface CommitEntry {
@@ -73,6 +74,7 @@ export const githubJson: Adapter = async (config, ctx) => {
       sponsorship: r.sponsorship ?? null,
       category: r.category ?? null,
       postedAt: r.date_posted ? new Date(r.date_posted * 1000) : null,
+      degrees: r.degrees ?? null,
     });
   }
   return { listings, sha };
@@ -83,10 +85,12 @@ export const githubJson: Adapter = async (config, ctx) => {
 // its date_posted spans two recruiting cycles — guessing a year from the posting
 // date is unreliable, so an unyearned season is left as unknown. Unknown terms
 // pass the filter, so nothing is lost by declining to guess.
-function resolveTerm(r: Record_): string | null {
-  for (const raw of r.terms ?? []) {
-    const term = cleanTerm(raw);
-    if (term) return term;
-  }
-  return termFromTitle(r.title ?? "");
+//
+// The tag is sometimes wrong ("Summer 2026" on "Firmware Engineer Intern - Fall
+// 2026"), so a term stated in the title wins when the tags don't include it.
+export function resolveTerm(r: Pick<Record_, "terms" | "title">): string | null {
+  const tagged = (r.terms ?? []).map(cleanTerm).filter((t) => t !== null);
+  const fromTitle = termFromTitle(r.title ?? "");
+  if (fromTitle && !tagged.includes(fromTitle)) return fromTitle;
+  return tagged[0] ?? fromTitle;
 }
