@@ -28,8 +28,15 @@ interface DiscoveryRow {
   hosts?: Record<string, number>;
   job_links?: number;
   needs_render?: boolean;
-  /** Adapter + config read off the page's apply links, when it fronts an ATS. */
-  board?: { adapter: string; config: Record<string, string> } | null;
+  /**
+   * Adapter + config read off the page's apply links, when it fronts an ATS.
+   * A board pinned in registry.py may set its own poll interval.
+   */
+  board?: {
+    adapter: string;
+    config: Record<string, unknown>;
+    poll_interval_minutes?: number;
+  } | null;
 }
 
 const path = process.argv[2];
@@ -97,7 +104,7 @@ try {
       // api.lever.co/v0/postings/Palantir — a 404. `label` carries the display
       // name for the adapters that read it.
       config = { company: row.name, label: row.name, ...row.board.config };
-      pollIntervalMinutes = atsInterval;
+      pollIntervalMinutes = row.board.poll_interval_minutes ?? atsInterval;
       ats++;
     } else {
       adapter = "scraped";

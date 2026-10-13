@@ -1,0 +1,43 @@
+{
+ "jobs": [
+  {
+   "guid": "BB9D9E164CBE4234A7C6FF11C7AC8BBA",
+   "reqid": "2617745",
+   "title_exact": "Contracts Principal",
+   "title_slug": "contracts-principal",
+   "location_exact": "Remote Work, MD",
+   "date_new": "2026-10-10T04:09:04Z"
+  },
+  {
+   "guid": "7CE33DE1D7124C92AB7A67C8A956244B",
+   "reqid": "2617745",
+   "title_exact": "Contracts Principal",
+   "title_slug": "contracts-principal",
+   "location_exact": "Remote Work, VA",
+   "date_new": "2026-10-10T04:09:04Z"
+  },
+  {
+   "guid": "8743E9033B564726B9E928D67007117A",
+   "reqid": "2617714",
+   "title_exact": "Service Desk Knowledge Analyst-Technical Writer",
+   "title_slug": "service-desk-knowledge-analyst-technical-writer",
+   "location_exact": "Remote Work, GA",
+   "date_new": "2026-10-09T04:21:23Z"
+  },
+  {
+   "guid": "707BB84F49C2460480143ED7FF6C1DA4",
+   "reqid": "2617576",
+   "title_exact": "DAG Action Officer",
+   "title_slug": "dag-action-officer",
+   "location_exact": "Chantilly, VA",
+   "date_new": "2026-10-06T05:08:05Z"
+  }
+ ],
+ "pagination": {
+  "has_more_pages": true,
+  "page": 1,
+  "page_size": 10,
+  "total": 17,
+  "total_pages": 2
+ }
+}
