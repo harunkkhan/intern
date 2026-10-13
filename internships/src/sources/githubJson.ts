@@ -21,6 +21,7 @@ interface Record_ {
   season?: string;
   sponsorship?: string;
   category?: string;
+  degrees?: string[];
 }
 
 interface CommitEntry {
@@ -73,6 +74,7 @@ export const githubJson: Adapter = async (config, ctx) => {
       sponsorship: r.sponsorship ?? null,
       category: r.category ?? null,
       postedAt: r.date_posted ? new Date(r.date_posted * 1000) : null,
+      degrees: r.degrees ?? null,
     });
   }
   return { listings, sha };

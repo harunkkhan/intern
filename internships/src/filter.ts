@@ -35,11 +35,48 @@ const STUDENT_TOKEN =
 // Always applied, to every source. Three families of false positive:
 //   1. Roles that *manage* interns — "Solution Architect Manager - Intern Program"
 //   2. New-grad / full-time pipelines — "University Graduate, Software Engineer"
-//   3. Adjacent programs that aren't internships — apprenticeships, AI
-//      residencies, and PhD/MBA tracks. On Nvidia's board this single rule
-//      removes 5 of 14 token matches, all of them PhD research roles.
+//   3. Adjacent programs that aren't internships — apprenticeships and AI
+//      residencies. Graduate-student roles are handled by `graduateOnly`.
 const DISQUALIFYING =
-  /\b(senior|staff|principal|director|manager|managers|lead|head|recruit\w*|mentor|new\s+grads?|new\s+graduates?|graduate\s+programs?|graduate\s+programmes?|phd|mba|apprentice\w*|residenc(?:y|ies)|residents?|high\s+school)\b/i;
+  /\b(senior|staff|principal|director|manager|managers|lead|head|recruit\w*|mentor|new\s+grads?|new\s+graduates?|graduate\s+programs?|graduate\s+programmes?|apprentice\w*|residenc(?:y|ies)|residents?|high\s+school)\b/i;
+
+// Undergraduate focus: a role open only to graduate students is dropped, but one
+// that also admits undergrads ("BS/MS", "Bachelor's or Master's") is kept.
+// Acronyms are matched case-sensitively so "ms"/"ba" inside prose don't count.
+const UNDERGRAD_TITLE =
+  /\bundergrad\w*|\bbachelor\w*|\bassociate['’]?s\s+degree\b/i;
+const UNDERGRAD_ABBR = /\b(?:BS|BA|BSc|BEng|BSE|BASc)\b|\bB\.[SA]\./;
+// "Master" alone is left out ("Scrum Master", "Master Data"), as is "pre-doctoral"
+// (pre-PhD programs are aimed at undergrads). A bare "Graduate"/"Grad" means a
+// graduate student unless it's a new/recent/university graduate or a graduate
+// rotational program; defense primes post "Graduate Intern" for MS/PhD students.
+const GRAD_TITLE =
+  /\bmaster['’]?s\b|\bmaster\s+of\b|\bph\.?\s?d\b|(?<!pre-?)\bdoctora(?:l|te)\b|\bpost-?doc\w*|\bmba\b|(?<!\b(?:new|recent|university|college|under)[\s-]*)\bgrad(?:uate)?\b(?!\s+(?:program\w*|rotation\w*|scheme|development))/i;
+// "MS" after a comma is Mississippi, and "MD" is never matched (Maryland).
+const GRAD_ABBR =
+  /(?<!,\s*)\bMS\b(?!\s+(?:Office|Excel|Dynamics|Teams|Word|Access|Azure)\b)|\b(?:MSc|MEng|MPH|JD)\b|\bM\.S\.|\bJ\.D\./;
+
+const UNDERGRAD_DEGREES = new Set(["Bachelor's", "Associate's"]);
+const GRAD_DEGREES = new Set([
+  "Master's", "PhD", "MBA", "JD", "MD", "PharmD", "DO", "DDS", "DVM",
+]);
+
+/**
+ * True when the posting is restricted to graduate students. SimplifyJobs'
+ * structured `degrees` decides when it names any undergrad or grad degree;
+ * otherwise (no field, or only "Certificate"/"Bootcamp"-style entries) the title
+ * does.
+ */
+export function graduateOnly(
+  title: string,
+  degrees: string[] | null | undefined,
+): boolean {
+  if (degrees?.some((d) => UNDERGRAD_DEGREES.has(d))) return false;
+  if (degrees?.some((d) => GRAD_DEGREES.has(d))) return true;
+  const grad = GRAD_TITLE.test(title) || GRAD_ABBR.test(title);
+  const undergrad = UNDERGRAD_TITLE.test(title) || UNDERGRAD_ABBR.test(title);
+  return grad && !undergrad;
+}
 
 // The term filter is a floor, not a fixed set: anything from this cycle onward
 // qualifies, and only expired cycles are dropped. That discards the ~2,100
@@ -108,7 +145,12 @@ export type FilterVerdict =
   | { keep: true }
   | {
       keep: false;
-      reason: "no-intern-token" | "disqualifying-title" | "term" | "location";
+      reason:
+        | "no-intern-token"
+        | "disqualifying-title"
+        | "graduate-only"
+        | "term"
+        | "location";
     };
 
 export function filterListing(
@@ -119,6 +161,9 @@ export function filterListing(
 
   if (DISQUALIFYING.test(title)) {
     return { keep: false, reason: "disqualifying-title" };
+  }
+  if (graduateOnly(title, listing.degrees)) {
+    return { keep: false, reason: "graduate-only" };
   }
   // Strict on ATS boards, looser on the community feeds — but never absent.
   const token = options.requireInternToken ? INTERN_TOKEN : STUDENT_TOKEN;

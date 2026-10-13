@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { filterListing, termOrdinal, type FilterVerdict } from "./filter.ts";
+import {
+  filterListing,
+  graduateOnly,
+  termOrdinal,
+  type FilterVerdict,
+} from "./filter.ts";
 import type { RawListing } from "./types.ts";
 
 const options = { requireInternToken: true, termFloor: termOrdinal("Fall 2026")! };
@@ -57,5 +62,95 @@ describe("filterListing location rule", () => {
 
   test("rejects foreign titles", () => {
     expect(verdict("Quant Intern (Singapore)", null)).toEqual(LOCATION);
+  });
+});
+
+describe("graduateOnly", () => {
+  test("drops titles restricted to graduate students", () => {
+    for (const title of [
+      "Software Engineering Intern - PhD",
+      "Ph.D. Research Intern",
+      "Quantitative Master's Intern",
+      "Quantitative Master\u2019s Internship",
+      "Software Engineering Intern, Masters",
+      "M.S. Software Intern",
+      "MS Intern - Machine Learning",
+      "MBA Product Intern",
+      "JD Legal Intern",
+      "Doctoral Research Intern",
+      "Postdoc Research Intern",
+      "Graduate Student Researcher",
+      "Grad Student Intern",
+      "Graduate Intern",
+      "Graduate Engineer Intern",
+      "Systems Engineering Intern (Graduate)",
+    ]) {
+      expect(graduateOnly(title, null), title).toBe(true);
+    }
+  });
+
+  test("keeps titles that also admit undergrads", () => {
+    for (const title of [
+      "Research Intern - BS/MS",
+      "Research Intern - BS/MS/PhD",
+      "B.S./M.S. Engineering Intern",
+      "Intern - Bachelor's or Master's",
+      "Undergraduate/Graduate Intern",
+      "Undergrad & Grad Research Intern",
+      "Undergraduate Intern",
+    ]) {
+      expect(graduateOnly(title, null), title).toBe(false);
+    }
+  });
+
+  test("ignores look-alikes", () => {
+    for (const title of [
+      "Software Engineer Intern",
+      "Scrum Master Intern",
+      "Master Data Management Intern",
+      "Microsoft Intern",
+      "MS Office Support Intern",
+      "Operations Intern - Jackson, MS",
+      "Intern - Baltimore, MD",
+      "Pre-Doctoral Research Intern",
+      "Intern (Graduating 2027)",
+      "Recent Graduate Intern",
+      "University Graduate Intern",
+      "Graduate Rotational Program Intern",
+      "Atmospheric Programs Intern",
+    ]) {
+      expect(graduateOnly(title, null), title).toBe(false);
+    }
+  });
+
+  test("structured degrees decide when present", () => {
+    expect(graduateOnly("Software Engineer Intern", ["PhD"])).toBe(true);
+    expect(graduateOnly("Software Engineer Intern", ["Master's", "PhD"])).toBe(true);
+    expect(graduateOnly("Software Engineer Intern", ["MBA"])).toBe(true);
+    expect(graduateOnly("Research Intern - MS/PhD", ["Bachelor's", "Master's"])).toBe(false);
+    expect(graduateOnly("Technician Intern", ["Associate's"])).toBe(false);
+  });
+
+  test("falls back to the title when degrees are empty or non-degree", () => {
+    expect(graduateOnly("PhD Intern", [])).toBe(true);
+    expect(graduateOnly("PhD Intern", ["Certificate"])).toBe(true);
+    expect(graduateOnly("Software Intern", [])).toBe(false);
+  });
+
+  test("filterListing reports graduate-only", () => {
+    const listing: RawListing = {
+      externalId: "1",
+      company: "Acme",
+      title: "Machine Learning Intern",
+      url: "https://example.com/1",
+      locations: null,
+      term: "Summer 2027",
+      sponsorship: null,
+      category: null,
+      postedAt: null,
+      degrees: ["Master's"],
+    };
+    expect(filterListing(listing, options)).toEqual({ keep: false, reason: "graduate-only" });
+    expect(filterListing({ ...listing, degrees: ["Bachelor's", "Master's"] }, options)).toEqual(KEEP);
   });
 });
