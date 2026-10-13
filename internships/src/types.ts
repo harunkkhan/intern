@@ -56,3 +56,15 @@ export function optionalString(
   const value = config[key];
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
+
+export function optionalStringList(
+  config: Record<string, unknown>,
+  key: string,
+): string[] {
+  const value = config[key];
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || !value.every((v) => typeof v === "string" && v.trim())) {
+    throw new Error(`config.${key} must be an array of non-empty strings`);
+  }
+  return value.map((v: string) => v.trim());
+}

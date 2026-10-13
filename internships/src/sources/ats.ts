@@ -7,8 +7,10 @@ import { getJson } from "../http.ts";
 import { termFromTitle } from "../normalize.ts";
 import {
   optionalString,
+  optionalStringList,
   requireString,
   type Adapter,
+  type FetchResult,
   type RawListing,
 } from "../types.ts";
 
@@ -215,12 +217,22 @@ export const workday: Adapter = async (config) => {
 };
 
 // --------------------------------------------------------------------------
-// Eightfold — config: { host, domain, query? }
+// Eightfold — config: { host, domain, api?, query?, filters?, internTitlePatterns? }
 // e.g. { host: "explore.jobs.netflix.net", domain: "netflix.com" }
 //
 // Eightfold powers a company's own careers subdomain, so this reads the same API
 // the company's page calls rather than a third-party board. Netflix's careers
 // page is otherwise unscrapeable: it renders five anchors and no postings.
+//
+// Tenants on Eightfold's newer PCSX careers site (Lockheed Martin) answer the
+// v2 endpoint with 403 "Not authorized for PCSX", so `api: "pcsx"` selects the
+// search endpoint that site calls. `filters` maps a PCSX facet to the values to
+// select, sent as `filter_<facet>=<value>`; `query: ""` searches without a
+// keyword, which lets a facet do the narrowing instead.
+//
+// `internTitlePatterns` are case-insensitive regexes for titles this employer
+// uses for internships without saying so. Like Ashby's employment type, a match
+// is surfaced as "(Intern)" in the title so the shared filter acts on it.
 // --------------------------------------------------------------------------
 interface EightfoldPosition {
   id?: number | string;
@@ -233,14 +245,60 @@ interface EightfoldPosition {
   t_update?: number;
 }
 
+interface PcsxPosition {
+  id?: number;
+  atsJobId?: string;
+  name?: string;
+  locations?: string[];
+  standardizedLocations?: string[];
+  department?: string;
+  postedTs?: number;
+  positionUrl?: string;
+}
+
 const EIGHTFOLD_PAGE = 50;
 const EIGHTFOLD_MAX_PAGES = 10;
+// PCSX ignores page-size parameters and always returns 10.
+const PCSX_PAGE = 10;
+const PCSX_MAX_PAGES = 30;
+
+function internTitle(title: string, patterns: RegExp[]): string {
+  return patterns.some((p) => p.test(title)) && !/\bintern/i.test(title)
+    ? `${title} (Intern)`
+    : title;
+}
+
+function pcsxFilters(config: Record<string, unknown>): string {
+  const filters = config.filters;
+  if (filters === undefined) return "";
+  if (typeof filters !== "object" || filters === null || Array.isArray(filters)) {
+    throw new Error("config.filters must be an object of facet -> value(s)");
+  }
+  let qs = "";
+  for (const [facet, raw] of Object.entries(filters)) {
+    const values = Array.isArray(raw) ? raw : [raw];
+    for (const value of values) {
+      if (typeof value !== "string" || !value.trim()) {
+        throw new Error(`config.filters.${facet} must be a string or string array`);
+      }
+      qs += `&filter_${encodeURIComponent(facet)}=${encodeURIComponent(value.trim())}`;
+    }
+  }
+  return qs;
+}
 
 export const eightfold: Adapter = async (config) => {
   const host = requireString(config, "host");
   const domain = requireString(config, "domain");
-  const query = optionalString(config, "query") ?? "intern";
+  const api = optionalString(config, "api") ?? "v2";
+  const query = typeof config.query === "string" ? config.query.trim() : "intern";
   const company = optionalString(config, "company") ?? domain.split(".")[0]!;
+  const patterns = optionalStringList(config, "internTitlePatterns").map(
+    (p) => new RegExp(p, "i"),
+  );
+
+  if (api === "pcsx") return eightfoldPcsx(config, host, domain, query, company, patterns);
+  if (api !== "v2") throw new Error(`config.api must be "v2" or "pcsx", got "${api}"`);
 
   const listings: RawListing[] = [];
   const seen = new Set<string>();
@@ -263,7 +321,7 @@ export const eightfold: Adapter = async (config) => {
       listings.push({
         externalId,
         company,
-        title: p.name,
+        title: internTitle(p.name, patterns),
         url: p.canonicalPositionUrl,
         // Eightfold joins location parts with commas and no spaces:
         // "Los Gatos,California,United States of America".
@@ -284,6 +342,56 @@ export const eightfold: Adapter = async (config) => {
   }
   return { listings };
 };
+
+async function eightfoldPcsx(
+  config: Record<string, unknown>,
+  host: string,
+  domain: string,
+  query: string,
+  company: string,
+  patterns: RegExp[],
+): Promise<FetchResult> {
+  const filters = pcsxFilters(config);
+  const listings: RawListing[] = [];
+  const seen = new Set<string>();
+
+  for (let page = 0; page < PCSX_MAX_PAGES; page++) {
+    const data = await getJson<{
+      data?: { count?: number; positions?: PcsxPosition[] };
+    }>(
+      `https://${host}/api/pcsx/search?domain=${encodeURIComponent(domain)}` +
+        `&query=${encodeURIComponent(query)}&location=${filters}&start=${page * PCSX_PAGE}`,
+    );
+
+    const batch = data.data?.positions ?? [];
+    for (const p of batch) {
+      const externalId = p.atsJobId ?? (p.id !== undefined ? String(p.id) : null);
+      if (!externalId || !p.name || !p.positionUrl) continue;
+      if (seen.has(externalId)) continue;
+      seen.add(externalId);
+      listings.push({
+        externalId,
+        company,
+        title: internTitle(p.name, patterns),
+        url: new URL(p.positionUrl, `https://${host}`).toString(),
+        // The display form abbreviates countries to ISO-3 ("Ottawa, CAN",
+        // "Havant, GBR"), which the location filter can't place; the
+        // standardized form spells out province and country ("Ottawa, ON, CA").
+        locations: compact(
+          p.standardizedLocations?.length ? p.standardizedLocations : (p.locations ?? []),
+        ),
+        term: termFromTitle(p.name),
+        sponsorship: null,
+        category: p.department ?? null,
+        postedAt: p.postedTs ? new Date(p.postedTs * 1000) : null,
+      });
+    }
+
+    if (batch.length < PCSX_PAGE) break;
+    if ((page + 1) * PCSX_PAGE >= (data.data?.count ?? 0)) break;
+  }
+  return { listings };
+}
 
 // --------------------------------------------------------------------------
 // SmartRecruiters — config: { company: "Visa" }
