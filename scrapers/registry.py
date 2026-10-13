@@ -158,7 +158,12 @@ COMPANIES: list[Company] = [
     # behind it has 346 postings.
     c("Harvey", "harvey.ai", ats={"adapter": "ashby", "config": {"board": "harvey"}}),
     c("Pinterest", "pinterest.com"),
-    c("MITRE", "mitre.org", careers_url="https://careers.mitre.org/us/en/search-results"),
+    # Phenom site; its search widget returns postings as JSON, which replaced
+    # rendering the search page.
+    c("MITRE", "mitre.org",
+      ats={"adapter": "phenom",
+           "config": {"host": "careers.mitre.org", "lang": "en_us",
+                      "country": "us", "keywords": "intern"}}),
     # ---- A- -------------------------------------------------------------
     c("Snap", "snap.com", careers_url="https://www.snap.com/en-US/jobs"),
     c("Dropbox", "dropbox.com", careers_url="https://jobs.dropbox.com/all-jobs"),
@@ -233,6 +238,28 @@ COMPANIES: list[Company] = [
       careers_url="https://www.capitalonecareers.com/search-jobs"),
     c("eBay", "ebay.com", careers_url="https://jobs.ebayinc.com/us/en/search-results"),
     c("Shopify", "shopify.com", careers_url="https://www.shopify.com/careers/search"),
+
+    # ---- Defense ----------------------------------------------------------
+    # Eightfold PCSX tenant; the v2 API answers 403. The level-of-experience
+    # facet returns every intern and co-op posting, including "College Student -
+    # Technical - N3" reqs that a keyword search misses and the title pattern
+    # marks as internships.
+    c("Lockheed Martin", "lockheedmartin.com",
+      ats={"adapter": "eightfold",
+           "config": {"host": "lockheedmartin.eightfold.ai",
+                      "domain": "lockheedmartin.com", "api": "pcsx", "query": "",
+                      "filters": {"level_of_experience": ["co-op/summer intern"]},
+                      "internTitlePatterns": ["^College Student\\b"]}}),
+    c("BAE Systems", "baesystems.com",
+      ats={"adapter": "phenom",
+           "config": {"host": "jobs.baesystems.com", "lang": "en_global",
+                      "country": "global", "keywords": "intern"}}),
+    # DirectEmployers mirror of SAIC's Workday board. It syncs about nightly, so
+    # polling hourly loses nothing.
+    c("SAIC", "saic.com",
+      ats={"adapter": "dejobs",
+           "config": {"origin": "saic.dejobs.org", "query": "intern"},
+           "poll_interval_minutes": 60}),
 
     # ---- Not a company: NSF's REU site directory -------------------------
     # 492 research programs across 20 paginated pages, each row carrying a stable
