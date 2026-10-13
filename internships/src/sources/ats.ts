@@ -441,3 +441,162 @@ export const smartrecruiters: Adapter = async (config) => {
   }
   return { listings };
 };
+
+// --------------------------------------------------------------------------
+// Phenom — config: { host, lang, country, company, keywords?, pathPrefix? }
+// e.g. { host: "jobs.baesystems.com", lang: "en_global", country: "global" }
+//
+// Phenom career sites search through a `refineSearch` widget call; `lang` and
+// `country` are the site's locale, read off phApp.ddo on its search page. Job
+// pages live at /{country}/{language}/job/{jobId}, so the prefix is derived
+// from `lang` ("en_us" -> "us/en") unless `pathPrefix` overrides it.
+// --------------------------------------------------------------------------
+interface PhenomJob {
+  jobId?: string;
+  title?: string;
+  multi_location?: string[];
+  location?: string;
+  postedDate?: string;
+}
+
+const PHENOM_PAGE = 100;
+const PHENOM_MAX_PAGES = 10;
+
+export const phenom: Adapter = async (config) => {
+  const host = requireString(config, "host");
+  const lang = requireString(config, "lang");
+  const country = requireString(config, "country");
+  const company = requireString(config, "company");
+  const keywords = optionalString(config, "keywords") ?? "intern";
+  const [language, region] = lang.split("_");
+  const pathPrefix = (
+    optionalString(config, "pathPrefix") ?? `${region}/${language}`
+  ).replace(/^\/+|\/+$/g, "");
+
+  const listings: RawListing[] = [];
+  const seen = new Set<string>();
+
+  for (let page = 0; page < PHENOM_MAX_PAGES; page++) {
+    const data = await getJson<{
+      refineSearch?: { totalHits?: number; data?: { jobs?: PhenomJob[] } };
+    }>(`https://${host}/widgets`, {
+      method: "POST",
+      body: {
+        ddoKey: "refineSearch",
+        lang,
+        country,
+        keywords,
+        size: PHENOM_PAGE,
+        from: page * PHENOM_PAGE,
+        // Without `jobs: true` the widget returns counts and no postings.
+        jobs: true,
+        siteType: "external",
+        pageName: "search-results",
+        global: true,
+      },
+    });
+
+    const batch = data.refineSearch?.data?.jobs ?? [];
+    for (const j of batch) {
+      if (!j.jobId || !j.title) continue;
+      if (seen.has(j.jobId)) continue;
+      seen.add(j.jobId);
+      listings.push({
+        externalId: j.jobId,
+        company,
+        title: j.title,
+        url: `https://${host}/${pathPrefix}/job/${encodeURIComponent(j.jobId)}`,
+        // multi_location repeats sites for postings spread across them.
+        locations: compact([
+          ...new Set(j.multi_location?.length ? j.multi_location : [j.location]),
+        ]),
+        term: termFromTitle(j.title),
+        sponsorship: null,
+        category: null,
+        postedAt: j.postedDate ? new Date(j.postedDate) : null,
+      });
+    }
+
+    if (batch.length < PHENOM_PAGE) break;
+    if ((page + 1) * PHENOM_PAGE >= (data.refineSearch?.totalHits ?? 0)) break;
+  }
+  return { listings };
+};
+
+// --------------------------------------------------------------------------
+// DirectEmployers (dejobs.org) — config: { origin, company, query? }
+// e.g. { origin: "saic.dejobs.org", company: "SAIC" }
+//
+// A .jobs microsite is a nightly mirror of the employer's ATS, searched through
+// the jobsyn API with the site named in `x-origin`. The mirror lists a
+// requisition once per location, so rows are grouped on `reqid` and their
+// locations merged; the lowest guid supplies the link so it is stable between
+// polls.
+// --------------------------------------------------------------------------
+interface DejobsJob {
+  guid?: string;
+  reqid?: string;
+  title_exact?: string;
+  title_slug?: string;
+  location_exact?: string;
+  date_new?: string;
+}
+
+const DEJOBS_MAX_PAGES = 20;
+
+// The microsite's own slug rule: strip diacritics, quotes, "+", ":" and "/",
+// then join the remaining word runs with hyphens.
+function dejobsSlug(text: string): string {
+  return (
+    text
+      .normalize("NFD")
+      .replace(/"|\p{Diacritic}/gu, "")
+      .replace(/["’+:/]/g, "")
+      .match(/\w+/g)
+      ?.join("-")
+      .toLowerCase() ?? ""
+  );
+}
+
+export const dejobs: Adapter = async (config) => {
+  const origin = requireString(config, "origin");
+  const company = requireString(config, "company");
+  const query = optionalString(config, "query") ?? "intern";
+
+  const groups = new Map<string, DejobsJob[]>();
+  for (let page = 1; page <= DEJOBS_MAX_PAGES; page++) {
+    const data = await getJson<{
+      jobs?: DejobsJob[];
+      pagination?: { has_more_pages?: boolean };
+    }>(
+      `https://prod-search-api.jobsyn.org/api/v1/solr/search?q=${encodeURIComponent(query)}&page=${page}`,
+      { headers: { "x-origin": origin } },
+    );
+    for (const j of data.jobs ?? []) {
+      if (!j.guid || !j.reqid || !j.title_exact || !j.title_slug || !j.location_exact) {
+        continue;
+      }
+      groups.set(j.reqid, [...(groups.get(j.reqid) ?? []), j]);
+    }
+    if (!data.pagination?.has_more_pages) break;
+  }
+
+  const listings: RawListing[] = [];
+  for (const [externalId, rows] of groups) {
+    const first = rows.reduce((a, b) => (b.guid! < a.guid! ? b : a));
+    const title = first.title_exact!;
+    const dates = rows.map((r) => r.date_new).filter((d): d is string => !!d).sort();
+    listings.push({
+      externalId,
+      company,
+      title,
+      url: `https://${origin}/${dejobsSlug(first.location_exact!)}/${first.title_slug}/${first.guid}/job/`,
+      locations: compact([...new Set(rows.map((r) => r.location_exact))]),
+      term: termFromTitle(title),
+      sponsorship: null,
+      category: null,
+      postedAt: dates[0] ? new Date(dates[0]) : null,
+    });
+  }
+  return { listings };
+};

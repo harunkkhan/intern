@@ -8,9 +8,11 @@ import { msr } from "./msr.ts";
 import { scraped } from "./scraped.ts";
 import {
   ashby,
+  dejobs,
   eightfold,
   greenhouse,
   lever,
+  phenom,
   smartrecruiters,
   workday,
 } from "./ats.ts";
@@ -24,6 +26,8 @@ export const ADAPTERS = {
   workday,
   smartrecruiters,
   eightfold,
+  phenom,
+  dejobs,
   // Playwright + BeautifulSoup, for companies whose postings live only on their
   // own site. See internships/src/sources/scraped.ts.
   scraped,
