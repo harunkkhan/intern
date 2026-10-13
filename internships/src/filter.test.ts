@@ -127,8 +127,26 @@ describe("graduateOnly", () => {
     expect(graduateOnly("Software Engineer Intern", ["PhD"])).toBe(true);
     expect(graduateOnly("Software Engineer Intern", ["Master's", "PhD"])).toBe(true);
     expect(graduateOnly("Software Engineer Intern", ["MBA"])).toBe(true);
-    expect(graduateOnly("Research Intern - MS/PhD", ["Bachelor's", "Master's"])).toBe(false);
+    expect(graduateOnly("Data Intern - BS/MS", ["Master's"])).toBe(false);
     expect(graduateOnly("Technician Intern", ["Associate's"])).toBe(false);
+  });
+
+  test("an explicit graduate degree in the title beats the tags", () => {
+    expect(
+      graduateOnly("Software Engineer Intern - MS/PhD", ["Bachelor's", "Master's", "PhD"]),
+    ).toBe(true);
+    expect(graduateOnly("Applied Scientist PhD Intern", ["Bachelor's"])).toBe(true);
+    expect(graduateOnly("Research Intern - BS/MS/PhD", ["Bachelor's", "Master's", "PhD"])).toBe(
+      false,
+    );
+    expect(graduateOnly("Research Intern - BS/MS/PhD", null)).toBe(false);
+  });
+
+  test("a bare Graduate defers to the tags when they name a degree", () => {
+    expect(graduateOnly("Technical Graduate Intern", ["Bachelor's"])).toBe(false);
+    expect(graduateOnly("Graduate Intern", ["Master's"])).toBe(true);
+    expect(graduateOnly("Graduate Intern", null)).toBe(true);
+    expect(graduateOnly("Graduate Intern", [])).toBe(true);
   });
 
   test("falls back to the title when degrees are empty or non-degree", () => {

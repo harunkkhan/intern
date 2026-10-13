@@ -46,15 +46,20 @@ const DISQUALIFYING =
 const UNDERGRAD_TITLE =
   /\bundergrad\w*|\bbachelor\w*|\bassociate['’]?s\s+degree\b/i;
 const UNDERGRAD_ABBR = /\b(?:BS|BA|BSc|BEng|BSE|BASc)\b|\bB\.[SA]\./;
-// "Master" alone is left out ("Scrum Master", "Master Data"), as is "pre-doctoral"
-// (pre-PhD programs are aimed at undergrads). A bare "Graduate"/"Grad" means a
-// graduate student unless it's a new/recent/university graduate or a graduate
-// rotational program; defense primes post "Graduate Intern" for MS/PhD students.
-const GRAD_TITLE =
-  /\bmaster['’]?s\b|\bmaster\s+of\b|\bph\.?\s?d\b|(?<!pre-?)\bdoctora(?:l|te)\b|\bpost-?doc\w*|\bmba\b|(?<!\b(?:new|recent|university|college|under)[\s-]*)\bgrad(?:uate)?\b(?!\s+(?:program\w*|rotation\w*|scheme|development))/i;
-// "MS" after a comma is Mississippi, and "MD" is never matched (Maryland).
-const GRAD_ABBR =
+// An explicit graduate degree in the title. "Master" alone is left out ("Scrum
+// Master", "Master Data"), as is "pre-doctoral" (pre-PhD programs are aimed at
+// undergrads). "MS" after a comma is Mississippi, and "MD" is never matched
+// (Maryland).
+const GRAD_DEGREE_TITLE =
+  /\bmaster['’]?s\b|\bmaster\s+of\b|\bph\.?\s?d\b|(?<!pre-?)\bdoctora(?:l|te)\b|\bpost-?doc\w*|\bmba\b/i;
+const GRAD_DEGREE_ABBR =
   /(?<!,\s*)\bMS\b(?!\s+(?:Office|Excel|Dynamics|Teams|Word|Access|Azure)\b)|\b(?:MSc|MEng|MPH|JD)\b|\bM\.S\.|\bJ\.D\./;
+// A bare "Graduate"/"Grad" means a graduate student unless it's a new/recent/
+// university graduate or a graduate rotational program; defense primes post
+// "Graduate Intern" for MS/PhD students. Weaker than a named degree, so
+// structured degree data overrides it.
+const GRAD_WORD =
+  /(?<!\b(?:new|recent|university|college|under)[\s-]*)\bgrad(?:uate)?\b(?!\s+(?:program\w*|rotation\w*|scheme|development))/i;
 
 const UNDERGRAD_DEGREES = new Set(["Bachelor's", "Associate's"]);
 const GRAD_DEGREES = new Set([
@@ -62,20 +67,20 @@ const GRAD_DEGREES = new Set([
 ]);
 
 /**
- * True when the posting is restricted to graduate students. SimplifyJobs'
- * structured `degrees` decides when it names any undergrad or grad degree;
- * otherwise (no field, or only "Certificate"/"Bootcamp"-style entries) the title
- * does.
+ * True when the posting is restricted to graduate students. In order: an
+ * undergrad degree in the title keeps it; an explicit graduate degree in the
+ * title drops it; SimplifyJobs' structured `degrees` decides when it names any
+ * undergrad or grad degree; otherwise a bare "Graduate" in the title drops it.
  */
 export function graduateOnly(
   title: string,
   degrees: string[] | null | undefined,
 ): boolean {
+  if (UNDERGRAD_TITLE.test(title) || UNDERGRAD_ABBR.test(title)) return false;
+  if (GRAD_DEGREE_TITLE.test(title) || GRAD_DEGREE_ABBR.test(title)) return true;
   if (degrees?.some((d) => UNDERGRAD_DEGREES.has(d))) return false;
   if (degrees?.some((d) => GRAD_DEGREES.has(d))) return true;
-  const grad = GRAD_TITLE.test(title) || GRAD_ABBR.test(title);
-  const undergrad = UNDERGRAD_TITLE.test(title) || UNDERGRAD_ABBR.test(title);
-  return grad && !undergrad;
+  return GRAD_WORD.test(title);
 }
 
 // The term filter is a floor, not a fixed set: anything from this cycle onward
